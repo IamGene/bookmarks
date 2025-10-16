@@ -1,0 +1,53 @@
+/* .arco-card-size-default .arco-card-body {
+    padding: 10px 15px;
+}
+
+
+.arco-card-header {
+    border-bottom: 1px solid var(--color-neutral-3);
+}
+
+.arco-card {
+    margin-bottom: 10px;
+}
+
+._container ._single-content {
+    border: 1px solid var(--color-neutral-3);
+    padding: 10px 0 10px 20px;
+} */
+
+html {
+    /*scroll-padding-top: 89px;  !* 高度等于顶部栏的高度 *!*/
+    /*scroll-padding-top: 110px;  !* 高度等于顶部栏的高度 *!*/
+    scroll-padding-top: 65px;
+    /* 发生滚动时,高度等于顶部栏的高度 */
+}
+
+.arco-tree-node-title {
+    padding: 0
+}
+
+.arco-tree-show-line {
+    padding-left: 5px
+}
+
+.card-no-child-more .arco-link {
+    padding: 5px 4px;
+}
+
+.arco-menu-collapse .arco-anchor-link-title {
+    /* padding: 4px 20px 4px 0; */
+    padding: 4px 20px 4px 10px;
+}
+
+.arco-anchor-link {
+    width: 100%;
+}
+
+.arco-menu-vertical .arco-menu-pop-header {
+    padding: 0;
+}
+
+.arco-menu-vertical .arco-menu-item {
+    padding: 0;
+}
