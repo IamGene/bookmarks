@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     // base: mode === 'production' ? '/bookmarks/' : '/',
+    base: process.env.VERCEL ? '/' : '/bookmarks/',
 
     resolve: {
       alias: [{ find: '@', replacement: '/src' }],

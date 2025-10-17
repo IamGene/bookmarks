@@ -40,17 +40,9 @@ async function enablePersistence() {
 
   console.warn('⚠️ 浏览器拒绝持久化，建议用户点击“启用持久化”或安装为 PWA');
   // 提示用户操作
-  // alert('⚠️ 您的浏览器未授权持久化存储。\n请点击“启用持久化”按钮或将网站安装为应用以防止数据丢失。');
-  // return false;
 
   Modal.confirm({
     title: '数据持久化',
-    /* content: (
-      <p>
-        ⚠️ 您的浏览器未授权持久化存储。请点击“启用持久化”按钮以防止数据丢失。
-      </p>
-    ), */
-
     content: (
       <div>
         <p>⚠️您的浏览器暂未授权持久化存储。</p>
@@ -93,8 +85,7 @@ function handleCancel() {
 
 export async function getDB() {
   // ✅ 第一步：确保持久化检测（仅执行一次，不影响性能）
-  // await enablePersistence();
-  await ensurePersistenceOnce();
+  // await ensurePersistenceOnce();
   // ✅ 第二步：打开数据库
   return await openDB('BookmarksDB', 1, {
     upgrade(db) {
