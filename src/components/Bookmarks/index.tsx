@@ -38,7 +38,7 @@ function DropContent({ pages, currentPage, pagesChange, keepPopupVisible, active
   // const [addedPageId, setAddedPageId] = useState(null);
   const [addedPageIds, setAddedPageIds] = useState([]);
 
-  console.log("🌀 渲染 DropContent list pages=", pages);
+  // console.log("🌀 渲染 DropContent list pages=", pages);
   const [groupData, setGroupData] = useState<{
     [key: string]: MessageListType;
   }>({});
@@ -245,7 +245,7 @@ function BookmarkPageBox({ children, pages, currentPage }) {
 
   const [data, setData] = useState<BookmarksPagesType>(pages);
 
-  console.log("🌀 渲染 BookmarkPageBox，popupVisible =", data, currentPage);
+  // console.log("🌀 渲染 BookmarkPageBox，popupVisible =", data, currentPage);
   const [activeKey, setActiveKey] = useState<string>('pages');
   const [count, setCount] = useState<number>(0);
 
@@ -259,7 +259,7 @@ function BookmarkPageBox({ children, pages, currentPage }) {
 
   async function refreshBookmarksPage() {
     const newPages = await getPages();
-    console.log('onPagesChange 222222222 newPages', newPages);
+    // console.log('onPagesChange 222222222 newPages', newPages);
     setData(newPages);
   }
 

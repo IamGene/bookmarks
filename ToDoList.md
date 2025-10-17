@@ -109,3 +109,10 @@ vite
 
 
  # if (typeof userInfo === 'undefined' || userInfo === null) {}
+
+ ## 持久化数据
+给出一个完整、简洁的示例，展示以下功能：
+✅ 检测浏览器是否支持持久化存储；
+✅ 检查当前 IndexedDB 是否为持久化模式；
+✅ 申请启用持久化存储（Persistent Storage）；
+✅ 创建并操作 IndexedDB（写入、读取、加载数据）。

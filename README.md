@@ -18,3 +18,5 @@ serve -s dist
 ## 云服务部署
 Render
 ## Github Pages
+
+"homepage": "https://filmlist.github.io/bookmarks-local",ss
