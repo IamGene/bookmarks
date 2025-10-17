@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
   console.log('当前模式:', mode);
 
   return {
-    base: mode === 'production' ? '/bookmarks/' : '/',
+    // base: mode === 'production' ? '/bookmarks/' : '/',
 
     resolve: {
       alias: [{ find: '@', replacement: '/src' }],
