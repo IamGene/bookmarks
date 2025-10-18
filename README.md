@@ -19,4 +19,4 @@ serve -s dist
 Render
 ## Github Pages
 
-"homepage": "https://filmlist.github.io/bookmarks-local",sssst
+"homepage": "https://imgene.github.io/bookmarks-local",sssst
