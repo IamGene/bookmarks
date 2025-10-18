@@ -25,13 +25,13 @@ import { useFetchPageData } from '@/hooks/fetchPageData';
 import { removeConfirm } from '@/pages/navigate/user/form/remove-confirm-modal';
 import styles from './style/index.module.less';
 import Imports from './import/index';
-import { set } from 'mobx';
-import { useDispatch } from 'react-redux';
+// import { set } from 'mobx';
+// const dispatch = useDispatch();
+// import { useDispatch } from 'react-redux';
 
 function DropContent({ pages, currentPage, pagesChange, keepPopupVisible, activeKey }) {
 
   const t = useLocale();
-  const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(activeKey);
   const [currentPageId, setCurrentPageId] = useState(currentPage);
@@ -122,7 +122,6 @@ function DropContent({ pages, currentPage, pagesChange, keepPopupVisible, active
   }
 
 
-
   function readMessage(data: BookmarksPagesType) {
     const ids = data.map((item) => item.pageId);
     axios
@@ -202,12 +201,12 @@ function DropContent({ pages, currentPage, pagesChange, keepPopupVisible, active
               onItemClick={(item) => {
                 // readMessage([item]);
               }}
-              onAllBtnClick={(unReadData) => {
-                // readMessage(unReadData);
-              }}
+              // onAllBtnClick={(unReadData) => {
+              //   // readMessage(unReadData);
+              // }}
               onRemovePage={handlePageRemove}
             />
-
+            {/* <List1 /> */}
           </Tabs.TabPane>
 
 
@@ -241,6 +240,7 @@ function DropContent({ pages, currentPage, pagesChange, keepPopupVisible, active
 function BookmarkPageBox({ children, pages, currentPage }) {
   // 提供一个ref给DropContent
   const [popupVisible, setPopupVisible] = React.useState(false);
+
 
 
   const [data, setData] = useState<BookmarksPagesType>(pages);
@@ -282,6 +282,7 @@ function BookmarkPageBox({ children, pages, currentPage }) {
       clickToClose={false} // 关键属性：点击弹层内容（包括Modal）不关闭
       popupVisible={popupVisible}
       onVisibleChange={setPopupVisible}
+      // popupVisible={true}
       popup={() => <DropContent pages={data} currentPage={currentPage} keepPopupVisible={keepPopupVisible} pagesChange={onPagesChange} activeKey={activeKey} />}
       position="br"
       unmountOnExit={false}

@@ -8,13 +8,15 @@ import {
   Typography,
   Badge,
   Tag,
+  Message,
 } from '@arco-design/web-react';
 import useLocale from '@/utils/useLocale';
 import styles from './style/index.module.less';
 // 导入自定义 Hook
-import { useFetchPageData } from '@/hooks/fetchPageData'; //
-import { setDefaultPage, getPages, getPageTree, exportPageJson } from '@/db/bookmarksPages';
+import { useFetchPageData } from '@/hooks/fetchPageData';
+import { setDefaultPage, getPages, getPageTree, exportPageJson, getPageBookmarks, generateBookmarkHTML } from '@/db/bookmarksPages';
 
+import ExportModal from './exportModal';
 // import { useSelector, useDispatch } from 'react-redux';
 
 export interface MessageItemData {
@@ -87,6 +89,9 @@ function BookmarksPages(props: BookmarksPageProps) {
     setCurrentPage(currentPageId);
   }, [currentPageId]);
 
+
+
+
   useEffect(() => {
     setNewPageIds(addedPageIds);
   }, [addedPageIds]);
@@ -135,25 +140,15 @@ function BookmarksPages(props: BookmarksPageProps) {
      await dispatchTagGroupsData(pageId);
    } */
 
-  async function exportPage(item: BookmarksPageData, index: number) {
-    // 导出书签页
-    const res = await exportPageJson(item.pageId);
-    if (res && res.pages) {
-      // 将 JSON 对象转换为格式化的字符串
-      const jsonString = JSON.stringify(res, null, 2);
-      // 创建一个 Blob 对象
-      const blob = new Blob([jsonString], { type: 'application/json' });
-      // 创建一个指向该 Blob 的 URL
-      const url = URL.createObjectURL(blob);
-      // 创建一个临时的 a 标签用于下载
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${res.pages[0].title}.json`; // 设置下载的文件名
-      a.click(); // 触发下载
-      // 释放 URL 对象
-      URL.revokeObjectURL(url);
-    }
+
+  const [exportModalVisible, setExportModalVisible] = useState(false);
+  const [exportPageItem, setExportPageItem] = useState<BookmarksPageData>(localPages[0]);
+  function exportSelect(item: BookmarksPageData, index: number) {
+    // 导出书签页-对话框：选择导出方式
+    setExportModalVisible(true);
+    setExportPageItem(item);
   }
+
 
   function switchPage(item: BookmarksPageData, index: number) {
     setCurrentPage(item.pageId);
@@ -162,7 +157,6 @@ function BookmarksPages(props: BookmarksPageProps) {
       // setNewPageId(null);
       // newPageIds.remove(item.pageId);
       setNewPageIds(newPageIds.filter(id => id !== item.pageId));
-
     }
     if (currentPage !== item.pageId) {
       switchPageId(item.pageId);
@@ -175,76 +169,63 @@ function BookmarksPages(props: BookmarksPageProps) {
   ;
 
   return (
-    <List
-      noDataElement={<Result status="404" subTitle={t['message.empty.tips']} />}
-    /* footer={
-      <div className={styles.footer}>
-        <div className={styles['footer-item']}>
-          <Button type="text" size="small" onClick={() => { }}>
-            {t['message.allRead']}
-          </Button>
-        </div>
-        <div className={styles['footer-item']}>
-          <Button type="text" size="small">
-            {t['message.seeMore']}
-          </Button>
-        </div>
-      </div>
-    } */
-    >
-      {/* {data.map((item, index) => ( */}
-      {localPages.map((item, index) => (
-        <List.Item
-          key={item.pageId}
-          actionLayout="vertical"
-          style={{
-            // opacity: item.status ? 0.5 : 1,//0.5:半透明
-            opacity: 1,
-          }}
-        >
-          <div
+    <>
+      <List
+        noDataElement={<Result status="404" subTitle={t['message.empty.tips']} />}
+      >
+        {localPages.map((item, index) => (
+          <List.Item
+            key={item.pageId}
+            actionLayout="vertical"
             style={{
-              cursor: 'pointer',
-            }}
-            onClick={() => {
-              onItemClick(item, index);
+              opacity: 1,
             }}
           >
-            <List.Item.Meta
-              title={
-                <div className={styles['message-title']}>
-                  <Space size={4}>
+            <div
+              style={{
+                cursor: 'pointer',
+              }}
+              onClick={() => {
+                onItemClick(item, index);
+              }}
+            >
+              <List.Item.Meta
+                title={
+                  <div>
+                    <Space size={6}>
+                      <Badge count={isContained(item.pageId) ? 1 : 0} dot>
+                        <Button type={item.pageId == currentPage ? 'outline' : 'default'}
+                          onClick={e => { e.stopPropagation(); switchPage(item, index); }}
+                        >
+                          {item.title}
+                        </Button>
+                      </Badge>
+                      <Tag color="red" onClick={e => { e.stopPropagation(); onRemovePage(item, index); }}>删除</Tag>
+                      <Tag color="orange" onClick={e => { e.stopPropagation(); onRemovePage(item, index); }}>重命名</Tag>
 
-                    {/* <Badge count={item.pageId == newPageId ? 1 : 0} dot> */}
-                    {/* <Badge count={isContained(item.pageId) ? 1 : 0} dot> */}
-                    <Badge count={isContained(item.pageId) ? 1 : 0} dot>
-                      <Button type={item.pageId == currentPage ? 'outline' : 'default'}
-                        onClick={e => { e.stopPropagation(); switchPage(item, index); }}
-                      >
-                        {item.title}
-                      </Button>
-                    </Badge>
+                      <Tag color="green" onClick={e => { e.stopPropagation(); exportSelect(item, index); }}>导出</Tag>
 
-                    {/* <Typography.Text type="secondary">
-                      {item.subTitle}
-                    </Typography.Text> */}
-                  </Space>
-                  <Tag color="red" onClick={e => { e.stopPropagation(); onRemovePage(item, index); }}>删除</Tag>
-                  <Tag color="orange" onClick={e => { e.stopPropagation(); onRemovePage(item, index); }}>重命名</Tag>
-                  <Tag color="green" onClick={e => { e.stopPropagation(); exportPage(item, index); }}>导出</Tag>
 
-                  {item.default ? (
-                    // <Tag icon={<IconStar />} color='arcoblue'>默认</Tag>) :
-                    <Tag color='arcoblue'>默认</Tag>) :
-                    <Tag color='gray' onClick={e => { e.stopPropagation(); handleSetDefaultPage(item, index); }}>默认</Tag>
-                  }
-                </div>
-              }
-            />
-          </div>
-        </List.Item>
-      ))}
-    </List>
+                      {item.default ? (<Tag color='arcoblue'>默认</Tag>) : (<Tag color='gray' onClick={e => { e.stopPropagation(); handleSetDefaultPage(item, index); }}>默认</Tag>)
+                      }
+                    </Space>
+
+                  </div>
+                }
+              />
+            </div>
+          </List.Item>
+        ))
+        }
+      </List >
+
+      <ExportModal
+        visible={exportModalVisible}
+        pageId={exportPageItem.pageId}
+        pageName={exportPageItem.title}
+        onClose={() => setExportModalVisible(false)}
+      />
+    </>
   );
 
 

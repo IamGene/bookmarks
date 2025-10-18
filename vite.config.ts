@@ -7,10 +7,11 @@ import setting from './src/settings.json';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd());
   console.log('当前模式:', mode);
+  console.log('当前模式:', process.env);
 
   return {
     // base: mode === 'production' ? '/bookmarks/' : '/',
-    base: process.env.VERCEL ? '/' : '/bookmarks/',
+    base: mode === 'development' || process.env.VERCEL ? '/' : '/bookmarks/',
 
     resolve: {
       alias: [{ find: '@', replacement: '/src' }],
@@ -43,17 +44,17 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-    server: {
-      proxy: {
-        //api是自行设置的请求前缀，任何请求路径以/api开头的请求将被代理到对应的target目标  与当前环境变量DEV的api前缀保持一致
-        // [env.VITE_API_PREFIX]: {
-        '/dev-api': {
-          target: "http://localhost:8080", //目标域名
-          changeOrigin: true, //需要代理跨域
-          rewrite: (path) => path.replace(/^\/dev-api/, ''), //路径重写，把'/api'替换为''
-        },
-        // },
-      }
-    }
+    /*  server: {
+       proxy: {
+         //api是自行设置的请求前缀，任何请求路径以/api开头的请求将被代理到对应的target目标  与当前环境变量DEV的api前缀保持一致
+         // [env.VITE_API_PREFIX]: {
+         '/dev-api': {
+           target: "http://localhost:8080", //目标域名
+           changeOrigin: true, //需要代理跨域
+           rewrite: (path) => path.replace(/^\/dev-api/, ''), //路径重写，把'/api'替换为''
+         },
+         // },
+       }
+     } */
   };
 });

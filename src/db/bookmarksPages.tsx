@@ -304,3 +304,148 @@ export async function getPageTree(pageId) {
     }
     return buildTree(null); // 根节点
 }
+
+/**
+ * 处理 getPageTree 生成的树，将因同时包含子文件夹和书签而分裂的节点进行合并。
+ * @param {Array} originalTree - 从 getPageTree 返回的原始树结构。
+ * @returns {Array} - 返回一个新的、合并处理过的树结构。
+ */
+export function processPageTree(originalTree) {
+    // 深拷贝以避免修改原始数据
+    const tree = JSON.parse(JSON.stringify(originalTree));
+
+    function traverse(nodes) {
+        if (!Array.isArray(nodes)) {
+            return;
+        }
+        for (let i = 0; i < nodes.length; i++) {
+            const parentNode = nodes[i];
+            if (parentNode.type === 'folder' && Array.isArray(parentNode.children) && parentNode.children.length > 0) {
+                // 查找并处理特殊子节点
+                const specialChildIndex = parentNode.children.findIndex(child => child.path === parentNode.path);
+                if (specialChildIndex !== -1) {
+                    const specialChild = parentNode.children[specialChildIndex];
+                    parentNode.urlList = specialChild.urlList; // 将 urlList 赋值给父节点
+                    parentNode.children.splice(specialChildIndex, 1); // 从子节点中移除
+                }
+                traverse(parentNode.children); // 继续递归处理其他子节点
+            }
+        }
+    }
+    traverse(tree);
+    return tree;
+}
+
+/**
+ * 根据 pageId 获取扁平化的书签列表
+ * @param pageId
+ * @returns {Promise<Array<{url: string, title: string, createAt: number, updateAt: number}>>}
+ */
+export async function getPageBookmarks(pageId) {
+    try {
+        const db = await getDB();
+        const urls = await db.getAllFromIndex('urls', 'pageId', pageId);
+        // 格式化数据以匹配 HTML 导出逻辑
+        return urls.map(url => ({
+            name: url.name,
+            icon: url.icon,
+            url: url.url,
+            title: url.title,
+            createAt: url.add_date || Date.now(), // 使用 add_date 作为创建时间
+            updateAt: url.last_modified || url.add_date || Date.now(), // 优先使用 last_modified，其次是 add_date
+        }));
+    } catch (e) {
+        console.error('getPageBookmarks error', e);
+        return [];
+    }
+}
+
+
+
+/**
+ * 生成 HTML 书签，支持层级结构
+ * @param pageId
+ * @returns {Promise<string>}
+ */
+export async function generateBookmarkHTML(pageId: number): Promise<string> {
+    const originalPageTree = await getPageTree(pageId);
+    const pageTree = processPageTree(originalPageTree);
+    const topLevelBookmarkBarNames = ['书签栏', '收藏夹栏', '书签工具栏'];//顶层书签栏
+    const topLevelOtherBookmarkBarNames = ['移动设备和其他书签', '移动和其他收藏夹', '其他书签'];//移动设备和其他书签栏
+
+    function generateHTML(nodes, level = 0) {
+        let htmlStr = '';
+
+        for (const node of nodes) {
+            // ✅ 特殊处理顶层“书签栏”
+            if (level === 0) {
+                if (topLevelBookmarkBarNames.includes(node.name)) {
+                    // 直接导出其子书签和文件夹内容，不生成 <H3>书签栏</H3>
+                    if (node.urlList && node.urlList.length > 0) {
+                        htmlStr += generateHTML(node.urlList, level);
+                    }
+                    if (node.children && node.children.length > 0) {
+                        htmlStr += generateHTML(node.children, level);
+                    }
+                    continue; // 跳过后续默认处理
+                }
+
+                //其他书签(a,b,c,A,B,C)--->其他书签(a,b,c),A,B,C  与默认处理不同
+                else if (topLevelOtherBookmarkBarNames.includes(node.name)) {
+                    // console.log('其他书签(a,b,c,A,B,C)--->其他书签(a,b,c),A,B,C', node.name)
+                    // 直接导出该分组名+子书签
+                    if (node.urlList && node.urlList.length > 0) {
+                        htmlStr += `${'  '.repeat(level)}<DT><H3>${node.name || node.title}</H3>\n`;
+                        htmlStr += `${'  '.repeat(level)}<DL><p>\n`;
+                        // 当前文件夹下的书签
+                        if (node.urlList && node.urlList.length > 0) {
+                            htmlStr += generateHTML(node.urlList, level + 1);
+                        }
+                        htmlStr += `${'  '.repeat(level)}</DL><p>\n`;
+                    }
+                    // 直接导出文件夹内容，不生成 <H3>书签栏</H3>
+                    if (node.children && node.children.length > 0) {
+                        htmlStr += generateHTML(node.children, level);
+                    }
+                    continue; // 跳过后续默认处理
+                }
+            }
+
+
+            if (node.type === 'folder') {
+                htmlStr += `${'  '.repeat(level)}<DT><H3>${node.name || node.title}</H3>\n`;
+                htmlStr += `${'  '.repeat(level)}<DL><p>\n`;
+
+                // 递归子文件夹
+                if (node.children && node.children.length > 0) {
+                    htmlStr += generateHTML(node.children, level + 1);
+                }
+                // 当前文件夹下的书签
+                if (node.urlList && node.urlList.length > 0) {
+                    htmlStr += generateHTML(node.urlList, level + 1);
+                }
+
+                htmlStr += `${'  '.repeat(level)}</DL><p>\n`;
+            } else {
+                const addDate = Math.floor((node.add_date || Date.now()) / 1000);
+                const lastVisit = Math.floor((node.last_modified || node.add_date || Date.now()) / 1000);
+                htmlStr += `${'  '.repeat(level)}<DT><A HREF="${node.url}" ADD_DATE="${addDate}" LAST_VISIT="${lastVisit}" ICON="${node.icon || ''}">${node.name || node.title}</A>\n`;
+            }
+        }
+
+        return htmlStr;
+    }
+
+    let html = `<!DOCTYPE NETSCAPE-Bookmark-file-1>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">
+<TITLE>Bookmarks</TITLE>
+<H1>Bookmarks</H1>
+<DL><p>\n`;
+
+    html += generateHTML(pageTree);
+    // html += generateHTML(pageTree.slice(0, 3));
+
+    html += `</DL><p>\n`;
+
+    return html;
+}

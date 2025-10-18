@@ -12,7 +12,7 @@ export function handleFile(file: File, type: number): Promise<any[]> {
                 const html = e.target?.result as string;
                 const bookmarks = type === 1 ? "书签栏" : (type === 2 ? "收藏夹栏" : "书签工具栏");
                 const toolBar = type === 1 ? "书签栏" : (type === 2 ? "收藏夹栏" : "Bookmarks Toolbar");
-                const others = type === 1 ? "移动设备和其他书签栏" : (type === 2 ? "移动和其他收藏夹" : "其他书签");
+                const others = type === 1 ? "移动设备和其他书签" : (type === 2 ? "移动和其他收藏夹" : "其他书签");
                 const json = parseBookmarksAll(html, bookmarks, toolBar, others, type);
                 resolve(json);
             } catch (err) {
