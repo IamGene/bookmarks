@@ -6,7 +6,7 @@ import setting from './src/settings.json';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd());
-  console.log('当前模式:', mode);
+  // console.log('当前模式:', mode);
   console.log('当前模式:', process.env);
 
   return {
