@@ -2,32 +2,40 @@ import { Modal, Button, Form, Input, Radio, Select, Message } from '@arco-design
 import { useRef, useState, useEffect } from 'react';
 // import { Form, Input, Message, Radio, Button, Select } from '@arco-design/web-react';
 import { exportPageJson, getPageBookmarks, generateBookmarkHTML } from '@/db/bookmarksPages';
+import { BookmarksPageData } from './list';
 const FormItem = Form.Item;
 
 interface ExportModalProps {
-    pageId: number;
-    pageName: string;
+    // pageId: number;
+    // pageName: string;
+    page: BookmarksPageData | null;
     visible: boolean;
     onClose: () => void;
 }
 
-function ExportModal({ pageId, pageName, visible, onClose }: ExportModalProps) {
+// function ExportModal({ pageId, pageName, visible, onClose }: ExportModalProps) {
+function ExportModal({ page, visible, onClose }: ExportModalProps) {
     // const [visible, setVisible] = useState(false);
     const [confirmLoading, setConfirmLoading] = useState(false);
     const [form] = Form.useForm();
-
+    const pageId = page?.pageId;
+    const pageName = page?.title;
 
     useEffect(() => {
-        // 当 pageName 或 pageId 变化时，重置表单的 fileName 字段
+        // 当 pageName 或 pageId 变化时，重置表单的 fileName 字段,如果page为空，则不设置
         if (visible) {
-            form.setFieldsValue({ fileName: pageName + '-导出' });
+            form.setFieldsValue({ fileName: page.title + '-导出' });
         }
-    }, [pageId, pageName]);
+    }, [page]);
 
 
     async function onOk() {
+        if (!page) {
+            Message.error('No page data available.');
+            return;
+        }
         try {
-            // console.log(pageId, pageName);
+
             const res = await form.validate();
             setConfirmLoading(true);
             if (res.fileType === 'JSON') {
@@ -126,8 +134,8 @@ function ExportModal({ pageId, pageName, visible, onClose }: ExportModalProps) {
 
             <Form
                 form={form}
-                autoComplete='off'
-                initialValues={{ fileType: 'JSON', fileName: pageName + '-导出' }}
+                // autoComplete='off'
+                initialValues={{ fileType: 'JSON', fileName: pageName ? pageName + '-导出' : '书签导出' }}
                 style={{ maxWidth: 650 }}
                 onValuesChange={(_, vs) => {
                     console.log(vs);
@@ -164,5 +172,6 @@ function ExportModal({ pageId, pageName, visible, onClose }: ExportModalProps) {
         </Modal>
     );
 }
+
 
 export default ExportModal;

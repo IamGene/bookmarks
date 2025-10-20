@@ -187,7 +187,7 @@ const fetchBookmarksPageData = (page: number) => {
     const res = await getPageTree(page);
     // const pages = await getPages();
     // const res = await getUserNaviate();
-    console.log('999999999999 fetchTagGroupsData res', page, res)
+    // console.log('999999999999 fetchTagGroupsData res', page, res)
     // if (res.code === 200) {
     if (res.length > 0) {
       //list: 分组书签（全字段）

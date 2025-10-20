@@ -265,12 +265,12 @@ function UserNavigate() {
   // console.log('!!!!!!!!!!!!! index activeGroup', groups, activeGroup, hiddenGroup);
 
   const [list, setList] = useState(groups);
+  const [data, setData] = useState(groups);
   const [hasResult, setHasResult] = useState(true);
   const [display, setDisplay] = useState(hiddenGroup);//false
 
   const [hideGroup, setHideGroup] = useState(hiddenGroup);
   // const [data, setData] = useState(hiddenGroup ? filterHideItems(groups) : groups);
-  const [data, setData] = useState(groups);
   const [searchFromAll, setSearchFromAll] = useState(data);
   // const [filterFromAll, setFilterFromAll] = useState(hiddenGroup ? filterHideItems(groups) : groups);
   const [filterFromAll, setFilterFromAll] = useState(groups);
@@ -450,7 +450,7 @@ function UserNavigate() {
         .finally(() => setLoading(false));
     }; */
 
-  const fetchBookmarksData = async (page: number) => {
+  const fetchBookmarksData = async (page?: number) => {
     // const { groups, hiddenGroup } = globalState;
     // console.log('pages', pages);
     if (!groups || groups.length === 0) {//没有缓存到localStorage中
@@ -479,7 +479,7 @@ function UserNavigate() {
 
   useEffect(() => {
     // console.log('888888888888888888888 user navigate useEffect groups', groups)
-    fetchBookmarksData(1760173696766);// getNaviData();
+    fetchBookmarksData();// getNaviData();
     setList(groups);//Card 全部的
     setHideGroup(hiddenGroup)//这个不能变->NavBar展示开关
     // setDisplay(!hiddenGroup);//显示与否直接由导航栏的开关控制

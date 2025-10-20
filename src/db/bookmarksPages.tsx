@@ -5,6 +5,8 @@ function uuid() {
     return Math.random().toString(36).substr(2, 9);
 }
 
+
+
 export async function savePageBookmarks(pageData) {
     try {
         const db = await getDB();
@@ -65,6 +67,59 @@ export async function savePageBookmarks(pageData) {
     }
 }
 
+async function getPageNodesTree(pageId, db) {
+    // const db = await getDB();
+    const nodes = await db.getAllFromIndex('nodes', 'pageId', pageId);
+    nodes.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    function buildTree(parentId) {
+        return nodes
+            .filter(node => node.pId === parentId)
+            .map(node => {
+                if (node.type === 'folder') {
+                    const children = buildTree(node.id);
+                    return {
+                        ...node,
+                        status: 1,
+                        children: children,
+                        // urlList: urlList,
+                    };
+                } else {
+                    return node;
+                }
+            });
+    }
+    return buildTree(null); // 根节点
+}
+
+
+export async function getCollectPageGroups() {
+    const db = await getDB();
+    const tx = db.transaction('pages', 'readonly');
+    const store = tx.objectStore('pages');
+    const pages = await store.getAll();
+
+    if (pages.length > 0) {//只有用户存在标签数据才能查询
+        const defaultPage = pages.find(page => page.default === true);
+        const pageId = defaultPage ? defaultPage.pageId : pages[0].pageId; //选择默认或者第一个书签页
+        const res = await getPageNodesTree(pageId, db);
+        // console.log('RRRRRRRRR res', res)
+        return res;
+    } else {
+        // 返回一个与 getPageNodesTree 结构一致的默认分组
+        return [
+            {
+                id: uuid(),
+                name: "默认分组",
+                type: 'folder',
+                status: 0,
+                children: [],
+                // urlList: [],
+            }];
+    }
+
+}
+
+
 export async function getPages() {
     const db = await getDB();
     const tx = db.transaction('pages', 'readonly');
@@ -72,6 +127,7 @@ export async function getPages() {
     const allPages = await store.getAll();
     return allPages; // 根节点
 }
+
 
 export async function setDefaultPage(pageId) {
     const db = await getDB();
@@ -266,6 +322,8 @@ export async function deletePageBookmarks(pageId) {
         return false;
     }
 }
+
+
 
 export async function getPageTree(pageId) {
     const db = await getDB();

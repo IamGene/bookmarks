@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { memo, useEffect, useState } from 'react';
 
 import {
   List,
@@ -14,7 +14,7 @@ import useLocale from '@/utils/useLocale';
 import styles from './style/index.module.less';
 // 导入自定义 Hook
 import { useFetchPageData } from '@/hooks/fetchPageData';
-import { setDefaultPage, getPages, getPageTree, exportPageJson, getPageBookmarks, generateBookmarkHTML } from '@/db/bookmarksPages';
+import { setDefaultPage, getPages, getCollectPageGroups } from '@/db/bookmarksPages';
 
 import ExportModal from './exportModal';
 // import { useSelector, useDispatch } from 'react-redux';
@@ -60,8 +60,10 @@ interface MessageListProps {
 
 interface BookmarksPageProps {
   data: BookmarksPageData[];
-  currentPageId: number;
+  initialCurrentPageId: number; // 重命名 prop，表示仅用于初始值
   addedPageIds: number[];
+  pageSwitch: (pageId: number) => void; keepPopupVisible?: () => void;
+  // switchPageIdpageId: number) => void;
   onItemClick?: (item: BookmarksPageData, index: number) => void;
   onAllBtnClick?: (data: BookmarksPageData[]) => void;
   onRemovePage?: (item: BookmarksPageData, index: number) => void;
@@ -69,9 +71,9 @@ interface BookmarksPageProps {
 
 function BookmarksPages(props: BookmarksPageProps) {
   const t = useLocale();
-  const { data, currentPageId, addedPageIds, onRemovePage } = props;
+  const { data, initialCurrentPageId, addedPageIds, pageSwitch, onRemovePage, keepPopupVisible } = props;
 
-  const [currentPage, setCurrentPage] = useState(currentPageId);
+  const [currentPage, setCurrentPage] = useState(initialCurrentPageId);
   const [localPages, setLocalPages] = useState(props.data);
   // const [newPageId, setNewPageId] = useState(addedPageId);
   const [newPageIds, setNewPageIds] = useState(addedPageIds);
@@ -85,12 +87,12 @@ function BookmarksPages(props: BookmarksPageProps) {
     setLocalPages(data);
   }, [data]);
 
+
   useEffect(() => {
-    setCurrentPage(currentPageId);
-  }, [currentPageId]);
-
-
-
+    // 仅在组件首次加载时设置 currentPage
+    // 使用 initialCurrentPageId 作为初始值，之后不再受父组件影响
+    setCurrentPage(initialCurrentPageId);
+  }, [initialCurrentPageId]); // 依赖项确保只在初始ID变化时（通常只有一次）执行
 
   useEffect(() => {
     setNewPageIds(addedPageIds);
@@ -101,7 +103,6 @@ function BookmarksPages(props: BookmarksPageProps) {
     await setDefaultPage(item.pageId);
     // 局部刷新：直接获取最新数据并 setState
     const newPages = await getPages();
-    // console.log('newPages', newPages);
     // 假设有 localPages 作为本地状态
     setLocalPages(newPages);
   }
@@ -134,37 +135,34 @@ function BookmarksPages(props: BookmarksPageProps) {
   // 💥 在组件顶层调用自定义 Hook
   const switchPageId = useFetchPageData();
 
-  /*  async function switchPageId(pageId: number) {
-     // const res = await getGroupData(pageId);
-     console.log("切换标签页 111 switchPageId pageId=", pageId);
-     await dispatchTagGroupsData(pageId);
-   } */
-
-
   const [exportModalVisible, setExportModalVisible] = useState(false);
-  const [exportPageItem, setExportPageItem] = useState<BookmarksPageData>(localPages[0]);
+  const [exportPageItem, setExportPageItem] = useState<BookmarksPageData | null>(localPages?.length > 0 ? localPages[0] : null);
   function exportSelect(item: BookmarksPageData, index: number) {
     // 导出书签页-对话框：选择导出方式
     setExportModalVisible(true);
     setExportPageItem(item);
   }
 
-
   function switchPage(item: BookmarksPageData, index: number) {
-    setCurrentPage(item.pageId);
+    if (currentPage === item.pageId) {
+      return; // 如果点击的是当前页，则不执行任何操作
+    }
+    // window.scrollTo(0, 0);
+    // keepPopupVisible();
+
+    // const collectPageGroups = await getCollectPageGroups();
+    // console.log('collectPageGroups', collectPageGroups);
+
+    pageSwitch(item.pageId);
     if (addedPageIds.length > 0 && isContained(item.pageId)) {
       //点击切换到刚添加的书签页，取消红点
-      // setNewPageId(null);
-      // newPageIds.remove(item.pageId);
       setNewPageIds(newPageIds.filter(id => id !== item.pageId));
     }
-    if (currentPage !== item.pageId) {
-      switchPageId(item.pageId);
-    }
+    // 立即更新UI，让按钮样式先生效
+    keepPopupVisible();
   }
 
   const isContained = (pageId: number) =>
-    // console.log('isContained pageId=', pageId, ' newPageIds=', newPageIds);
     newPageIds.length > 0 && newPageIds.includes(pageId);
   ;
 
@@ -173,7 +171,7 @@ function BookmarksPages(props: BookmarksPageProps) {
       <List
         noDataElement={<Result status="404" subTitle={t['message.empty.tips']} />}
       >
-        {localPages.map((item, index) => (
+        {localPages?.map((item, index) => (
           <List.Item
             key={item.pageId}
             actionLayout="vertical"
@@ -221,14 +219,13 @@ function BookmarksPages(props: BookmarksPageProps) {
 
       <ExportModal
         visible={exportModalVisible}
-        pageId={exportPageItem.pageId}
-        pageName={exportPageItem.title}
+        // pageId={exportPageItem.pageId}
+        // pageName={exportPageItem.title}
+        page={exportPageItem}
         onClose={() => setExportModalVisible(false)}
       />
     </>
   );
-
-
 }
 
 export default BookmarksPages;

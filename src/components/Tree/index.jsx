@@ -125,7 +125,7 @@ function App({ data, setTreeSelected, treeSelectedKeys, inputValue, setTreeInput
          }
      }, [data, inputValue]); */
     useEffect(() => {
-        console.log('treeData useEffect', data);
+        // console.log('treeData useEffect', data);
         let filteredData = filterChildrenArrayByPath(data);
         setTreeData(filteredData);
         if (!inputValue || !inputValue.trim()) {

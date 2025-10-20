@@ -589,7 +589,7 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
 
     // 处理空字符串搜索
     const processEmptySearch = () => {
-        console.log(cardData.name + ' processEmptySearch setActiveTab', defaultActiveKey);
+        // console.log(cardData.name + ' processEmptySearch setActiveTab', defaultActiveKey);
         setSearching(false);
         setShow(true);
         setData(cardData);//展示原始的全部数据
