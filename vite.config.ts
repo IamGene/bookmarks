@@ -49,7 +49,7 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         input: {
           main: path.resolve(__dirname, 'index.html'),
-          extensionHelper: path.resolve(__dirname, 'extension-helper.html'),
+          // extensionHelper: path.resolve(__dirname, 'extension-helper.html'),
         },
       },
     },
