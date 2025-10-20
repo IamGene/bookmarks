@@ -23,16 +23,17 @@
     // helper 监听来自扩展的消息
     window.addEventListener("message", async (event) => {
 
-      console.log("收到消息:", event.data, event.source); // 调试用
+      console.log("收到消息:", event.origin, event.source); // 调试用
       // 我们只关心来自我们自己的窗口或可信来源的消息
       // 在生产环境中，您应该将 event.origin 与您的插件ID进行严格比较
       // 例如: if (event.origin !== 'chrome-extension://your-extension-id') return;
       // if (event.source !== window || !event.data || !event.data.type) {
-      if (!event.data || !event.data.type) {
-        console.log("return", true); // 调试用
-        return;
-      }
+      /*  if (!event.data || !event.data.type) {
+         console.log("return", true); // 调试用
+         return;
+       } */
 
+      if (event.origin !== window.location.origin) return;
       const { type, payload } = event.data;
       console.log("消息:type", type); // 调试用
       // 响应 "心跳检测"，用于确认 helper 页面已准备就绪
@@ -50,7 +51,7 @@
         ];
 
         //  const groups = await getCollectPageGroups(); // 你可以先用静态数据测试
-        console.log("helper 准备返回分组数据:", groups);
+        // console.log("helper 准备返回分组数据:", groups);
         // 将分组数据发送回 content.js
         window.postMessage({ type: "GROUPS_RESPONSE", payload: groups }, "*");
         console.log("helper 已返回分组数据", groups);
