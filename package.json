@@ -8,6 +8,7 @@
     "dev": "vite",
     "preview": "vite preview",
     "build": "vite build",
+    "build:helper": "vite build --config vite.config.ts",
     "eslint": "eslint src/ --ext .ts,.tsx,.js,.jsx --fix --cache",
     "stylelint": "stylelint 'src/**/*.less' 'src/**/*.css' --fix --cache",
     "pre-commit": "pretty-quick --staged && npm run eslint && npm run stylelint",

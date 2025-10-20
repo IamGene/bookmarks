@@ -50,8 +50,12 @@ export default defineConfig(({ mode }) => {
         input: {
           main: path.resolve(__dirname, 'index.html'),
           // extensionHelper: path.resolve(__dirname, 'extension-helper.html'),
-          extensionHelper: path.resolve(__dirname, 'src/extension/extension-helper.html'),
+          // extensionHelper: path.resolve(__dirname, 'src/extension/extension-helper.html'),
+          // extensionHelper: path.resolve(__dirname, '/public/extension-helper.html'),
         },
+        output: {
+          entryFileNames: 'assets/[name].[hash].js',
+        }
       },
     },
     /*  server: {
