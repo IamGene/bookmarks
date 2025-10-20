@@ -7,75 +7,11 @@
 </head>
 
 <body>
-  <script>
-    // helper 监听来自扩展的消息
-    window.addEventListener("message", async (event) => {
-      // 安全校验（后面我们会改成只允许扩展 ID）
-      if (!event.data || !event.data.type) return;
-
-      const { type, payload } = event.data;
-
-      if (type === "PING") {
-        event.source.postMessage({ type: "PONG" }, event.origin);
-      }
-
-      if (type === "LIST_GROUPS") {
-        // ✅ 模拟获取分组（后面换成 getDB）
-        // ✅ 模拟获取分组（后面换成 getDB）
-        const groups = [
-          {
-            id: "1",
-            name: "默认分组1"
-          },
-          {
-            id: "2",
-            name: "技术资料",
-            children: [
-              {
-                id: "2-1",
-                name: "前端开发",
-                children: [
-                  { id: "2-1-1", name: "React" },
-                  { id: "2-1-2", name: "Vue" }
-                ]
-              },
-              {
-                id: "2-2",
-                name: "后端开发"
-              }
-            ]
-          },
-          {
-            id: "3",
-            name: "娱乐Y"
-          }
-        ]
-
-        /* const groups = [
-          { id: "1", name: "默认分组" },
-          { id: "2", name: "技术资料" },
-          { id: "3", name: "娱乐" }
-        ]; */
-
-        event.source.postMessage(
-          { type: "GROUPS_RESPONSE", payload: groups },
-          event.origin
-        );
-      }
-
-      if (type === "SAVE_BOOKMARK") {
-        const { title, url, icon, groupId } = payload;
-
-        // ✅ 暂时打印，下一步换成 getDB 写入
-        console.log("收到保存请求：", { title, url, icon, groupId });
-
-        event.source.postMessage(
-          { type: "SAVE_RESULT", payload: { ok: true } },
-          event.origin
-        );
-      }
-    });
-  </script>
+  <!-- 
+    通过 type="module" 引用 src 目录下的 TypeScript 文件。
+    Vite 会在开发和构建时自动处理这个文件，将其编译成浏览器可执行的 JavaScript。
+  -->
+  <script type="module" src="/src/extension-helper.ts"></script>
 </body>
 
 </html>
