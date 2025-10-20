@@ -67,7 +67,6 @@ export async function savePageBookmarks(pageData) {
 }
 
 async function getPageNodesTree(pageId, db) {
-    // const db = await getDB();
     const nodes = await db.getAllFromIndex('nodes', 'pageId', pageId);
     nodes.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     function buildTree(parentId) {

@@ -2,9 +2,11 @@
 
 // 从数据库模块导入我们需要的函数
 import { getCollectPageGroups } from './db/bookmarksPages';
-
+console.log("✅ Extension Helper 加载成功");
 // helper 监听来自扩展的消息
 window.addEventListener("message", async (event) => {
+
+    console.log("收到消息:", event.data); // 调试用
     // 我们只关心来自我们自己的窗口或可信来源的消息
     // 在生产环境中，您应该将 event.origin 与您的插件ID进行严格比较
     // 例如: if (event.origin !== 'chrome-extension://your-extension-id') return;

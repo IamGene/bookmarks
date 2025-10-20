@@ -11,8 +11,8 @@ export default defineConfig(({ mode }) => {
   console.log('当前模式:', process.env);
 
   return {
-    // base: mode === 'production' ? '/bookmarks/' : '/',
     base: mode === 'development' || process.env.VERCEL ? '/' : '/bookmarks/',
+    // base: mode === 'development' || process.env.VERCEL ? '/' : '/',
 
     resolve: {
       alias: [{ find: '@', replacement: '/src' }],
@@ -49,7 +49,6 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         input: {
           main: path.resolve(__dirname, 'index.html'),
-          // extensionHelper: path.resolve(__dirname, 'public/extension-helper.html'),
           extensionHelper: path.resolve(__dirname, 'extension-helper.html'),
         },
       },
