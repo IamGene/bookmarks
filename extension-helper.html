@@ -32,7 +32,7 @@
       }
 
       const { type, payload } = event.data;
-
+      console.log("消息:type", type); // 调试用
       // 响应 "心跳检测"，用于确认 helper 页面已准备就绪
       if (type === "PING") {
         window.postMessage({ type: "PONG" }, event.origin);
@@ -51,13 +51,7 @@
         console.log("helper 准备返回分组数据:", groups);
         // 将分组数据发送回 content.js
         window.postMessage({ type: "GROUPS_RESPONSE", payload: groups }, "*");
-
-        /* console.log("groups", groups); // 调试用
-        // 将获取到的分组数据发送回请求方 (浏览器插件)
-        window.postMessage(
-          { type: "GROUPS_RESPONSE", payload: groups },
-          event.origin
-        ); */
+        console.log("helper 已返回分组数据", groups);
       }
 
       // 当收到保存书签的请求时
