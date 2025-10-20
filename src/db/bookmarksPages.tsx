@@ -6,7 +6,6 @@ function uuid() {
 }
 
 
-
 export async function savePageBookmarks(pageData) {
     try {
         const db = await getDB();
