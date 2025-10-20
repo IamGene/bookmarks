@@ -52,10 +52,10 @@ export default defineConfig(({ mode }) => {
           // extensionHelper: path.resolve(__dirname, 'extension-helper.html'),
           // extensionHelper: path.resolve(__dirname, 'src/extension/extension-helper.html'),
           // extensionHelper: path.resolve(__dirname, '/public/extension-helper.html'),
-        },
-        output: {
-          entryFileNames: 'assets/[name].[hash].js',
         }
+        /* output: {
+          entryFileNames: 'assets/[name].[hash].js',
+        } */
       },
     },
     /*  server: {
