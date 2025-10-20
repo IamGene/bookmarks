@@ -53,7 +53,9 @@
         //  const groups = await getCollectPageGroups(); // 你可以先用静态数据测试
         // console.log("helper 准备返回分组数据:", groups);
         // 将分组数据发送回 content.js
-        window.postMessage({ type: "GROUPS_RESPONSE", payload: groups }, "*");
+        console.log("准备发送分组数据到父窗口:", groups);
+        window.parent.postMessage({ type: "GROUPS_RESPONSE", payload: groups }, "*");
+        // window.postMessage({ type: "GROUPS_RESPONSE", payload: groups }, "*");
         console.log("helper 已返回分组数据", groups);
       }
 
