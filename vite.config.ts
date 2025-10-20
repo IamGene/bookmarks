@@ -7,12 +7,12 @@ import path from 'path';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd());
-  // console.log('当前模式:', mode);
+  console.log('当前模式 mode:', mode);
   console.log('当前模式:', process.env);
 
   return {
-    base: mode === 'development' || process.env.VERCEL ? '/' : '/bookmarks/',
-    // base: mode === 'development' || process.env.VERCEL ? '/' : '/',
+    base: mode === 'development' || mode === 'production' || process.env.VERCEL ? '/' : '/bookmarks/',
+    // base: mode === 'development' || process.env.VERCEL ? '/' : '/bookmarks',
 
     resolve: {
       alias: [{ find: '@', replacement: '/src' }],
@@ -46,16 +46,13 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
+      emptyOutDir: true,
       rollupOptions: {
         input: {
           main: path.resolve(__dirname, 'index.html'),
-          // extensionHelper: path.resolve(__dirname, 'extension-helper.html'),
           // extensionHelper: path.resolve(__dirname, 'src/extension/extension-helper.html'),
-          // extensionHelper: path.resolve(__dirname, '/public/extension-helper.html'),
-        }
-        /* output: {
-          entryFileNames: 'assets/[name].[hash].js',
-        } */
+          extensionHelper: path.resolve(__dirname, 'public/extension-helper.html'),
+        },
       },
     },
     /*  server: {
