@@ -35,12 +35,12 @@ window.addEventListener("message", async (event) => {
 
         // 调试信息：在控制台打印获取到的分组数据
         console.log("从数据库获取的分组数据:", groups);
-
         // 将分组数据发送回 content.js
-        window.postMessage(
-            { type: "GROUPS_RESPONSE", payload: groups },
-            event.origin
-        );
+        /*  window.postMessage(
+             { type: "GROUPS_RESPONSE", payload: groups },
+             event.origin
+         ); */
+        window.parent.postMessage({ type: 'GROUPS_RESPONSE', payload: groups }, '*');
     }
 
     // 当收到保存书签的请求时
