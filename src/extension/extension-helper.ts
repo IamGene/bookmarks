@@ -11,12 +11,17 @@ window.addEventListener("message", async (event) => {
     // 我们只关心来自我们自己的窗口或可信来源的消息
     // 在生产环境中，您应该将 event.origin 与您的插件ID进行严格比较
     // 例如: if (event.origin !== 'chrome-extension://your-extension-id') return;
-    if (event.source !== window || !event.data || !event.data.type) {
+    /* if (event.source !== window || !event.data || !event.data.type) {
         return;
-    }
+    } */
+    // 安全校验：同源消息
+    if (event.origin !== window.location.origin) return;
 
-    const { type, payload } = event.data;
-    console.log("消息:type", type); // 调试用
+    const { type, payload } = event.data || {};
+    console.log('消息 type:', type);
+
+    // const { type, payload } = event.data;
+    // console.log("消息:type", type); // 调试用
 
     // 响应 "心跳检测"，用于确认 helper 页面已准备就绪
     if (type === "PING") {
@@ -37,7 +42,6 @@ window.addEventListener("message", async (event) => {
             event.origin
         );
     }
-
 
     // 当收到保存书签的请求时
     if (type === "SAVE_BOOKMARK") {
