@@ -46,11 +46,18 @@
           { id: "1", name: "默认分组", type: "folder", status: 0, children: [] },
           { id: "2", name: "工作分组", type: "folder", status: 1, children: [] }
         ];
+
+        //  const groups = await getCollectPageGroups(); // 你可以先用静态数据测试
+        console.log("helper 准备返回分组数据:", groups);
+        // 将分组数据发送回 content.js
+        window.postMessage({ type: "GROUPS_RESPONSE", payload: groups }, "*");
+
+        /* console.log("groups", groups); // 调试用
         // 将获取到的分组数据发送回请求方 (浏览器插件)
         window.postMessage(
           { type: "GROUPS_RESPONSE", payload: groups },
           event.origin
-        );
+        ); */
       }
 
       // 当收到保存书签的请求时
