@@ -11,8 +11,9 @@ export default async function handler(req, res) {
     if (req.method === "GET") {
         // 这里返回示例数据，你可以替换成数据库或云存储数据
         const groups = [
-            { id: "1", name: "默认分组", status: 0, children: [] },
-            { id: "2", name: "收藏页", status: 1, children: [] }
+            { id: "group_1_1bic8ygz0", name: "默认分组", status: 1, children: [] },
+            { id: "group_1_18bz7obm3", name: "收藏页", status: 1, children: [] },
+            { id: "group_1_19x0lojfs", name: "工作分组", status: 1, children: [] }
         ];
 
         return res.status(200).json(groups);
