@@ -1,3 +1,4 @@
+import { Descriptions } from '@arco-design/web-react';
 import { getDB } from './db';
 
 // 保存书签页及其节点
@@ -138,6 +139,37 @@ export async function setDefaultPage(pageId) {
     }
     await tx.done; // 确保事务完成
 }
+
+
+export async function saveBookmarkToDB(urlData) {
+    const db = await getDB();
+    const { title, url, icon, groupId, status } = urlData;
+    try {
+        // const nodes = await db.getKey('nodes', 'id', groupId);
+        const group = await db.get('nodes', groupId);
+        // console.log('!!!! saveing', group);
+        // const tx = db.transaction('urls', 'readwrite');
+        const saveData = {
+            id: uuid(),
+            pageId: group.pageId,
+            gId: groupId,
+            hide: false,
+            icon: icon,
+            name: title,
+            description: title,
+            type: "bookmark",
+            url: url
+        };
+        await db.put('urls', saveData);
+        // await tx.done; // 确保事务完成
+        console.log('save success', saveData);
+        return true;
+    } catch (e) {
+        console.error('save error', e);
+        return false;
+    }
+}
+
 
 export async function exportPageJson(pageId) {
     try {

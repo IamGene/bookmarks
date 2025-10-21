@@ -1,8 +1,7 @@
-import { getCollectPageGroups } from '@/db/bookmarksPages';
+import { getCollectPageGroups, saveBookmarkToDB } from '@/db/bookmarksPages';
 // TODO: 后续可以引入 saveBookmarkToDB 函数用于保存书签
 
 console.log("✅ Extension Helper 加载成功");
-
 
 /** 心跳检测 */
 const handlePing = (event: MessageEvent) => {
@@ -28,7 +27,11 @@ const handleSaveBookmark = async (event: MessageEvent, payload: any) => {
     console.log('准备保存书签:', payload);
     try {
         // TODO: 这里可以调用 saveBookmarkToDB(payload)
-        console.log('书签保存成功（模拟）');
+
+        // console.log("收到保存请求11111：", payload);
+        const res = saveBookmarkToDB(payload);
+        // const data = { title, url, icon, groupId, status };
+        // console.log('书签保存成功（模拟）2');
         window.parent.postMessage({ type: 'SAVE_RESULT', payload: { ok: true } }, '*');
     } catch (err: any) {
         console.error('保存书签失败:', err);

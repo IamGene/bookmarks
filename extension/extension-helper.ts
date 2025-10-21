@@ -45,9 +45,11 @@ window.addEventListener("message", async (event) => {
         const { title, url, icon, groupId, status } = payload;
 
         // ✅ 暂时打印，下一步可以换成调用真正的数据库写入函数
-        console.log("收到保存请求：", { title, url, icon, groupId, status });
-
+        // console.log("收到保存请求11111：", { title, url, icon, groupId, status });
+        const data = { title, url, icon, groupId, status };
+        // const saveRes = await saveWebTag(data);
         // 告诉请求方保存成功 (这里可以根据实际保存结果返回成功或失败)
         window.postMessage({ type: "SAVE_RESULT", payload: { ok: true } }, event.origin);
+
     }
 });
