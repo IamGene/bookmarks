@@ -12,10 +12,10 @@ export default defineConfig(({ mode }) => {
 
   return {
 
-    base: mode === 'development' || process.env.VERCEL ? '/' : '/bookmarks/',
+    // base: mode === 'development' || process.env.VERCEL ? '/' : '/bookmarks/',
     // 本地构建github pages build,有/boookmarks路径
 
-    // base: '/',  // 开发模式/本地构建extension/vercel：无/boookmarks路径
+    base: '/',  // 开发模式/本地构建extension/vercel：无/boookmarks路径
     resolve: {
       alias: [{ find: '@', replacement: '/src' }],
     },
@@ -53,7 +53,7 @@ export default defineConfig(({ mode }) => {
         input: {
           main: path.resolve(__dirname, 'index.html'),
           // extensionHelper: path.resolve(__dirname, 'src/extension/extension-helper.html'),
-          // extensionHelper: path.resolve(__dirname, 'public/extension-helper.html'),
+          extensionHelper: path.resolve(__dirname, 'public/extension-helper.html'),
         },
       },
     },
