@@ -16,7 +16,6 @@ export default async function handler(req, res) {
             { id: "group_1_19x0lojfs", name: "工作分组", status: 1, children: [] }
         ];
         console.log('getCollectPageroups>>>>>>>>');
-        // const groups = getCollectPageGroups();
         console.log('groups', groups);
         return res.status(200).json(groups);
     }
