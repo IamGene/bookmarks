@@ -15,7 +15,6 @@ export default async function handler(req, res) {
             { id: "group_1_18bz7obm3", name: "收藏页", status: 1, children: [] },
             { id: "group_1_19x0lojfs", name: "工作分组", status: 1, children: [] }
         ];
-
         return res.status(200).json(groups);
     }
 
