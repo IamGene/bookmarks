@@ -116,6 +116,14 @@ vite
 未登录用户？在30天或增删改数据达到n次后提醒用户备份数据222
 
 ## #######################
+浏览器插件通过在 content.js 中创建 iframe 与 helper (属于一个前端项目A)通信时，被调用的helper的js代码用db.js库，
+能否在当前所在的B.com站点的网页下，读取和写入A.com站点的indexedDB数据？
+——即这是一个通过浏览器插件将当前所在网页的网址信息添加为indexedDB中的书签数据(前面的A项目)这样的需求
+请问能实现吗？如何解决跨域的问题？
+
+这里的A是我的书签管理器，它保存书签；B是测试中的网页，它首先获取书签的分组数据，还要提交数据到A的indexedDB中。
+
+## #######################
  1.extension-helper.html放在/public
  2.vite.config.ts 51行仅：main: path.resolve(__dirname, 'index.html'),
 

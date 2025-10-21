@@ -96,7 +96,7 @@ export async function getCollectPageGroups() {
     const tx = db.transaction('pages', 'readonly');
     const store = tx.objectStore('pages');
     const pages = await store.getAll();
-
+    console.log('!!!!!!!! getCollectPageGroups pages', pages, pages.length);
     if (pages.length > 0) {//只有用户存在标签数据才能查询
         const defaultPage = pages.find(page => page.default === true);
         const pageId = defaultPage ? defaultPage.pageId : pages[0].pageId; //选择默认或者第一个书签页
@@ -147,7 +147,7 @@ export async function saveBookmarkToDB(urlData) {
     try {
         // const nodes = await db.getKey('nodes', 'id', groupId);
         const group = await db.get('nodes', groupId);
-        // console.log('!!!! saveing', group);
+        console.log('!!!! saving', group);
         // const tx = db.transaction('urls', 'readwrite');
         const saveData = {
             id: uuid(),
