@@ -7,7 +7,7 @@
     "start": "vite",
     "dev": "vite",
     "preview": "vite preview",
-    "build": "rm -rf .vercel/output/functions/api && vite build",
+    "build": "vite build",
     "build:helper": "vite build --config vite.config.ts",
     "eslint": "eslint src/ --ext .ts,.tsx,.js,.jsx --fix --cache",
     "stylelint": "stylelint 'src/**/*.less' 'src/**/*.css' --fix --cache",
