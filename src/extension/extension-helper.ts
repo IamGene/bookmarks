@@ -52,7 +52,7 @@ window.addEventListener("message", async (event) => {
         return;
     } */
     // 安全校验：同源消息
-    if (event.origin !== window.location.origin) return;
+    // if (event.origin !== window.location.origin) return;
 
     const { type, payload } = event.data || {};
     console.log('消息 type:', type);
