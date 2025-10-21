@@ -27,7 +27,6 @@ const handleSaveBookmark = async (event: MessageEvent, payload: any) => {
     console.log('准备保存书签:', payload);
     try {
         // TODO: 这里可以调用 saveBookmarkToDB(payload)
-
         // console.log("收到保存请求11111：", payload);
         const res = saveBookmarkToDB(payload);
         // const data = { title, url, icon, groupId, status };

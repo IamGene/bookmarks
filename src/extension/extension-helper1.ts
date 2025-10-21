@@ -44,6 +44,8 @@ window.addEventListener("message", async (event) => {
 
     // 调试信息：收到消息时打印消息内容
     console.log("收到消息11:", event.data);
+    console.log("event.origin", event.origin);
+    console.log("window.location.origin", window.location.origin);
 
     // 我们只关心来自我们自己的窗口或可信来源的消息
     // 在生产环境中，您应该将 event.origin 与您的插件ID进行严格比较
@@ -52,7 +54,7 @@ window.addEventListener("message", async (event) => {
         return;
     } */
     // 安全校验：同源消息
-    if (event.origin !== window.location.origin) return;
+    // if (event.origin !== window.location.origin) return;
 
     const { type, payload } = event.data || {};
     console.log('消息 type:', type);
