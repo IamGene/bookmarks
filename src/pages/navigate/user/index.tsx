@@ -483,6 +483,8 @@ function UserNavigate() {
     // const handleMessage = async (event: MessageEvent) => {
     // const handleMessage = async (event: MessageEvent<any>) => {
     const handleMessage = async (event) => {
+
+
       // 1. 安全检查：确保消息来自 A.com 自己的 Content Script
       if (event.origin !== window.location.origin) {
         return;
@@ -495,7 +497,7 @@ function UserNavigate() {
         try {
           // 调用您真实的 IndexedDB 读取函数
           const groups = await getCollectPageGroups();
-
+          console.log("A.com 主线程: 已从 IndexedDB 读取分组数据:", groups);
           // 将数据回复给 a_com_integrator.js
           event.source.postMessage({
             type: 'GROUPS_DATA_FROM_PAGE',
@@ -528,6 +530,8 @@ function UserNavigate() {
       }
     };
 
+
+    console.log('3333333333 注册 user navigate message 监听器');
     // 注册监听器
     window.addEventListener('message', handleMessage);
 
