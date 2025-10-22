@@ -490,9 +490,9 @@ function UserNavigate() {
       console.log('33333333333  event.data', event.data);
       console.log('33333333333  event.data.type', event.data.type);
       // 1. 安全检查：确保消息来自 A.com 自己的 Content Script
-      /*  if (event.origin !== window.location.origin) {
-         return;
-       } */
+      if (event.origin !== window.location.origin) {
+        return;
+      }
 
       // ------------------------------------------
       // A. 处理 Content Script 请求分组数据
