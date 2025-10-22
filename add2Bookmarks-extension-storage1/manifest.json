@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "Add2Bookmark",
+  "version": "1.0.0",
+  "description": "右键添加当前网页到我的书签",
+  "permissions": [
+    "contextMenus",
+    "tabs",
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "host_permissions": [
+    "https://bookmarks-seven-flame.vercel.app/*",
+    "<all_urls>"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ]
+    },
+    {
+      "matches": [
+        "https://bookmarks-seven-flame.vercel.app/*"
+      ],
+      "js": [
+        "a_com_integrator.js"
+      ]
+    }
+  ],
+  "icons": {
+    "128": "icon128.png"
+  }
+}
