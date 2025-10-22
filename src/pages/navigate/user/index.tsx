@@ -490,9 +490,9 @@ function UserNavigate() {
       console.log('33333333333  event.data', event.data);
       console.log('33333333333  event.data.type', event.data.type);
       // 1. 安全检查：确保消息来自 A.com 自己的 Content Script
-      if (event.origin !== window.location.origin) {
-        return;
-      }
+      /*  if (event.origin !== window.location.origin) {
+         return;
+       } */
 
       // ------------------------------------------
       // A. 处理 Content Script 请求分组数据
@@ -507,9 +507,7 @@ function UserNavigate() {
             type: 'GROUPS_DATA_FROM_PAGE',
             groups: groups
           }, event.origin);
-
           console.log("A.com 主线程: 已回复分组数据给 Content Script。");
-
         } catch (e) {
           console.error("A.com 主线程: 读取 IndexedDB 分组数据失败:", e);
         }
