@@ -13,7 +13,8 @@
     Vite 会在构建时自动处理这个文件，将其编译成浏览器可执行的 JavaScript。
   -->
   <!-- <script type="module" src="../src/extension/extension-helper1.ts"></script> -->
-  <script>
+  <script type="module">
+    import { openDB } from 'idb';
     // import { getCollectPageGroups, saveBookmarkToDB } from '@/db/bookmarksPages';
 
     console.log("✅ Extension Helper 加载成功");
@@ -40,7 +41,29 @@
       }
       return buildTree(null); // 根节点
     }
-
+    async function getDB() {
+      // ✅ 第一步：确保持久化检测（仅执行一次，不影响性能）
+      // await ensurePersistenceOnce();
+      // ✅ 第二步：打开数据库
+      return await openDB('BookmarksDB', 1, {
+        upgrade(db) {
+          if (!db.objectStoreNames.contains('pages')) {
+            db.createObjectStore('pages', { keyPath: 'pageId' });
+          }
+          if (!db.objectStoreNames.contains('nodes')) {
+            // const store = db.createObjectStore('nodes', { keyPath: 'id', autoIncrement: true });
+            const store = db.createObjectStore('nodes', { keyPath: 'id' });
+            store.createIndex('pageId', 'pageId');
+            store.createIndex('pId', 'pId');
+          }
+          if (!db.objectStoreNames.contains('urls')) {
+            const store = db.createObjectStore('urls', { keyPath: 'id' });
+            store.createIndex('pageId', 'pageId');
+            store.createIndex('gId', 'gId');
+          }
+        }
+      });
+    }
 
     async function getCollectPageGroups() {
       const db = await getDB();
@@ -171,7 +194,6 @@
       } */
     });
 
-  </script>
-</body>
+</body >
 
-</html>
+</html >
