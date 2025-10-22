@@ -4,21 +4,15 @@
 <head>
   <meta charset="UTF-8">
   <title>Extension Helper</title>
-  <script type="module" crossorigin src="/assets/extensionHelper.3f629cea.js"></script>
-  <link rel="modulepreload" href="/assets/bookmarksPages.0494db8e.js">
-  <link rel="stylesheet" href="/assets/bookmarksPages.1257e587.css">
+  <script type="module" crossorigin src="/assets/extensionHelper.4b3657af.js"></script>
+  <link rel="modulepreload" href="/assets/modulepreload-polyfill.b7f2da20.js">
 </head>
 
 <body>
   <div>Extension Helper Page</div>
-  <!-- 
-    通过 type="module" 引用 src 目录下的 TypeScript 文件。
-    Vite 会在构建时自动处理这个文件，将其编译成浏览器可执行的 JavaScript。
-  -->
-  <!-- <script type="module" src="../src/extension/extension-helper.ts"></script> -->
+  <!-- <script type="module" src="../src/extension/extension-helper1.ts"></script> -->
+  <script type="text/javascript" src="./idb.umd.js"></script>
   
-  <!-- <script type="module" src="../src/extension/ExtensionHelper.tsx"></script> -->
-  <!-- <script type="module" src="./extension-helper.ts"></script> -->
 </body>
 
 </html>
