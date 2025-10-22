@@ -39,8 +39,10 @@ const handleSaveBookmark = async (event: MessageEvent, payload: any) => {
     }
 };
 
+
 // helper 监听来自扩展的消息
 window.addEventListener("message", async (event) => {
+
 
     // 调试信息：收到消息时打印消息内容
     console.log("收到消息11:", event.data);
@@ -54,7 +56,7 @@ window.addEventListener("message", async (event) => {
         return;
     } */
     // 安全校验：同源消息
-    // if (event.origin !== window.location.origin) return;
+    if (event.origin !== window.location.origin) return;
 
     const { type, payload } = event.data || {};
     console.log('消息 type:', type);

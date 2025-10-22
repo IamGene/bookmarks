@@ -38,6 +38,7 @@ import { generatePermission } from '@/routes';
 import Navi from './navigate';
 import { getPages } from "@/db/bookmarksPages";
 import BackToTop from '../common/back-to-top';
+import { saveBookmarkToDB, getCollectPageGroups } from '@/db/bookmarksPages';
 import styles from '@/style/layout.module.less';
 // import { fetchGroupData } from './common';
 // import './index.css'
@@ -257,7 +258,6 @@ function UserNavigate() {
   const [navbarKeyWord, setNavbarKeyWord] = useState('');
 
   // console.log('render user navigate...navbarKeyWord=>', navbarKeyWord)
-
   const globalState = useSelector((state: RootState) => state.global);
 
   const { settings, userLoading, userInfo, groups, activeGroup, hiddenGroup } = globalState;
@@ -476,6 +476,68 @@ function UserNavigate() {
     // fetchGroupData(page);// getNaviData();
     fetchGroupData(1900000000);// getNaviData();
   }, []); */
+
+
+  useEffect(() => {
+    // 核心逻辑：设置 postMessage 监听器
+    // const handleMessage = async (event: MessageEvent) => {
+    // const handleMessage = async (event: MessageEvent<any>) => {
+    const handleMessage = async (event) => {
+      // 1. 安全检查：确保消息来自 A.com 自己的 Content Script
+      if (event.origin !== window.location.origin) {
+        return;
+      }
+
+      // ------------------------------------------
+      // A. 处理 Content Script 请求分组数据
+      // ------------------------------------------
+      if (event.data.type === 'REQUEST_GROUPS_FROM_PAGE') {
+        try {
+          // 调用您真实的 IndexedDB 读取函数
+          const groups = await getCollectPageGroups();
+
+          // 将数据回复给 a_com_integrator.js
+          event.source.postMessage({
+            type: 'GROUPS_DATA_FROM_PAGE',
+            groups: groups
+          }, event.origin);
+
+          console.log("A.com 主线程: 已回复分组数据给 Content Script。");
+
+        } catch (e) {
+          console.error("A.com 主线程: 读取 IndexedDB 分组数据失败:", e);
+        }
+      }
+
+      // ------------------------------------------
+      // B. 处理 Content Script 请求保存书签
+      // ------------------------------------------
+      if (event.data.type === 'SAVE_TO_DB_REQUEST') {
+        const bookmark = event.data.payload;
+        try {
+          // 调用您真实的 IndexedDB 写入函数
+          await saveBookmarkToDB(bookmark);
+          console.log(`A.com 主线程: 已将书签 "${bookmark.title}" 写入 IndexedDB。`);
+
+          // ⚠️ 如果书签保存后 UI 需要刷新，可以在这里调用 setStates 或 dispatch action
+          // dispatch({ type: 'BOOKMARK_ADDED', payload: bookmark });
+
+        } catch (e) {
+          console.error("A.com 主线程: 写入书签到 IndexedDB 失败:", e);
+        }
+      }
+    };
+
+    // 注册监听器
+    window.addEventListener('message', handleMessage);
+
+    // 清理函数：在组件卸载时移除监听器，防止内存泄漏和重复注册
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, []); // 仅在组件挂载时运行一次
+
+
 
   useEffect(() => {
     // console.log('888888888888888888888 user navigate useEffect groups', groups)
