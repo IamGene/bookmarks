@@ -484,7 +484,8 @@ function UserNavigate() {
     // const handleMessage = async (event: MessageEvent<any>) => {
     const handleMessage = async (event) => {
 
-      console.log('3333333333 event.origin', event.origin);
+      console.log('33333333333 event.origin', event.origin);
+      console.log('33333333333  window.location.origin', window.location.origin);
       // 1. 安全检查：确保消息来自 A.com 自己的 Content Script
       /*  if (event.origin !== window.location.origin) {
          return;
@@ -531,7 +532,7 @@ function UserNavigate() {
     };
 
 
-    console.log('3333333333 注册 user navigate message 监听器');
+    console.log('33333333333 注册 user navigate message 监听器');
     // 注册监听器
     window.addEventListener('message', handleMessage);
 
