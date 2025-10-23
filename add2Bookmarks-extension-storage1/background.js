@@ -4,7 +4,7 @@ const MAIN_MENU_ID = "add2Bookmark";
 const GROUPS_STORAGE_KEY = 'bookmarksGroups';
 const PENDING_BOOKMARKS_KEY = 'pendingBookmarks';
 // ⚠️ 请替换为您的 A.com 实际 URL 模式
-const A_COM_URL_PATTERN = "https://bookmarks-seven-flame.vercel.app/*";
+const A_COM_URL_PATTERN = "https://bookmarks-1nqv.vercel.app/*";
 // const A_COM_URL_PATTERN = "http://localhost:3000/*";
 
 // ------------------------------------------------------------------

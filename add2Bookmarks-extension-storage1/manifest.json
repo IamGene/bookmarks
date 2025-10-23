@@ -15,7 +15,7 @@
   },
   "host_permissions": [
     "http://localhost:3000/*",
-    "https://bookmarks-seven-flame.vercel.app/*",
+    "https://bookmarks-1nqv.vercel.app/*",
     "<all_urls>"
   ],
   "content_scripts": [
@@ -30,7 +30,7 @@
     {
       "matches": [
         "http://localhost:3000/*",
-        "https://bookmarks-seven-flame.vercel.app/*"
+        "https://bookmarks-1nqv.vercel.app/*"
       ],
       "js": [
         "integrator.js"

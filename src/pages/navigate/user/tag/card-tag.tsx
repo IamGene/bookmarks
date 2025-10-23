@@ -147,6 +147,23 @@ const App = (props: CardBlockType) => {
         const data: any = await dispatch(fetchBookmarksPageData(no))
     }
 
+
+    const [imgSrc, setImgSrc] = useState(tag.icon);
+    const [triedProxy, setTriedProxy] = useState(false);
+
+    // 当图片加载失败时自动回退到代理 API
+    const handleImgError = () => {
+        if (!triedProxy) {
+            //fetch-icon
+            // setImgSrc(`https://bookmarks-1nqv.vercel.app/api/fetch-icon?url=${encodeURIComponent(tag.icon)}`);
+            setImgSrc(`/api/fetch-icon?url=${encodeURIComponent(tag.icon)}`);
+            setTriedProxy(true);
+        } else {
+            // 兜底：显示默认图标
+            setImgSrc("/default-favicon.png");
+        }
+    };
+
     return (
         <>
             <div className="xe-widget xe-conversations box2 label-info"
@@ -159,11 +176,19 @@ const App = (props: CardBlockType) => {
                 <div className="xe-comment-entry">
 
                     <a className="xe-user-img" href={tag.url} target="_blank" >
-                        <img src={tag.icon && tag.icon.startsWith('/profile/icon/') ? `${api}${tag.icon}` : tag.icon}
+                        {/* <img src={tag.icon && tag.icon.startsWith('/profile/icon/') ? `${api}${tag.icon}` : tag.icon} */}
+                        {/*  <img src={tag.icon}
                             className="lozad img-circle"
-                            // width="20">
                             width="40">
-                        </img>
+                        </img> */}
+
+                        <img
+                            src={imgSrc}
+                            referrerPolicy="no-referrer"
+                            onError={handleImgError}
+                            className="lozad img-circle rounded-full object-cover"
+                            width="40"
+                        />
                     </a>
                     <div className="xe-comment">
                         {

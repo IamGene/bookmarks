@@ -124,65 +124,9 @@ vite
 这时如何解决跨域的问题？而当B站点网页下调用A的helper代码，这时候它执行的上下文环境是A.com还是B.com，也就是它读写的是A.com的indexedDB还是B.com的indexedDB?
 
 ## #######################
- 1.extension-helper.html放在/public
- 2.vite.config.ts 51行仅：main: path.resolve(__dirname, 'index.html'),
+插件
+弹出页面 (Popup Page)：点击浏览器工具栏上的插件图标时出现的小窗口。
+选项页面 (Options Page)：用于配置插件设置的页面。
 
-<!DOCTYPE html>
-<html lang="zh-CN">
-
-<head>
-    <meta charset="UTF-8">
-    <title>Extension Helper</title>
-</head>
-
-<body>
-    <div>Extension Helper Page</div>
-    <script>
-
-        // 从数据库模块导入我们需要的函数
-        console.log("✅ Extension Helper 加载成功");
-        // helper 监听来自扩展的消息
-        window.addEventListener("message", async (event) => {
-
-            console.log("收到消息:", event.origin, event.source); // 调试用
-
-            if (event.origin !== window.location.origin) return;
-            const { type, payload } = event.data;
-            console.log("消息:type", type); // 调试用
-            // 响应 "心跳检测"，用于确认 helper 页面已准备就绪
-            if (type === "PING") {
-                window.postMessage({ type: "PONG" }, event.origin);
-            }
-
-            // 当收到获取分组列表的请求时
-            if (type === "LIST_GROUPS") {
-                // ✅ 调用函数从 IndexedDB 获取真实的分组数据
-                // const groups = await getCollectPageGroups();
-                const groups = [
-                    { id: "1", name: "默认分组", type: "folder", status: 0, children: [] },
-                    { id: "2", name: "娱乐分组", type: "folder", status: 1, children: [] },
-                    { id: "3", name: "工作分组", type: "folder", status: 1, children: [] }
-                ];
-
-                //  const groups = await getCollectPageGroups(); // 你可以先用静态数据测试
-                window.parent.postMessage({ type: "GROUPS_RESPONSE", payload: groups }, "*");
-                console.log("helper 已返回分组数据", groups);
-            }
-
-            // 当收到保存书签的请求时
-            if (type === "SAVE_BOOKMARK") {
-                const { title, url, icon, groupId, status } = payload;
-
-                // ✅ 暂时打印，下一步可以换成调用真正的数据库写入函数
-                console.log("收到保存请求：", { title, url, icon, groupId, status });
-
-                // 告诉请求方保存成功 (这里可以根据实际保存结果返回成功或失败)
-                window.postMessage({ type: "SAVE_RESULT", payload: { ok: true } }, event.origin);
-            }
-        });
-    </script>
-</body>
-
-</html>
 
 ## #######################

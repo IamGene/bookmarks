@@ -97,9 +97,9 @@ function Index() {
   useEffect(() => {
     const handleMessage = async (event) => {
       // 1. 安全检查：可以根据需要添加来源验证
-      // if (event.origin !== 'expected-origin') return;
-      console.log("event.origin", event.origin);
-      console.log("window.location.origin", window.location.origin);
+      if (event.origin !== window.location.origin) return;
+      // console.log("event.origin", event.origin);
+      // console.log("window.location.origin", window.location.origin);
       if (!event.data || !event.data.type) {
         return;
       }
@@ -139,8 +139,8 @@ function Index() {
           // ✅ 当书签保存成功后，派发 action 重新获取该页面的数据，以刷新UI
           if (bookmark.pageId) {
             // 动态导入 action 创建函数以避免循环依赖
-            // const { fetchBookmarksPageData } = await import('./store/modules/global');
-            // store.dispatch(fetchBookmarksPageData(bookmark.pageId));
+            const { fetchBookmarksPageData } = await import('./store/modules/global');
+            store.dispatch(fetchBookmarksPageData(bookmark.pageId));
           }
         } catch (e) {
           console.error("A.com 主线程: 写入书签到 IndexedDB 失败:", e);
@@ -148,7 +148,7 @@ function Index() {
       }
     };
 
-    console.log('注册全局 message 监听器');
+    // console.log('注册全局 message 监听器');
     window.addEventListener('message', handleMessage);
 
     // 组件卸载时（即应用关闭时）移除监听器
