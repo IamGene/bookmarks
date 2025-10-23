@@ -1,4 +1,4 @@
-// a_com_integrator.js
+// integrator.js
 // Content Script, 运行在 A.com 的隔离环境中
 
 const GROUPS_STORAGE_KEY = 'bookmarksGroups';
@@ -28,8 +28,25 @@ async function getGroupsFromPage() {
         window.addEventListener('message', handleResponse);
 
         // Content Script 发送请求给 A.com 页面主线程
-        console.log("🚀 [a_com_integrator] 发送 REQUEST_GROUPS_FROM_PAGE 请求...");
+        console.log("🚀 [integrator] 发送 REQUEST_GROUPS_FROM_PAGE 请求...");
         window.postMessage({ type: 'REQUEST_GROUPS_FROM_PAGE' }, window.location.origin);
+    });
+}
+
+async function saveBookmark2Group(bookmark) {
+    return new Promise(resolve => {
+        const handleResponse = (event) => {
+            // 安全检查：确保消息来自 A.com 自己的主线程
+            if (event.origin !== window.location.origin || event.data.type !== 'SAVE_TO_DB_RESPONSE') {
+                return;
+            }
+            window.removeEventListener('message', handleResponse);
+            resolve(event.data.groups);
+        };
+        window.addEventListener('message', handleResponse);
+        // Content Script 发送请求给 A.com 页面主线程
+        console.log("🚀 [integrator] 发送 SAVE_TO_DB_REQUEST 请求...");
+        window.postMessage({ type: 'SAVE_TO_DB_REQUEST', payload: bookmark }, window.location.origin);
     });
 }
 
@@ -44,10 +61,14 @@ async function syncGroupsToExtensionStorage() {
     }
     try {
         const currentGroups = await getGroupsFromPage();
-
         if (currentGroups && currentGroups.length > 0) {
             await chrome.storage.local.set({ [GROUPS_STORAGE_KEY]: currentGroups });
             console.log("✅ 分组数据已同步到 Chrome Storage。", currentGroups);
+
+            // 增加延时，确保 storage 写入完成，再通知 background.js 更新菜单
+            console.log("🚀 通知 background.js 更新菜单...");
+            chrome.runtime.sendMessage({ type: "SYNC_COMPLETED_UPDATE_MENU" });
+
         } else {
             console.warn("未获取到分组数据或数据为空，跳过同步。");
         }
@@ -77,7 +98,6 @@ async function transferBookmarksFromExtension() {
         }
 
         console.log(`🚀 发现 ${pendingList.length} 个待转移书签，开始触发写入 IndexedDB...`);
-
         for (const bookmark of pendingList) {
             window.postMessage({ type: 'SAVE_TO_DB_REQUEST', payload: bookmark }, window.location.origin);
         }
@@ -117,16 +137,19 @@ if (typeof chrome.runtime !== 'undefined') {
         }
 
         // ----------------------------------------------------
-        // 强制同步监听：用于响应 B.com 页面的“刷新分组”
+        // 强制同步监听：用于响应 B.com 页面的“刷新分组” 点击刷新
         // ----------------------------------------------------
-        if (message.type === "TRIGGER_A_COM_SYNC") {
+        else if (message.type === "TRIGGER_A_COM_SYNC") {
             console.log("🔄 收到 background.js 强制同步请求，执行 IndexedDB -> Chrome Storage 同步...");
             // 1. 使用 await 等待异步同步函数执行完毕
             await syncGroupsToExtensionStorage();
+        }
 
-            // 2. 同步完成后，通知 background.js 更新菜单
-            console.log("✅ 同步完成，通知 background.js 更新菜单...");
-            chrome.runtime.sendMessage({ type: "SYNC_COMPLETED_UPDATE_MENU" });
+        else if (message.type === "SAVE_AS_BOOKMARK") {
+            // console.log("🔄 收到 background.js 强制同步请求，执行 IndexedDB -> Chrome Storage 同步...");
+            // 1. 使用 await 等待异步同步函数执行完毕
+            // syncGroupsToExtensionStorage 内部已经包含了延时发送通知的逻辑，所以这里只需调用即可。
+            await saveBookmark2Group(message.payload);
         }
     });
 }

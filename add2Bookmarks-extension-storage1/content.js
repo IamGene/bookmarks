@@ -38,7 +38,7 @@ fetchGroupsAndNotifyBackground(); // 首次加载时获取并触发菜单创建
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
-    // 刷新分组指令 (由右键菜单 'refresh' 触发)
+    // 刷新分组指令 (由右键菜单 'refresh' 触发)————未被使用，因为没有从书签页获取数据
     if (message.type === "REFRESH_GROUPS") {
         console.log("[Content] 收到刷新分组请求，启动 A.com 同步和拉取...");
 
@@ -63,6 +63,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const bookmark = message.payload;
 
         console.log("[Content] 收到保存书签请求，转发至 ADD_TO_STORAGE...");
+
+
 
         // 直接发送 ADD_TO_STORAGE 消息给 background.js
         chrome.runtime.sendMessage({

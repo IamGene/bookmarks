@@ -17,7 +17,8 @@ import useStorage from './utils/useStorage';
 import './mock';
 import store from './store';
 import { getCollectPageGroups, saveBookmarkToDB } from './db/bookmarksPages';
-
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '@/store';
 // import PageLayout from './layout';
 // import checkLogin from './utils/checkLogin';
 // import { generatePermission } from '@/routes';
@@ -38,6 +39,11 @@ function Index() {
 
   const [lang, setLang] = useStorage('arco-lang', 'en-US');
   const [theme, setTheme] = useStorage('arco-theme', 'light');
+
+  // const globalState = useSelector((state: RootState) => state.global);
+  // const { settings, userLoading, userInfo, groups, activeGroup, hiddenGroup } = globalState;
+  // const { groups } = globalState;
+
 
   function getArcoLocale() {
     switch (lang) {
@@ -92,7 +98,8 @@ function Index() {
     const handleMessage = async (event) => {
       // 1. 安全检查：可以根据需要添加来源验证
       // if (event.origin !== 'expected-origin') return;
-
+      console.log("event.origin", event.origin);
+      console.log("window.location.origin", window.location.origin);
       if (!event.data || !event.data.type) {
         return;
       }
@@ -122,15 +129,18 @@ function Index() {
         const bookmark = event.data.payload;
         try {
           await saveBookmarkToDB(bookmark);
-          console.log(`A.com 主线程: 已将书签 "${bookmark.title}" 写入 IndexedDB。`);
+          console.log(`A.com 主线程: 已将书签 "${bookmark.title}" 写入 IndexedDB。`, bookmark, store);
+
+          event.source.postMessage({
+            type: 'SAVE_TO_DB_RESPONSE',
+            ok: true
+          }, event.origin);
 
           // ✅ 当书签保存成功后，派发 action 重新获取该页面的数据，以刷新UI
           if (bookmark.pageId) {
             // 动态导入 action 创建函数以避免循环依赖
-            const { fetchBookmarksPageData } = await import(
-              './store/modules/global'
-            );
-            store.dispatch(fetchBookmarksPageData(bookmark.pageId));
+            // const { fetchBookmarksPageData } = await import('./store/modules/global');
+            // store.dispatch(fetchBookmarksPageData(bookmark.pageId));
           }
         } catch (e) {
           console.error("A.com 主线程: 写入书签到 IndexedDB 失败:", e);
