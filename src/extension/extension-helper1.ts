@@ -43,7 +43,6 @@ const handleSaveBookmark = async (event: MessageEvent, payload: any) => {
 // helper 监听来自扩展的消息
 window.addEventListener("message", async (event) => {
 
-
     // 调试信息：收到消息时打印消息内容
     console.log("收到消息11:", event.data);
     console.log("event.origin", event.origin);
