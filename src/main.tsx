@@ -1,5 +1,5 @@
 import './style/global.less';
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom/client';
 import { Provider } from 'react-redux';
 import { ConfigProvider } from '@arco-design/web-react';
@@ -17,6 +17,7 @@ import changeTheme from './utils/changeTheme';
 import useStorage from './utils/useStorage';
 import './mock';
 import store from './store';
+import { getCollectPageGroups, saveBookmarkToDB } from './db/bookmarksPages';
 
 // import PageLayout from './layout';
 // import checkLogin from './utils/checkLogin';
@@ -83,10 +84,67 @@ function Index() {
   }, []);
 
 
-
   useEffect(() => {
     changeTheme(theme);
   }, [theme]);
+
+  // 将 message 监听器提升到根组件
+  useEffect(() => {
+    const handleMessage = async (event) => {
+      // 1. 安全检查：可以根据需要添加来源验证
+      // if (event.origin !== 'expected-origin') return;
+
+      if (!event.data || !event.data.type) {
+        return;
+      }
+
+      // ------------------------------------------
+      // A. 处理 Content Script 请求分组数据
+      // ------------------------------------------
+      if (event.data.type === 'REQUEST_GROUPS_FROM_PAGE') {
+        try {
+          const groups = await getCollectPageGroups();
+          console.log("A.com 主线程: 已从 IndexedDB 读取分组数据:", groups);
+          // 将数据回复给 a_com_integrator.js
+          event.source.postMessage({
+            type: 'GROUPS_DATA_FROM_PAGE',
+            groups: groups
+          }, event.origin);
+          console.log("A.com 主线程: 已回复分组数据给 Content Script。");
+        } catch (e) {
+          console.error("A.com 主线程: 读取 IndexedDB 分组数据失败:", e);
+        }
+      }
+
+      // ------------------------------------------
+      // B. 处理 Content Script 请求保存书签
+      // ------------------------------------------
+      if (event.data.type === 'SAVE_TO_DB_REQUEST') {
+        const bookmark = event.data.payload;
+        try {
+          await saveBookmarkToDB(bookmark);
+          console.log(`A.com 主线程: 已将书签 "${bookmark.title}" 写入 IndexedDB。`);
+
+          // ⚠️ 如果书签保存后 UI 需要刷新，可以在这里 dispatch action
+          // 例如，重新获取书签数据
+          // store.dispatch(fetchBookmarksPageData(bookmark.pageId));
+
+        } catch (e) {
+          console.error("A.com 主线程: 写入书签到 IndexedDB 失败:", e);
+        }
+      }
+    };
+
+    console.log('注册全局 message 监听器');
+    window.addEventListener('message', handleMessage);
+
+    // 组件卸载时（即应用关闭时）移除监听器
+    return () => {
+      console.log('移除全局 message 监听器');
+      window.removeEventListener('message', handleMessage);
+    };
+  }, []); // 空依赖数组确保只在应用启动时注册一次
+
 
   const contextValue = {
     lang,
