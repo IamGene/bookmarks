@@ -478,269 +478,205 @@ function UserNavigate() {
   }, []); */
 
 
-  /*  useEffect(() => {
-     // 核心逻辑：设置 postMessage 监听器
-     // const handleMessage = async (event: MessageEvent) => {
-     // const handleMessage = async (event: MessageEvent<any>) => {
-     const handleMessage = async (event) => {
- 
-       // console.log('33333333333 event.origin', event.origin);
-       // console.log('33333333333  window.location.origin', window.location.origin);
-       // console.log('33333333333  event', event);
-       // console.log('33333333333  event.data', event.data);
-       // console.log('33333333333  event.data.type', event.data.type);
-       // 1. 安全检查：确保消息来自 A.com 自己的 Content Script
-       /*  if (event.origin !== window.location.origin) {
-          return;
-        } */
 
-  // ------------------------------------------
-  // A. 处理 Content Script 请求分组数据
-  // ------------------------------------------
-  if (event.data.type === 'REQUEST_GROUPS_FROM_PAGE') {
-    try {
-      // 调用您真实的 IndexedDB 读取函数
-      const groups = await getCollectPageGroups();
-      console.log("A.com 主线程: 已从 IndexedDB 读取分组数据:", groups);
-      // 将数据回复给 a_com_integrator.js
-      event.source.postMessage({
-        type: 'GROUPS_DATA_FROM_PAGE',
-        groups: groups
-      }, event.origin);
-      console.log("A.com 主线程: 已回复分组数据给 Content Script。");
-    } catch (e) {
-      console.error("A.com 主线程: 读取 IndexedDB 分组数据失败:", e);
+  useEffect(() => {
+    // console.log('888888888888888888888 user navigate useEffect groups', groups)
+    fetchBookmarksData();// getNaviData();
+    setList(groups);//Card 全部的
+    setHideGroup(hiddenGroup)//这个不能变->NavBar展示开关
+    // setDisplay(!hiddenGroup);//显示与否直接由导航栏的开关控制
+  }, [groups]);
+
+  const filteredData = useMemo(() => {
+    if (hiddenGroup) {//有隐藏的分组，进行过滤
+      return filterHideItems(groups);
     }
-  }
-
-  // ------------------------------------------
-  // B. 处理 Content Script 请求保存书签
-  // ------------------------------------------
-  if (event.data.type === 'SAVE_TO_DB_REQUEST') {
-    const bookmark = event.data.payload;
-    try {
-      // 调用您真实的 IndexedDB 写入函数
-      await saveBookmarkToDB(bookmark);
-      console.log(`A.com 主线程: 已将书签 "${bookmark.title}" 写入 IndexedDB。`);
-
-      // ⚠️ 如果书签保存后 UI 需要刷新，可以在这里调用 setStates 或 dispatch action
-      // dispatch({ type: 'BOOKMARK_ADDED', payload: bookmark });
-
-    } catch (e) {
-      console.error("A.com 主线程: 写入书签到 IndexedDB 失败:", e);
-    }
-  }
-};
-
-// console.log('33333333333 注册 user navigate message 监听器');
-// 注册监听器
-window.addEventListener('message', handleMessage);
-// 清理函数：在组件卸载时移除监听器，防止内存泄漏和重复注册
-return () => {
-  window.removeEventListener('message', handleMessage);
-};
-  }, []); // 仅在组件挂载时运行一次 */
+    return groups;
+  }, [groups, hiddenGroup]);
 
 
+  useEffect(() => {
+    setData(filteredData);//Tree
+    setFilterFromAll(filteredData);
+  }, [filteredData]);//
 
-useEffect(() => {
-  // console.log('888888888888888888888 user navigate useEffect groups', groups)
-  fetchBookmarksData();// getNaviData();
-  setList(groups);//Card 全部的
-  setHideGroup(hiddenGroup)//这个不能变->NavBar展示开关
-  // setDisplay(!hiddenGroup);//显示与否直接由导航栏的开关控制
-}, [groups]);
+  /*   useEffect(() => {
+      console.log('搜索词或显示隐藏变化')
+    }, [display, treeInputValue]); */
 
-const filteredData = useMemo(() => {
-  if (hiddenGroup) {//有隐藏的分组，进行过滤
-    return filterHideItems(groups);
-  }
-  return groups;
-}, [groups, hiddenGroup]);
-
-
-useEffect(() => {
-  setData(filteredData);//Tree
-  setFilterFromAll(filteredData);
-}, [filteredData]);//
-
-/*   useEffect(() => {
-    console.log('搜索词或显示隐藏变化')
-  }, [display, treeInputValue]); */
-
-// 渲染MenuItem
-function renderRoutes(locale) {
-  // routeMap.current.clear();
-  // console.log('renderRoutes')
-  return function travel(_routes: INavi[], level, parentNode = []) {
-    return _routes.map((route) => {
-      const { breadcrumb = true, ignore } = route;
-      //根据key获取图标
-      // const iconDom = getIconFromKey(route.key);
-      // const iconDom = getIconFromKey(route.id);
-      //二级目录没有图标
-      const iconDom = route.pid ? '' : getIconFromKey(route.id);
-      // const pid = route.pid;
-      const hrefId = route.pid ? route.pid : route.id;
-      const titleDom = (
-        <>
-          {/* {iconDom} {locale[route.name] || route.name} */}
-          {<AnchorLink href={`#${hrefId}`}
-            title={
-              <> {iconDom} {route.name}</>
-              // route.pid ?
-              //   <> <a href="javascript:void(0)" ref={linkRef} onClick={() => onMenuClick(route.id, route.pid)}> {iconDom}<span>{route.name}</span></a></>
-              //   : <> {iconDom} {route.name}</>
-            }>
-          </AnchorLink>}
-        </>
-      );
-
-      // 根据key,设置面包屑导航到routeMap
-      /*  routeMap.current.set(
-         `/${route.key}`,
-         breadcrumb ? [...parentNode, route.name] : []
-       ); */
-
-      // 将子菜单name添加到面包屑导航routeMap
-      const visibleChildren = (route.children || []).filter((child) => {
-        // ignore：当前路由是否渲染菜单项，为 true 的话不会在菜单中显示，但可通过路由地址访问。
-        const { ignore, breadcrumb = true } = child;
-
-        // 如果父route或子route的ignore为true,设置breadcrumb路由地址
-        /*  if (ignore || route.ignore) {
-           routeMap.current.set(
-             `/${child.key}`,
-             breadcrumb ? [...parentNode, route.name, child.name] : []
-           );
-         } */
-
-        //过滤ignore为false的子菜单
-        return !ignore;
-      });
-
-      // A.当前路由菜单route.ignore==true不可见，返回空,也不渲染子菜单
-      if (ignore) {
-        return '';
-      }
-      //B.当前路由菜单可见，且拥有可见路由子菜单
-      if (visibleChildren.length) {
-        // 设置当前路由菜单类型到menuMap,返回当前菜单并递归子菜单渲染
-        // menuMap.current.set(route.key, { subMenu: true });
-        return (
-          <SubMenu key={route.path} title={titleDom}>
-            {travel(visibleChildren, level + 1, [...parentNode, route.name])}
-          </SubMenu>
+  // 渲染MenuItem
+  function renderRoutes(locale) {
+    // routeMap.current.clear();
+    // console.log('renderRoutes')
+    return function travel(_routes: INavi[], level, parentNode = []) {
+      return _routes.map((route) => {
+        const { breadcrumb = true, ignore } = route;
+        //根据key获取图标
+        // const iconDom = getIconFromKey(route.key);
+        // const iconDom = getIconFromKey(route.id);
+        //二级目录没有图标
+        const iconDom = route.pid ? '' : getIconFromKey(route.id);
+        // const pid = route.pid;
+        const hrefId = route.pid ? route.pid : route.id;
+        const titleDom = (
+          <>
+            {/* {iconDom} {locale[route.name] || route.name} */}
+            {<AnchorLink href={`#${hrefId}`}
+              title={
+                <> {iconDom} {route.name}</>
+                // route.pid ?
+                //   <> <a href="javascript:void(0)" ref={linkRef} onClick={() => onMenuClick(route.id, route.pid)}> {iconDom}<span>{route.name}</span></a></>
+                //   : <> {iconDom} {route.name}</>
+              }>
+            </AnchorLink>}
+          </>
         );
-      }
-      //C.当前路由菜单可见，且没有可见路由子菜单：返回当前菜单，设置当前路由菜单到menuMap
-      // menuMap.current.set(route.key, { menuItem: true });
-      return <MenuItem key={route.path}>{titleDom}</MenuItem>;
-    });
-  };
-}
 
-// 根据路径pathname,打开/展开对应的菜单
-function updateMenuStatus() {
-  const pathKeys = pathname.split('/');
-  const newSelectedKeys: string[] = [];
-  const newOpenKeys: string[] = [...openKeys];
-  while (pathKeys.length > 0) {
-    const currentRouteKey = pathKeys.join('/');
-    const menuKey = currentRouteKey.replace(/^\//, '');
-    const menuType = menuMap.current.get(menuKey);
-    if (menuType && menuType.menuItem) {//是单个菜单->选中
-      newSelectedKeys.push(menuKey);
-    }
-    if (menuType && menuType.subMenu && !openKeys.includes(menuKey)) {//是嵌套(父级)菜单->展开
-      newOpenKeys.push(menuKey);
-    }
-    pathKeys.pop();
+        // 根据key,设置面包屑导航到routeMap
+        /*  routeMap.current.set(
+           `/${route.key}`,
+           breadcrumb ? [...parentNode, route.name] : []
+         ); */
+
+        // 将子菜单name添加到面包屑导航routeMap
+        const visibleChildren = (route.children || []).filter((child) => {
+          // ignore：当前路由是否渲染菜单项，为 true 的话不会在菜单中显示，但可通过路由地址访问。
+          const { ignore, breadcrumb = true } = child;
+
+          // 如果父route或子route的ignore为true,设置breadcrumb路由地址
+          /*  if (ignore || route.ignore) {
+             routeMap.current.set(
+               `/${child.key}`,
+               breadcrumb ? [...parentNode, route.name, child.name] : []
+             );
+           } */
+
+          //过滤ignore为false的子菜单
+          return !ignore;
+        });
+
+        // A.当前路由菜单route.ignore==true不可见，返回空,也不渲染子菜单
+        if (ignore) {
+          return '';
+        }
+        //B.当前路由菜单可见，且拥有可见路由子菜单
+        if (visibleChildren.length) {
+          // 设置当前路由菜单类型到menuMap,返回当前菜单并递归子菜单渲染
+          // menuMap.current.set(route.key, { subMenu: true });
+          return (
+            <SubMenu key={route.path} title={titleDom}>
+              {travel(visibleChildren, level + 1, [...parentNode, route.name])}
+            </SubMenu>
+          );
+        }
+        //C.当前路由菜单可见，且没有可见路由子菜单：返回当前菜单，设置当前路由菜单到menuMap
+        // menuMap.current.set(route.key, { menuItem: true });
+        return <MenuItem key={route.path}>{titleDom}</MenuItem>;
+      });
+    };
   }
-  setSelectedKeys(newSelectedKeys);
-  setOpenKeys(newOpenKeys);
-}
 
-return (
-  <Layout className={styles.layout}>
-    <div
-      className={cs(styles['layout-navbar'], {
-        [styles['layout-navbar-hidden']]: !showNavbar,
-      })}
-    >
+  // 根据路径pathname,打开/展开对应的菜单
+  function updateMenuStatus() {
+    const pathKeys = pathname.split('/');
+    const newSelectedKeys: string[] = [];
+    const newOpenKeys: string[] = [...openKeys];
+    while (pathKeys.length > 0) {
+      const currentRouteKey = pathKeys.join('/');
+      const menuKey = currentRouteKey.replace(/^\//, '');
+      const menuType = menuMap.current.get(menuKey);
+      if (menuType && menuType.menuItem) {//是单个菜单->选中
+        newSelectedKeys.push(menuKey);
+      }
+      if (menuType && menuType.subMenu && !openKeys.includes(menuKey)) {//是嵌套(父级)菜单->展开
+        newOpenKeys.push(menuKey);
+      }
+      pathKeys.pop();
+    }
+    setSelectedKeys(newSelectedKeys);
+    setOpenKeys(newOpenKeys);
+  }
 
-      {/* num={groups.length} */}
-      <Navbar show={showNavbar} pageNo={currentPage} pages={bookmarkPages} display={hideGroup ? hiddenGroup : null} setNavBarKey={getNavBarKey} setAllDisplay={getAllDisplay} />
-    </div>
-    {userLoading ? (
-      <Spin className={styles['spin']} />
-    ) : (
-      <Layout>
-        {(showMenu) && (
-          <Sider
-            className={styles['layout-sider']}
-            width={menuWidth}
-            collapsed={collapsed}
-            onCollapse={setCollapsed}
-            trigger={null}
-            collapsible
-            breakpoint="xl"
-            style={paddingTop}
-          >
-            <div className={styles['menu-wrapper']}>
-              {/* 收纳：展示菜单 */}
-              {collapsed ? <Menu
-                // {<Menu
-                collapse={collapsed}
-                onClickMenuItem={(key, event, keyPath) => onClickMenuItem(key, event, keyPath)}
-                // onClickSubMenu={onClickMenuItem}
-                selectedKeys={selectedKeys}
-                openKeys={openKeys}
-                onClickSubMenu={(key, openKeys, keyPath) => {
-                  onClickMenuItem(key, openKeys, keyPath)
-                  setOpenKeys(openKeys);
-                }}
-              >
-                {renderRoutes(locale)(data, 1)}
-              </Menu>
-                :
-                <Tree setTreeSelected={getTreeSelect}
-                  treeSelectedKeys={treeSelectedKeys}
-                  // data={data}
-                  data={data}
-                  inputValue={treeInputValue}
-                  setTreeInputValue={getTreeInputValue}>
-                </Tree>
-              }
-            </div>
-            <div className={styles['collapse-btn']} onClick={toggleCollapse}>
-              {collapsed ? <IconMenuUnfold /> : <IconMenuFold />}
-            </div>
-          </Sider>
-        )}
-        <Layout className={styles['layout-content']} style={paddingStyle}>
-          <div className={styles['layout-content-wrapper']}>
-            {!!breadcrumb.length && (
-              <div className={styles['layout-breadcrumb']}>
-                <Breadcrumb>
-                  {breadcrumb.map((node, index) => (
-                    <Breadcrumb.Item key={index}>
-                      {typeof node === 'string' ? locale[node] || node : node}
-                    </Breadcrumb.Item>
-                  ))}
-                </Breadcrumb>
+  return (
+    <Layout className={styles.layout}>
+      <div
+        className={cs(styles['layout-navbar'], {
+          [styles['layout-navbar-hidden']]: !showNavbar,
+        })}
+      >
+
+        {/* num={groups.length} */}
+        <Navbar show={showNavbar} pageNo={currentPage} pages={bookmarkPages} display={hideGroup ? hiddenGroup : null} setNavBarKey={getNavBarKey} setAllDisplay={getAllDisplay} />
+      </div>
+      {userLoading ? (
+        <Spin className={styles['spin']} />
+      ) : (
+        <Layout>
+          {(showMenu) && (
+            <Sider
+              className={styles['layout-sider']}
+              width={menuWidth}
+              collapsed={collapsed}
+              onCollapse={setCollapsed}
+              trigger={null}
+              collapsible
+              breakpoint="xl"
+              style={paddingTop}
+            >
+              <div className={styles['menu-wrapper']}>
+                {/* 收纳：展示菜单 */}
+                {collapsed ? <Menu
+                  // {<Menu
+                  collapse={collapsed}
+                  onClickMenuItem={(key, event, keyPath) => onClickMenuItem(key, event, keyPath)}
+                  // onClickSubMenu={onClickMenuItem}
+                  selectedKeys={selectedKeys}
+                  openKeys={openKeys}
+                  onClickSubMenu={(key, openKeys, keyPath) => {
+                    onClickMenuItem(key, openKeys, keyPath)
+                    setOpenKeys(openKeys);
+                  }}
+                >
+                  {renderRoutes(locale)(data, 1)}
+                </Menu>
+                  :
+                  <Tree setTreeSelected={getTreeSelect}
+                    treeSelectedKeys={treeSelectedKeys}
+                    // data={data}
+                    data={data}
+                    inputValue={treeInputValue}
+                    setTreeInputValue={getTreeInputValue}>
+                  </Tree>
+                }
               </div>
-            )}
-            <Content>
-              {/* Card-Tab列表 hasResult={hasResult}  */}
-              <Navi activeCardTab={treeSelected} display={display} keyWord={navbarKeyWord} activeGroup={activeGroup} setCardTabActive={getCardTabActive} hasResult={hasResult} list={list} loading={loading}></Navi>
-            </Content>
-          </div>
-          {showFooter && <Footer />}
+              <div className={styles['collapse-btn']} onClick={toggleCollapse}>
+                {collapsed ? <IconMenuUnfold /> : <IconMenuFold />}
+              </div>
+            </Sider>
+          )}
+          <Layout className={styles['layout-content']} style={paddingStyle}>
+            <div className={styles['layout-content-wrapper']}>
+              {!!breadcrumb.length && (
+                <div className={styles['layout-breadcrumb']}>
+                  <Breadcrumb>
+                    {breadcrumb.map((node, index) => (
+                      <Breadcrumb.Item key={index}>
+                        {typeof node === 'string' ? locale[node] || node : node}
+                      </Breadcrumb.Item>
+                    ))}
+                  </Breadcrumb>
+                </div>
+              )}
+              <Content>
+                {/* Card-Tab列表 hasResult={hasResult}  */}
+                <Navi activeCardTab={treeSelected} display={display} keyWord={navbarKeyWord} activeGroup={activeGroup} setCardTabActive={getCardTabActive} hasResult={hasResult} list={list} loading={loading}></Navi>
+              </Content>
+            </div>
+            {showFooter && <Footer />}
 
-          <BackToTop></BackToTop>
+            <BackToTop></BackToTop>
 
-          {/* <div
+            {/* <div
               style={{
                 position: 'absolute',
                 display: 'inline-block',
@@ -749,12 +685,12 @@ return (
               }}>
               <AnchorLink href={`#27`} title={'回到顶部'}> <IconCaretUp /></AnchorLink>
             </div> */}
+          </Layout>
         </Layout>
-      </Layout>
-    )
-    }
-  </Layout >
-);
+      )
+      }
+    </Layout >
+  );
 }
 
 export default UserNavigate;

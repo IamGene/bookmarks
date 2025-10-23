@@ -64,11 +64,9 @@ function refreshAndCreateMenus(groups) {
 // ------------------------------------------------------------------
 chrome.runtime.onInstalled.addListener(() => {
 
-
+    const count = getGroupMenus();
+    console.log('[Background] onInstalled getGroupMenus count=', count);
     chrome.contextMenus.removeAll(() => {
-
-        // const count = getGroupMenus();
-        // console.log('[Background] onInstalled getGroupMenus count=', count);
 
         chrome.contextMenus.create({ id: MAIN_MENU_ID, title: "添加到我的书签", contexts: ["page"] });
         // 启动时尝试从 Chrome Storage 加载已有分组，并创建菜单

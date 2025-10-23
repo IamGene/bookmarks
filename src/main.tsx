@@ -5,9 +5,8 @@ import { Provider } from 'react-redux';
 import { ConfigProvider } from '@arco-design/web-react';
 import zhCN from '@arco-design/web-react/es/locale/zh-CN';
 import enUS from '@arco-design/web-react/es/locale/en-US';
-// import { BrowserRouter, Redirect, Switch, Route } from 'react-router-dom';
-import { HashRouter as Router, Redirect, Switch, Route } from 'react-router-dom';
-// import Navigate from './navigate';
+import { BrowserRouter, Redirect, Switch, Route } from 'react-router-dom';
+// import { HashRouter as Router, Redirect, Switch, Route } from 'react-router-dom';
 import UserNavigate from './pages/navigate/user';
 import IndexedDB1 from './db/BookmarkRestore.jsx';
 import DefaultNavigate from './pages/navigate/default';
@@ -125,10 +124,14 @@ function Index() {
           await saveBookmarkToDB(bookmark);
           console.log(`A.com 主线程: 已将书签 "${bookmark.title}" 写入 IndexedDB。`);
 
-          // ⚠️ 如果书签保存后 UI 需要刷新，可以在这里 dispatch action
-          // 例如，重新获取书签数据
-          // store.dispatch(fetchBookmarksPageData(bookmark.pageId));
-
+          // ✅ 当书签保存成功后，派发 action 重新获取该页面的数据，以刷新UI
+          if (bookmark.pageId) {
+            // 动态导入 action 创建函数以避免循环依赖
+            const { fetchBookmarksPageData } = await import(
+              './store/modules/global'
+            );
+            store.dispatch(fetchBookmarksPageData(bookmark.pageId));
+          }
         } catch (e) {
           console.error("A.com 主线程: 写入书签到 IndexedDB 失败:", e);
         }
@@ -154,8 +157,8 @@ function Index() {
   };
 
   return (
-    // <BrowserRouter>
-    <Router>
+    // <Router>
+    <BrowserRouter>
       <ConfigProvider
         locale={getArcoLocale()}
         componentConfig={{
@@ -196,8 +199,8 @@ function Index() {
           </GlobalContext.Provider>
         </Provider>
       </ConfigProvider>
-    </Router >
-    // </BrowserRouter>
+    </BrowserRouter>
+    // </Router >
   );
 }
 
