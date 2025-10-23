@@ -51,9 +51,9 @@ export default defineConfig(({ mode }) => {
       emptyOutDir: true,
       rollupOptions: {
         input: {
-          main: path.resolve(__dirname, 'index.html'),
+          main: path.resolve(__dirname, 'index.html')
           // extensionHelper: path.resolve(__dirname, 'src/extension/extension-helper.html'),
-          extensionHelper: path.resolve(__dirname, 'public/extension-helper.html'),
+          // extensionHelper: path.resolve(__dirname, 'public/extension-helper.html'),
         },
       },
     },
