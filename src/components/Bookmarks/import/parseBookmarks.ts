@@ -12,7 +12,7 @@ export function handleFile(file: File, type: number): Promise<any[]> {
                 const html = e.target?.result as string;
                 const bookmarks = type === 1 ? "书签栏" : (type === 2 ? "收藏夹栏" : "书签工具栏");
                 const toolBar = type === 1 ? "书签栏" : (type === 2 ? "收藏夹栏" : "Bookmarks Toolbar");
-                const others = type === 1 ? "移动设备和其他书签" : (type === 2 ? "移动和其他收藏夹" : "其他书签");
+                const others = type === 1 ? "移动设备和其他书签栏" : (type === 2 ? "移动和其他收藏夹" : "其他书签");
                 const json = parseBookmarksAll(html, bookmarks, toolBar, others, type);
                 resolve(json);
             } catch (err) {
@@ -92,7 +92,7 @@ export function parseBookmarksAll(html: string, bookmarks: string, toolBar: stri
                 type: "folder",
                 name: others,
                 title: others,
-                add_date: null,
+                addDate: null,
                 last_modified: null,
                 children: [],
                 urlList: []
@@ -103,7 +103,7 @@ export function parseBookmarksAll(html: string, bookmarks: string, toolBar: stri
                 type: "folder",
                 name: bookmarks,
                 title: bookmarks,
-                add_date: null,
+                addDate: null,
                 last_modified: null,
                 children: [],
                 urlList: []
@@ -121,7 +121,7 @@ export function parseBookmarksAll(html: string, bookmarks: string, toolBar: stri
                         type: "folder",
                         name: h3.textContent,
                         description: h3.textContent,
-                        add_date: h3.getAttribute("ADD_DATE"),
+                        addDate: h3.getAttribute("ADD_DATE"),
                         last_modified: h3.getAttribute("LAST_MODIFIED"),
                         children: [],
                         urlList: []
@@ -181,7 +181,7 @@ export function parseBookmarksAll(html: string, bookmarks: string, toolBar: stri
                             description: a.textContent,
                             name: a.textContent,
                             url: a.getAttribute("HREF"),
-                            add_date: a.getAttribute("ADD_DATE"),
+                            addDate: a.getAttribute("ADD_DATE"),
                             icon: a.getAttribute("ICON") || null
                         });
                     } else if (level == 1) {
@@ -191,7 +191,7 @@ export function parseBookmarksAll(html: string, bookmarks: string, toolBar: stri
                                 description: a.textContent,
                                 name: a.textContent,
                                 url: a.getAttribute("HREF"),
-                                add_date: a.getAttribute("ADD_DATE"),
+                                addDate: a.getAttribute("ADD_DATE"),
                                 icon: a.getAttribute("ICON") || null
                             });
                         } else {
@@ -200,7 +200,7 @@ export function parseBookmarksAll(html: string, bookmarks: string, toolBar: stri
                                 description: a.textContent,
                                 name: a.textContent,
                                 url: a.getAttribute("HREF"),
-                                add_date: a.getAttribute("ADD_DATE"),
+                                addDate: a.getAttribute("ADD_DATE"),
                                 icon: a.getAttribute("ICON") || null
                             });
                         }
@@ -210,7 +210,7 @@ export function parseBookmarksAll(html: string, bookmarks: string, toolBar: stri
                             name: a.textContent,
                             description: a.textContent,
                             url: a.getAttribute("HREF"),
-                            add_date: a.getAttribute("ADD_DATE"),
+                            addDate: a.getAttribute("ADD_DATE"),
                             icon: a.getAttribute("ICON") || null
                         });
                     }

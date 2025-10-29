@@ -285,7 +285,7 @@ function renderCard({ cardData, index, activeCardTab, setCardTabActive, keyWord,
             <div style={{ width: '100%' }}>
                 <Grid cols={{ xs: 1, sm: 2, md: 3, lg: 4, xl: 5, xxl: 6 }} colGap={12} rowGap={16} >
                     {list.map((item, index) => (
-                        <GridItem key={index} className='demo-item'><TagItem tag={item} loading={loading} /></GridItem>
+                        <GridItem key={item.id} className='demo-item'><TagItem tag={item} loading={loading} /></GridItem>
                     ))}
                 </Grid>
             </div>

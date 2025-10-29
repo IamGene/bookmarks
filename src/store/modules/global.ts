@@ -67,14 +67,17 @@ export default store
 import { createSlice } from '@reduxjs/toolkit';
 import defaultSettings from '../../settings.json';
 // import { getUserNaviate } from '@/api/navigate';
-import { getPageTree } from "@/db/restoreTree";
-
+import { getPageTree } from "@/db/bookmarksPages";
+import { WebTag } from '@/pages/navigate/user/interface';
 export interface GroupNode {
-  id: number;
+  id: string;
   name: string;
+  path: string;
+  description: string;
   hide: boolean;
-  batchNo: number; // 页编号
-  pid?: number; // 父节点ID，可能为空
+  // batchNo: number; // 页编号
+  pageId: number; //页编号
+  pId?: number; // 父节点ID，可能为空
   children?: GroupNode[]; // 子节点，可能为空数组
 }
 // 定义一个TreeNode类型的数组
@@ -100,6 +103,7 @@ export interface GlobalState {
   defaultPage: number;
   pages: string[];
   activeGroup: GroupNode;
+  loadedBookmarks: WebTag[];
 }
 
 const initialState: GlobalState = {
@@ -115,7 +119,8 @@ const initialState: GlobalState = {
   hiddenGroup: false,//有隐藏分组
   defaultPage: null,
   pages: [],
-  activeGroup: null
+  activeGroup: null,
+  loadedBookmarks: null
 }
 
 
@@ -171,6 +176,9 @@ const globalSlice = createSlice({
     },
     updateActiveGroup: (state, action) => {
       state.activeGroup = action.payload;
+    },
+    setLoadBookmarks: (state, action) => {
+      state.loadedBookmarks = action.payload;
     }
   },
 });
@@ -186,27 +194,12 @@ const fetchBookmarksPageData = (page: number) => {
   return async (dispatch) => {
     const res = await getPageTree(page);
     // const pages = await getPages();
-    // const res = await getUserNaviate();
-    // console.log('999999999999 fetchTagGroupsData res', page, res)
-    // if (res.code === 200) {
+    console.log('999999999999 fetchTagGroupsData res', page, res)
     if (res.length > 0) {
       //list: 分组书签（全字段）
       const list = res;
       let hideGroup: boolean = hasHidden(list);
-      // console.log('33333333333 hasHidden', hideGroup);
-
-      // 添加到Redux全局变量
-      /* const group1s = [];
-      list.forEach(item => {
-        //只取需要的字段
-        group1s.push({ id: item.id, name: item.name, hide: item.hide })
-      }); */
-      // dispatch(updateActives([1, 21]))
-      //检查有无隐藏的分组或标签??
       dispatch(updateTagGroups({ groups: list, hideGroup: hideGroup }))
-      // return true
-      // 设置表单数据，这里省略了...
-      // return res.data; // 直接返回整个响应对象
       return res; // 直接返回整个响应对象
     } else {
       return undefined;
@@ -216,8 +209,16 @@ const fetchBookmarksPageData = (page: number) => {
   }
 };
 
+
+const loadNewAddedBookmarks = (bookmarks: WebTag[]) => {
+  console.log('2222222222 loadNewAddedBookmarks action', bookmarks);
+  return async (dispatch) => {
+    dispatch(setLoadBookmarks(bookmarks))
+  }
+};
+
 // export const { updateSettings, updateUserInfo, updateHasResult, updateTagGroups } = globalSlice.actions;
-const { updateSettings, updateUserInfo, updateHasResult, updateTagGroups, updateUserPage, updateActiveGroup } = globalSlice.actions;
-export { updateSettings, updateUserInfo, updateHasResult, updateTagGroups, updateUserPage, updateActiveGroup, fetchBookmarksPageData };
+const { updateSettings, updateUserInfo, updateHasResult, updateTagGroups, updateUserPage, updateActiveGroup, setLoadBookmarks } = globalSlice.actions;
+export { updateSettings, updateUserInfo, updateHasResult, updateTagGroups, updateUserPage, updateActiveGroup, fetchBookmarksPageData, loadNewAddedBookmarks };
 export default globalSlice.reducer;
 // export { dispatchTagGroupsData };

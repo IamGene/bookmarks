@@ -25,7 +25,7 @@ const App = (props) => {
                     data-placement="left"
                     title="" data-original-title="Hello I am a Tooltip"></span>
                 <div className="xe-comment">
-                    <a href="#" className="xe-user-name overflowClip_1">
+                    <a href="#" className="xe-user-name overflowClip_1" id={`${tag.id}`}>
                         <strong>{tag.name}</strong>
                     </a>
                     <Tooltip position='bottom' trigger='hover' content={tag.description}>

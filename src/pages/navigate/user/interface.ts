@@ -17,7 +17,7 @@ export interface BasicCard {
 
 // 基本
 // export interface TagCard {
-export interface WebTag {
+/* export interface WebTag {
   // icon1?: number;
   id?: number;
   icon?: string;
@@ -25,6 +25,25 @@ export interface WebTag {
   description: string;
   hide: boolean;
   gid: number;
+  name: string;
+  url?: string;
+  //搜索关键词时name会被Element类型取代,无法获知原来的长度以tooltip展示，所以保存在这个变量里
+  nameLength?: number;
+  img?: string;
+} */
+
+// 基本
+// export interface TagCard {
+export interface WebTag {
+  // icon1?: number;
+  id?: string;
+  icon?: string;
+  status?: 0 | 1 | 2;
+  description: string;
+  hide: boolean;
+  gId: string;
+  pageId: number;
+  date?: string;
   name: string;
   url?: string;
   //搜索关键词时name会被Element类型取代,无法获知原来的长度以tooltip展示，所以保存在这个变量里

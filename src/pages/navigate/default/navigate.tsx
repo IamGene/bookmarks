@@ -31,32 +31,10 @@ const { Row, Col, GridItem } = Grid;
 
 
 // import { BackTop, Button, Select, Input, Typography, Space } from '@arco-design/web-react';
-const { Paragraph, Text } = Typography;
-/* const easingTypes = [
-  'linear',
-  'quadIn',
-  'quadOut',
-  'quadInOut',
-  'cubicIn',
-  'cubicOut',
-  'cubicInOut',
-  'quartIn',
-  'quartOut',
-  'quartInOut',
-  'quintIn',
-  'quintOut',
-  'quintInOut',
-  'sineIn',
-  'sineOut',
-  'sineInOut',
-  'bounceIn',
-  'bounceOut',
-  'bounceInOut',
-]; */
+// const { Paragraph, Text } = Typography;
 
 function ListCard({ activeCardTab, setCardTabActive, keyWord, list, hasResult, loading }) {
   const t = useLocale(locale);
-
 
   const [activeKey, setActiveKey] = useState('tags');
 

@@ -1,5 +1,4 @@
-// import React, { useContext, useEffect, useState } from 'react';
-import React, { memo, useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import {
   Tooltip,
   Input,
@@ -55,7 +54,7 @@ function Navbar({ pageNo, pages, show, display, setNavBarKey, setAllDisplay }) {
   const t = useLocale();
   const dispatch = useDispatch();
 
-  console.log(" ===================pageNo=", pageNo, pages);
+  // console.log(" ===================pageNo=", pageNo);
   // const { userInfo, userLoading } = useSelector((state: GlobalState) => state);
   const globalState = useSelector((state: any) => state.global);
   const { userInfo, userLoading } = globalState;
@@ -332,6 +331,4 @@ function Navbar({ pageNo, pages, show, display, setNavBarKey, setAllDisplay }) {
   );
 }
 
-// export default Navbar;
-//用 React.memo 包裹它可以阻止因父组件 UserNavigate 的重渲染而导致的连带重渲染
-export default memo(Navbar);
+export default Navbar;

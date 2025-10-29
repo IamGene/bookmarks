@@ -24,5 +24,6 @@ export function useFetchPageData() {
     // 使用 await 是为了确保操作完成（如果 fetchTagGroupsData 返回的是 Promise）
     return await dispatch(fetchBookmarksPageData(pageId));
   };
+
   return switchPageId;
 }

@@ -1,7 +1,6 @@
 import React from 'react';
 import Draggable from 'react-draggable';
-import { useState, useEffect, useRef } from 'react';
-import { FormInstance } from '@arco-design/web-react/es/Form';
+import { useState, useEffect } from 'react';
 import { Modal, Upload, Input, Cascader, Radio, Switch, Form, Select, Message } from '@arco-design/web-react';
 import useLocale from '@/utils/useLocale';
 import locale from '../locale';
@@ -10,13 +9,17 @@ import isUrl from 'is-url';
 import { useSelector } from 'react-redux';
 import { WebTag } from '../interface';
 import { GroupNode } from '@/store/modules/global';
+import { saveSubGroup } from '@/db/bookmarksPages';
 const FormItem = Form.Item;
 const TextArea = Input.TextArea;
 const api = import.meta.env.VITE_REACT_APP_BASE_API;
 interface TagDataParams {
   isVisible: boolean;
-  selectGroup: number[];
-  batchNo: number;
+  selectGroup: GroupNode;
+  // selectGroup: string[];
+  // selectGroup: GroupNode;
+  pageId: number;
+  // batchNo: number;
   closeWithSuccess: Function;
   data?: WebTag;
 }
@@ -25,19 +28,21 @@ interface TagDataParams {
 const regex = /^(?:http(s)?:\/\/)/gi; // 添加全局匹配标志g
 
 function App(props: TagDataParams) {
-  const { isVisible, selectGroup, batchNo, closeWithSuccess } = props;
-
+  const { isVisible, selectGroup, pageId, closeWithSuccess } = props;
+  const selectGroupId = selectGroup.id;//选中的分组id数组
   const [disabled, setDisabled] = React.useState(true);
   const [visible, setVisible] = React.useState(false);
   const [confirmLoading, setConfirmLoading] = useState(false);
 
-  // console.log('tag form data', data)
   const globalState = useSelector((state: any) => state.global);
   const { groups } = globalState;
+  // console.log('sssssssssss tag form data', selectGroup, groups)
   const cascaderOptions = groups;
+  // const cascaderOptions = groups;
 
   //要显示的选择分组
-  const [optionValues, setOptionValues] = useState(selectGroup);
+  // const [optionValues, setOptionValues] = useState(selectGroup);
+  const [optionValues, setOptionValues] = useState(selectGroupId);
   //要显示的选择分组
   const t = useLocale(locale);
   const [url, setUrl] = useState('')
@@ -49,7 +54,7 @@ function App(props: TagDataParams) {
     const group = await submitTagData(tag)
     Message.success('Success !');
     setConfirmLoading(false);
-    console.log('processSaveTag', group);
+    // console.log('processSaveTag', group);
     // setVisible(false);
     closeWithSuccess(true, group)//相当于点击取消/关闭按钮
 
@@ -94,8 +99,10 @@ function App(props: TagDataParams) {
         //截取字符串
         let name = res.name;
         if (name.length > 20) {
-          res.name = name.substring(0, 20);;
+          res.name = name.substring(0, 20);
         }
+        // res.type = "folder";
+        console.log('3333333333 processSaveSubGroup', res);
         processSaveSubGroup(res);
       })
     }
@@ -103,7 +110,8 @@ function App(props: TagDataParams) {
 
 
   const processSaveSubGroup = async (group) => {
-    const data = await submitGroupData(group)
+    // const data = await submitGroupData(group);
+    const data = await saveSubGroup(group);
     Message.success('添加成功');
     // setConfirmLoading(false);
     closeWithSuccess(true, data.id)//相当于点击取消/关闭按钮
@@ -157,11 +165,18 @@ function App(props: TagDataParams) {
       });
 
       groupForm.setFields({
-        pid: {
-          value: selectGroup
+        /*  pid: {
+           value: selectGroup
+         }, */
+
+        pId: {
+          value: selectGroupId
         },
-        batchNo: {
-          value: batchNo
+        /*  batchNo: {
+           value: batchNo
+         }, */
+        pageId: {
+          value: pageId
         }
       });
     }
@@ -338,7 +353,7 @@ function App(props: TagDataParams) {
         style={{ cursor: 'move' }}
         // title='Modal Title'
         // title={data ? t['cardList.edit.website.tag'] : t['cardList.add.website.tag']}
-        title={t['cardList.edit.website.tag']}
+        title={t['cardList.add.bookmark.group']}
         // visible={visible}
         visible={isVisible}
         // onOk={() => setVisible(false)}
@@ -537,7 +552,7 @@ function App(props: TagDataParams) {
           >
             <FormItem
               label='上级'
-              field='pid'
+              field='pId'
               rules={[
                 {
                   type: 'array',
@@ -562,6 +577,7 @@ function App(props: TagDataParams) {
                   // children: 'child',
                   label: 'name',
                   value: 'id',
+                  // value: 'name',
                 }}
               />
             </FormItem>
@@ -576,7 +592,8 @@ function App(props: TagDataParams) {
               />
             </FormItem>
 
-            <FormItem label='batchNo' field='batchNo' hidden rules={[{ required: true }]}>
+            {/* <FormItem label='batchNo' field='batchNo' hidden rules={[{ required: true }]}> */}
+            <FormItem label='pageId' field='pageId' hidden rules={[{ required: true }]}>
               <Input
               />
             </FormItem>

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import TagItem from './tag/card-tag';
 import { WebTag } from './interface';
 import { Tabs, Card, Switch, Empty, Input, Dropdown, Menu, Typography, Message, Grid, Form, Button, Space } from '@arco-design/web-react';
-import { IconEyeInvisible, IconToTop, IconMore, IconPlus, IconToBottom, IconLink, IconDelete, IconEdit, IconEye, IconCheck } from '@arco-design/web-react/icon';
+import { IconEyeInvisible, IconToTop, IconMore, IconPlus, IconEraser, IconToBottom, IconLink, IconDelete, IconEdit, IconEye, IconCheck } from '@arco-design/web-react/icon';
 import styles from './style/index.module.less';
 import TagForm from './form/tag-form';
 import TabGroupForm from './form/tab-group-form';
@@ -216,7 +216,7 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
     // if (cardData.id === 1) console.log(cardData.name + ' 渲染了');
 
     const dispatch = useDispatch();
-    const pageNo = cardData.batchNo;
+    const pageId = cardData.pageId;
 
     // console.log(cardData.name + ' card activeGroup', activeGroup)
     const [data, setData] = useState(cardData);
@@ -355,7 +355,6 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
         // console.log(cardData.name + ' useEffect activeCardTab', activeCardTab)
         // const cardActive: number = activeCardTab[0];
         // const tabActive: number | null = activeCardTab[1];
-
         const cardActive: string = activeCardTab[0];
         const tabActive: string | null = activeCardTab[1];
         let treeSelected1: boolean = false;
@@ -448,7 +447,8 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
         setShowByDisplayAndAll(cardData.hide, display, treeSelected);
     }, [display]);
 
-
+    useEffect(() => {
+    }, [data]);
     /* const setShowByDisplayAndGroupHide = (groupHide: boolean, display: boolean) => {
         let noSearchResult: boolean = searching && searchResult.length == 0;//搜索中，无结果
         //情况: A.该分组不隐藏  B.展示(NavBar传递)隐藏分组，但如果搜索，不能无搜索结果
@@ -589,7 +589,7 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
 
     // 处理空字符串搜索
     const processEmptySearch = () => {
-        // console.log(cardData.name + ' processEmptySearch setActiveTab', defaultActiveKey);
+        console.log(cardData.name + ' processEmptySearch setActiveTab', defaultActiveKey);
         setSearching(false);
         setShow(true);
         setData(cardData);//展示原始的全部数据
@@ -759,6 +759,11 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
     const removeGroup1 = () => {
         removeConfirm(cardData.id, cardData.name, '点击确定将删除该分组及其所有标签', '分组', processRemoveGroup);
     }
+
+    const clearGroup = () => {
+        // removeConfirm(cardData.id, cardData.name, '点击确定将删除该分组及其所有标签', '分组', processRemoveGroup);
+    }
+
     // 四、增删改部分 end====================================================================================
 
     //四、添加/编辑/删除Tab标签部分 End
@@ -772,7 +777,7 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
     const onEditTag = (tag: WebTag) => {
         setAddTagVisible(true);
         setEditTag(tag)
-        setTagSelectGroup(cardData.id === tag.gid ? [tag.gid] : [cardData.id, tag.gid])
+        setTagSelectGroup(cardData.id === tag.gId ? [tag.gId] : [cardData.id, tag.gId])
     }
 
     async function processRemoveGroup(id: number) {
@@ -837,9 +842,9 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
                     setEditTag(null)
                     setTagSelectGroup([cardData.id, subGroup.id])
                 } else if (key === '1') {//编辑Group2
-                    setTabForm(true)
+                    setTabForm(true);
                     setTabGroup(subGroup);
-                    setSelectGroup(cardData.id)
+                    setSelectGroup(cardData.id);
                     // setRequirePid(true)
                 } else if (key === '2') {//删除Group2
                     //弹出确认框
@@ -892,13 +897,19 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
     const [loading, setLoading] = useState(true);
 
     //提交成功后关闭或取消关闭Modal窗口
-    async function closeAddTagModal(success: boolean, group?: any) {
+    async function closeAddTagModal(success: boolean, newTag: WebTag, add: boolean) {
         setAddTagVisible(false);
         if (success) {//刷新当前页面数据
-            // console.log('close Modal group', group)
+            // console.log('close Modal group', newTag);
             // getGroupData();
-            if (group) {//所在的分组，重置位置
-                processReload(group);
+            if (newTag) {//所在的分组，重置位置
+                // processReload(group);
+                if (add) {
+                    // console.log('closeAddTagModal add refreshDataByAddBookmark', newTag);
+                    refreshDataByAddBookmark(newTag);
+                } else {
+                    refreshDataByUpdateBookmark(newTag);
+                }
             }
         }
     }
@@ -922,22 +933,24 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
                 dispatch(updateActiveGroup(group))
             }
         } */
-        dispatch(updateActiveGroup(group))
+        dispatch(updateActiveGroup(group));
+
         // 设置新的定时器
         // clearTimeout(timeoutId);
+
         // timeoutId = setTimeout(() => {
-        if (group.pid) {
+        /* if (group.pid) {
             // window.location.href = `/navigate/user#${group.pid}`;
             window.location.href = `/bookmarks#${group.pid}`;
         } else {
             window.location.href = `/bookmarks#${group.id}`;
-        }
+        } */
         // }, 500);
     }
 
     //提交成功后关闭或取消关闭Modal窗口
     async function closeTabModal(success: boolean, group: any) {
-        setTabForm(false)
+        setTabForm(false);
         if (success) {//刷新当前页面数据
             processReload(group);
             /*  if (cardData.id !== group.pid) {//pid发生了变化 设置activegroup
@@ -960,7 +973,7 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
 
     const getGroupData = async () => {
         // console.log('card getGroupData')
-        const data: any = await dispatch(fetchBookmarksPageData(pageNo))
+        const data: any = await dispatch(fetchBookmarksPageData(pageId))
     }
 
     const addTagOrGroup = (id: number) => {
@@ -996,9 +1009,10 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
                                 {data.hide && <Button onClick={switchGroup1} icon={<IconEye />} >展示</Button>}
                                 {!data.hide && <Button onClick={switchGroup1} icon={<IconEyeInvisible />} >隐藏</Button>}
                                 <Button onClick={removeGroup1} icon={<IconDelete />} >删除</Button>
+                                <Button onClick={clearGroup} icon={<IconEraser />} >清空</Button>
                                 {!first && < Button onClick={moveGroupToTop} icon={<IconToTop />} >置顶</Button>}
                                 {!last && < Button onClick={moveGroupToBottom} icon={<IconToBottom />} >置底</Button>}
-                                {< Button onClick={(e) => openGroupAllTags(data)} icon={<IconLink />} >打开全部</Button>}
+                                {data.urlList.length > 0 && < Button onClick={(e) => openGroupAllTags(data)} icon={<IconLink />} >打开全部</Button>}
                             </ButtonGroup>
                         </>
                     }
@@ -1056,7 +1070,14 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
                     }
                 </Card>
 
-                <Add2Form isVisible={add2TypesVisible} selectGroup={cardData.id} batchNo={cardData.batchNo} closeWithSuccess={closeAdd2TypesModal}></Add2Form>
+                <Add2Form
+                    isVisible={add2TypesVisible}
+                    // selectGroup={cardData.id}
+                    selectGroup={cardData}
+                    // batchNo={cardData.pageId}
+                    pageId={cardData.pageId}
+                    closeWithSuccess={closeAdd2TypesModal}>
+                </Add2Form>
             </>
         )
     }
@@ -1158,7 +1179,6 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
                                     title=
                                     {<WrapTabNode key={index} index={index} moveTabNode={moveTabNode}>
                                         {/* {(searching && (searchResult.length !== 0)) ? */}
-
                                         {/* 正在搜索且有结果或当前Card被Tree选择 */}
                                         {(searching && (searchResult.length !== 0 || cardData.id == activeCardTab[0])) ?
                                             <span>
@@ -1206,10 +1226,6 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
                             </div>
                         </TabPane>}
 
-                        {/* <div style={{ display: 'inline-block', color: 'var(--color-text-2)' }}> */}
-                        {/*  <div style={{ display: 'inline-block', color: 'var(--color-text-2)' }}>
-                            <IconCheck />
-                        </div> */}
                     </Tabs>
 
                 </DndProvider>
@@ -1217,6 +1233,188 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
         )
     }
 
+    function refreshDataByAddBookmark(bookmark: WebTag) {
+        // 纯函数：在 node 上尝试更新 tag，返回新的 node 以及是否已更新的标记
+        function addTagFromNode(node: any): { node: any; added: boolean } {
+            // 如果当前节点有 urlList，优先在此层尝试删除
+            if (Array.isArray(node.children) && node.children.length > 0) {
+                const newChildren: any[] = [];
+                let addedFlag = false;
+
+                for (let i = 0; i < node.children.length; i++) {
+                    const child = node.children[i];
+                    if (addedFlag) {
+                        // 已删除过，后续子项保持原样（避免不必要的深拷贝）
+                        newChildren.push(child);
+                        continue;
+                    }
+                    const res = addTagFromNode(child);
+                    newChildren.push(res.node);
+                    if (res.added) {
+                        addedFlag = true;
+                        // don't break here because we still need to append the remaining original children unchanged
+                        // 但后续循环会直接 push 原 child（see branch above）
+                    }
+                }
+                if (addedFlag) {
+                    return { node: { ...node, children: newChildren }, added: true };
+                }
+            }
+
+            if (bookmark.gId === node.id) {
+                if (Array.isArray(node.urlList) && node.urlList.length > 0) {
+                    const newUrlList = [...node.urlList, bookmark];
+                    return {
+                        node: { ...node, urlList: newUrlList },
+                        added: true,
+                    };
+                } else {
+                    return {
+                        node: { ...node, urlList: [bookmark] },
+                        added: true,
+                    };
+                }
+            }
+            // 未找到，返回原节点并标记未删除
+            return { node, added: false };
+        }
+
+        setData(prev => {
+            if (!prev) return prev;
+            // 从根节点开始递归查找并删除，找到后立即停止进一步修改
+            const result = addTagFromNode(prev);
+            const updatedData = result.added ? result.node : prev;
+            // console.log('refreshDataByAddBookmark', updatedData);
+            return updatedData;
+        });
+    }
+
+
+    function refreshDataByUpdateBookmark(bookmark: WebTag) {
+        // 纯函数：在 node 上尝试更新 tag，返回新的 node 以及是否已更新的标记
+        function updateTagFromNode(node: any, tagId: string | number): { node: any; updated: boolean } {
+            // 如果当前节点有 urlList，优先在此层尝试删除
+            // if (Array.isArray(node.urlList) && node.urlList.length > 0) {
+            if (bookmark.gId === node.id && Array.isArray(node.urlList) && node.urlList.length > 0) {
+                const idx = node.urlList.findIndex((item: any) => item.id === tagId);
+                if (idx !== -1) {
+                    const updatedItem = node.urlList[idx];
+                    // const newUrlList = node.urlList.filter((item: any) => item.id !== tagId);
+                    const updatedBookmark = {
+                        ...updatedItem,
+                        ...bookmark,
+                    };
+                    const newUrlList = [...node.urlList];
+                    newUrlList[idx] = updatedBookmark;
+                    // 仅当被删除项不是隐藏项时，才减少 notHideTabCount
+                    // const decrease = updatedItem && updatedItem.hide ? 0 : 1;
+                    // const newNotHide = Math.max(0, (node.notHideTabCount || 0) - decrease);
+                    // 返回新的节点并标记已删除，终止进一步递归
+                    return {
+                        node: { ...node, urlList: newUrlList },
+                        updated: true,
+                    };
+                }
+            }
+
+            // 如果有 children，则遍历 children，递归处理；一旦在某个子树中删除成功则停止后续遍历
+            if (Array.isArray(node.children) && node.children.length > 0) {
+                const newChildren: any[] = [];
+                let updatedFlag = false;
+
+                for (let i = 0; i < node.children.length; i++) {
+                    const child = node.children[i];
+                    if (updatedFlag) {
+                        // 已删除过，后续子项保持原样（避免不必要的深拷贝）
+                        newChildren.push(child);
+                        continue;
+                    }
+                    const res = updateTagFromNode(child, tagId);
+                    newChildren.push(res.node);
+                    if (res.updated) {
+                        updatedFlag = true;
+                        // don't break here because we still need to append the remaining original children unchanged
+                        // 但后续循环会直接 push 原 child（see branch above）
+                    }
+                }
+                if (updatedFlag) {
+                    return { node: { ...node, children: newChildren }, updated: true };
+                }
+            }
+            // 未找到，返回原节点并标记未删除
+            return { node, updated: false };
+        }
+
+        setData(prev => {
+            if (!prev) return prev;
+            // 从根节点开始递归查找并删除，找到后立即停止进一步修改
+            const result = updateTagFromNode(prev, bookmark.id);
+            return result.updated ? result.node : prev;
+        });
+    }
+
+    function refreshData1(tag: WebTag) {
+        // 纯函数：在 node 上尝试删除 tag，返回新的 node 以及是否已删除的标记
+        function removeTagFromNode(node: any, tagId: string | number): { node: any; removed: boolean } {
+            // 如果当前节点有 urlList，优先在此层尝试删除
+            if (Array.isArray(node.urlList) && node.urlList.length > 0) {
+                const idx = node.urlList.findIndex((item: any) => item.id === tagId);
+                if (idx !== -1) {
+                    const removedItem = node.urlList[idx];
+                    const newUrlList = node.urlList.filter((item: any) => item.id !== tagId);
+                    // 仅当被删除项不是隐藏项时，才减少 notHideTabCount
+                    const decrease = removedItem && removedItem.hide ? 0 : 1;
+                    const newNotHide = Math.max(0, (node.notHideTabCount || 0) - decrease);
+                    // 返回新的节点并标记已删除，终止进一步递归
+                    return {
+                        node: { ...node, urlList: newUrlList, notHideTabCount: newNotHide },
+                        removed: true,
+                    };
+                }
+            }
+
+            // 如果有 children，则遍历 children，递归处理；一旦在某个子树中删除成功则停止后续遍历
+            if (Array.isArray(node.children) && node.children.length > 0) {
+                const newChildren: any[] = [];
+                let removedFlag = false;
+
+                for (let i = 0; i < node.children.length; i++) {
+                    const child = node.children[i];
+                    if (removedFlag) {
+                        // 已删除过，后续子项保持原样（避免不必要的深拷贝）
+                        newChildren.push(child);
+                        continue;
+                    }
+                    const res = removeTagFromNode(child, tagId);
+                    newChildren.push(res.node);
+                    if (res.removed) {
+                        removedFlag = true;
+                        // don't break here because we still need to append the remaining original children unchanged
+                        // 但后续循环会直接 push 原 child（see branch above）
+                    }
+                }
+
+                if (removedFlag) {
+                    return { node: { ...node, children: newChildren }, removed: true };
+                }
+            }
+            // 未找到，返回原节点并标记未删除
+            return { node, removed: false };
+        }
+
+        setData(prev => {
+            if (!prev) return prev;
+            // 从根节点开始递归查找并删除，找到后立即停止进一步修改
+            const result = removeTagFromNode(prev, tag.id);
+            return result.removed ? result.node : prev;
+        });
+    }
+
+
+
+    function handleDeleteSuccess(tag: WebTag) {
+        refreshData1(tag);
+    }
 
     function determinShowTabOrNot(item: any) {
         let dis: boolean = false;
@@ -1255,9 +1453,13 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
                 <Grid cols={{ xs: 1, sm: 2, md: 3, lg: 4, xl: 5, xxl: 6 }} colGap={12} rowGap={16} >
                     {list.map((item, index) => (
                         ((!item.hide) || (item.hide && showItem)) && //不隐藏或设置显示隐藏
-                        <GridItem key={index} className='demo-item'>
+                        <GridItem key={item.id} className='demo-item'>
                             {/* <TagItem tag={item} parentHide={parentHide} loading={loading} /> */}
-                            <TagItem tag={item} parentHide={parentHide} no={pageNo} editTag={onEditTag} loading={loading} selectGroup={selectGroup} />
+                            <TagItem tag={item} parentHide={parentHide} no={pageId}
+                                editTag={onEditTag}
+                                onDeleteSuccess={handleDeleteSuccess}
+                                loading={loading} selectGroup={selectGroup}
+                            />
                         </GridItem>
                     ))}
                     {/* 添加 */}
@@ -1276,7 +1478,8 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
             {data.children && data.children.length === 0 ? render1sCard(data, activeTab) : render2sCard(data)}
             {/* 添加或编辑标签、分组 */}
             <TagForm isVisible={addTagVisible} selectGroup={tagSelectGroup} data={editTag} closeWithSuccess={closeAddTagModal}></TagForm>
-            {tabForm && <TabGroupForm selectGroup={selectGroup} batchNo={pageNo} groupName={cardData.name} closeWithSuccess={closeTabModal} group={tabGroup}></TabGroupForm>}
+            {/* {tabForm && <TabGroupForm selectGroup={selectGroup} pageId={pageId} groupName={cardData.name} closeWithSuccess={closeTabModal} group={tabGroup}></TabGroupForm>} */}
+            <TabGroupForm selectGroup={selectGroup} pageId={pageId} visible={tabForm} group={cardData} closeWithSuccess={closeTabModal} group={tabGroup}></TabGroupForm>
         </>
     )
 

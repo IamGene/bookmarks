@@ -1,31 +1,31 @@
 import React from 'react';
 import Draggable from 'react-draggable';
 import { useState, useEffect, useRef } from 'react';
-import { FormInstance } from '@arco-design/web-react/es/Form';
 import { Modal, Input, Cascader, Switch, Form, Message } from '@arco-design/web-react';
 import useLocale from '@/utils/useLocale';
 import locale from '../locale';
 import { GroupNode } from '@/store/modules/global';
+import { updateBookmarkById, updateGroupById } from '@/db/bookmarksPages';
 import { saveTagGroup } from '@/api/navigate';
 import { useSelector } from 'react-redux';
 const FormItem = Form.Item;
 
 interface GroupFormParams {
-    // isVisible: boolean;
     closeWithSuccess: Function;
     selectGroup: number[];//
     group: GroupNode;//
-    groupName: string;
-    batchNo: number;
-    noPid?: boolean;
+    pageId: number;
+    // groupName: string;
+    // noPid?: boolean;
+    visible: boolean;
 }
 
 function App(props: GroupFormParams) {
-    // const App = (props: GroupFormParams) => {
     const [disabled, setDisabled] = React.useState(true);
-    const { closeWithSuccess, batchNo, noPid, selectGroup, groupName, group } = props;
+    const { closeWithSuccess, pageId, visible, selectGroup, group } = props;
 
-    // console.log('tab form selectGroup', selectGroup)
+    console.log('tab form selectGroup', selectGroup);
+    console.log('tab form group', group);
     // console.log('tab form noPid', noPid)
     // console.log('form group', group)
     // const [visible, setVisible] = React.useState(false);
@@ -33,7 +33,7 @@ function App(props: GroupFormParams) {
     const [confirmLoading, setConfirmLoading] = useState(false);
 
     const globalState = useSelector((state: any) => state.global);
-    const cascaderOptions = globalState.group1s;
+    const cascaderOptions = globalState.groups;
 
     //要显示的选择分组
     const [optionValues, setOptionValues] = useState(selectGroup);
@@ -41,10 +41,11 @@ function App(props: GroupFormParams) {
     const t = useLocale(locale);
 
     const processSaveSubGroup = async (data) => {
-        console.log('group form submit before_group', group)
+        // console.log('group form submit before_group', group)
         //返回成功
-        const res = await submitGroupData(data)
-        if (group) {
+        // const res = await submitGroupData(data)
+        const updatedGroup = await updateGroupById(data);
+        if (group.id) {
             Message.success('修改成功');
         } else {
             Message.success('添加成功');
@@ -52,7 +53,7 @@ function App(props: GroupFormParams) {
         setConfirmLoading(false);
         // 修改：pid发生变化： 锚点pid ， pid不发生变化：Tab0
         // 新增：无pid, 锚点id； 有pid，Tab
-        closeWithSuccess(true, res)//相当于点击取消/关闭按钮
+        closeWithSuccess(true, updatedGroup)//相当于点击取消/关闭按钮
         return true;
     }
 
@@ -67,7 +68,8 @@ function App(props: GroupFormParams) {
             // res.gid = res.group[res.group.length - 1];//取数组的最后一个为分组id
             // res.sort = sort;
             // if (res.pid && res.pid !== null) res.pid = res.pid[0];
-            if (res.pid && res.pid.length > 0) res.pid = res.pid[0];
+            if (res.pId && res.pId.length > 0) res.pId = res.pId[0];
+            console.log('group', res)
             processSaveSubGroup(res);
         });
     }
@@ -79,38 +81,45 @@ function App(props: GroupFormParams) {
     };
 
     useEffect(() => {
-        // console.log('form selectGroup', selectGroup)
+        console.log('form selectGroup', selectGroup)
         form.setFields({
-            pid: {
-                value: selectGroup
+            pId: {
+                value: selectGroup ? selectGroup : null
             },
             id: {
                 value: group ? group.id : null
             },
             name: {
+                // value: group.name
                 value: group ? group.name : ''
+                // value: '分组s'
             },
             hide: {
                 value: group ? group.hide : false
             },
-            batchNo: {
-                // value: group ? group.batchNo : batchNo
-                value: batchNo
+            pageId: {
+                // value: group ? group.pageId : pageId
+                value: pageId
             }
         });
-        setOptionValues(selectGroup);
-        // }, [selectGroup, group]);
+        selectGroup && setOptionValues(selectGroup);
     }, []);
 
-    /*     useEffect(() => {
-            if (group) {
-                form.setFields({
-                    pid: {
-                        value: group.pid
-                    }
-                });
-            }
-        }, [group]); */
+    useEffect(() => {
+        if (group) {
+            form.setFields({
+                pId: {
+                    value: group.pId
+                },
+                name: {
+                    value: group.name
+                },
+                id: {
+                    value: group.id
+                }
+            });
+        }
+    }, [group]);
 
     const [form] = Form.useForm();
     const formItemLayout = {
@@ -175,9 +184,9 @@ function App(props: GroupFormParams) {
                 // title='Modal Title'
                 // title={t['cardList.add.website.tag']}
                 title={group ? t['cardList.edit.website.group'] : t['cardList.add.website.group']}
-                // visible={visible}
+                visible={visible}
                 // visible={isVisible}
-                visible={true}
+                // visible={true}
                 // onOk={() => setVisible(false)}
                 onOk={onOk}
                 // onCancel={() => setVisible(false)}
@@ -209,20 +218,13 @@ function App(props: GroupFormParams) {
 
                     <FormItem
                         label='上级'
-                        field='pid'
+                        field='pId'
                         rules={[
                             {
                                 type: 'array',
-                                // required: true,
+                                required: false,
                                 // required: require,
                             }
-
-                            //required:添加：一级分组，false
-                            //required:编辑：
-                            /* {
-                                type: 'array',
-                                length: 4,
-                            }, */
                         ]}
                     >
 
@@ -275,10 +277,10 @@ function App(props: GroupFormParams) {
                             allowClear={true}
                         />
                     </FormItem>
-                    {/* 隐藏项 :batchNo*/}
-                    <FormItem label='batchNo' field='batchNo' hidden rules={[{ required: true }]}>
-                        <Input
-                        />
+
+                    {/* 隐藏项 :pageId*/}
+                    <FormItem label='pageId' field='pageId' hidden rules={[{ required: true }]}>
+                        <Input />
                     </FormItem>
 
                     <FormItem

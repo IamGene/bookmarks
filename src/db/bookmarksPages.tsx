@@ -1,9 +1,148 @@
-import { Descriptions } from '@arco-design/web-react';
 import { getDB } from './db';
 
 // 保存书签页及其节点
 function uuid() {
     return Math.random().toString(36).substr(2, 9);
+}
+
+/**
+ * 判断结果：if(formatTimestamp(input))
+ * @param input 
+ * @returns string类型
+ */
+function formatTimestamp(input) {
+    if (input === undefined || input === null || input === "") return "";
+
+    // 转为数字
+    let ts = typeof input === "number" ? input : Number(input);
+    if (isNaN(ts)) return "";
+
+    // 自动识别秒级（10位）或毫秒级（13位）
+    if (ts < 1e11) {
+        ts *= 1000; // 秒级 -> 毫秒级
+    }
+
+    const date = new Date(ts);
+    if (isNaN(date.getTime())) return "";
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+}
+
+
+export async function addNewBookmark(bookmark) {
+    const db = await getDB();
+    try {
+        bookmark.id = uuid();
+        const gId = bookmark.gId;
+        const group = await db.get('nodes', gId);
+        const dateNow = Date.now();
+        const date = formatTimestamp(dateNow);
+        const saveBookmark = {
+            id: uuid(),
+            pageId: group ? group.pageId : null,
+            gId: bookmark.gId,
+            type: "bookmark",
+            name: bookmark.name,
+            url: bookmark.url,
+            // title: bookmark.title,
+            description: bookmark.description,
+            hide: bookmark.hide,
+            icon: bookmark.icon,
+            addDate: dateNow,
+            date: date
+        };
+        await db.put('urls', saveBookmark);
+        console.log('addNewBookmark', saveBookmark);
+        return saveBookmark;
+    } catch (e) {
+        console.error('updateBookmarkById error', e);
+        return null;
+    }
+}
+export async function updateGroupById(group) {
+    const db = await getDB();
+    try {
+        // 1. 根据 id 从 'nodes' 表中获取现有的书签数据
+        const existingGroup = await db.get('nodes', group.id);
+        if (!existingGroup) {
+            console.error(`Group with id ${group.id} not found.`);
+            return null;
+        }
+        if (group.pId) {
+            const parentGroup = await db.get('nodes', group.pId);
+            if (parentGroup) {
+                group.path = parentGroup.path + ',' + group.id;
+            }
+        } else {
+            group.path = `${group.id}`;
+        }
+        // 2. 将传入的新数据与旧数据合并
+        // 这样可以保留 'addDate' 等不在表单中的字段
+        const updatedGroup = {
+            ...existingGroup,
+            ...group,
+        };
+        // 3. 将更新后的数据存回数据库
+        await db.put('nodes', updatedGroup);
+        return updatedGroup;
+    } catch (e) {
+        console.error('updateGroupById error', e);
+        return null;
+    }
+}
+
+
+export async function updateBookmarkById(bookmark) {
+
+    const db = await getDB();
+    try {
+        // 1. 根据 id 从 'urls' 表中获取现有的书签数据
+        const existingBookmark = await db.get('urls', bookmark.id);
+        if (!existingBookmark) {
+            console.error(`Bookmark with id ${bookmark.id} not found.`);
+            return null;
+        }
+        // 2. 将传入的新数据与旧数据合并
+        // 这样可以保留 'addDate' 等不在表单中的字段
+        const updatedBookmark = {
+            ...existingBookmark,
+            ...bookmark,
+        };
+        // 3. 将更新后的数据存回数据库
+        await db.put('urls', updatedBookmark);
+        return updatedBookmark;
+    } catch (e) {
+        console.error('updateBookmarkById error', e);
+        return null;
+    }
+
+}
+
+export async function saveSubGroup(group) {
+    const db = await getDB();
+    const pId = group.pId;
+    const id = uuid();
+    const path = `${pId}` + ',' + `${id}`;
+    try {
+        await db.put('nodes', {
+            id: id,
+            pageId: group.pageId,
+            type: "folder",
+            name: group.name,
+            hide: false,
+            path: path,
+            pId: pId,
+            addDate: Date.now(),
+        });
+        return group;
+    } catch (e) {
+        console.error('savePageBookmarks error', e);
+        return null;
+    }
 }
 
 
@@ -14,6 +153,7 @@ export async function savePageBookmarks(pageData) {
         await db.put('pages', { pageId, title, createdAt, updatedAt: createdAt, type });
         async function saveNode(node, parentId, order) {
             const nodeId = uuid();
+            // console.log('node.addDate', node.addDate);
             await db.put('nodes', {
                 id: nodeId,
                 pageId,
@@ -25,7 +165,7 @@ export async function savePageBookmarks(pageData) {
                 hide: false,
                 path: parentId ? `${parentId},${nodeId}` : `${nodeId}`,
                 pId: parentId,
-                add_date: node.add_date,
+                addDate: node.addDate,
                 last_modified: node.last_modified,
                 description: node.description,
                 icon: node.icon,
@@ -34,6 +174,7 @@ export async function savePageBookmarks(pageData) {
             if (Array.isArray(node.urlList)) {
                 for (let i = 0; i < node.urlList.length; i++) {
                     const url = node.urlList[i];
+                    const date = formatTimestamp(url.addDate);
                     await db.put('urls', {
                         id: uuid(),
                         pageId,
@@ -45,7 +186,8 @@ export async function savePageBookmarks(pageData) {
                         description: url.description,
                         hide: url.hide,
                         icon: url.icon,
-                        add_date: url.add_date,
+                        addDate: url.addDate,
+                        date: date
                     });
                 }
             }
@@ -96,7 +238,6 @@ export async function getCollectPageGroups() {
     const tx = db.transaction('pages', 'readonly');
     const store = tx.objectStore('pages');
     const pages = await store.getAll();
-    console.log('!!!!!!!! getCollectPageGroups pages', pages, pages.length);
     if (pages.length > 0) {//只有用户存在标签数据才能查询
         const defaultPage = pages.find(page => page.default === true);
         const pageId = defaultPage ? defaultPage.pageId : pages[0].pageId; //选择默认或者第一个书签页
@@ -128,6 +269,8 @@ export async function getPages() {
 }
 
 
+
+
 export async function setDefaultPage(pageId) {
     const db = await getDB();
     const tx = db.transaction('pages', 'readwrite');
@@ -141,20 +284,83 @@ export async function setDefaultPage(pageId) {
 }
 
 
+/**
+ * 批量保存书签数组到 DB
+ * @param {Array} urlsData - 数组，元素形如 { id?, title, url, icon?, groupId }
+ * @returns {Promise<Array<{ok: boolean, data?: object, error?: string}>>}
+ */
+export async function saveBookmarksToDB(urlsData) {
+    if (!Array.isArray(urlsData)) {
+        throw new TypeError('saveBookmarksToDB expects an array');
+    }
+
+    const db = await getDB();
+    const results = [];
+
+    for (let i = 0; i < urlsData.length; i++) {
+        const item = urlsData[i];
+        try {
+            if (!item || !item.url || !item.groupId) {
+                results.push({ ok: false, error: 'missing url or groupId', data: item });
+                continue;
+            }
+
+            // 读取 group 节点以获取 pageId
+            const group = await db.get('nodes', item.groupId);
+            if (!group) {
+                results.push({ ok: false, error: `group not found: ${item.groupId}`, data: item });
+                continue;
+            }
+
+            const dateNow = Date.now();
+            const date = formatTimestamp(dateNow);
+            const entryId = item.id || uuid();
+
+            const saveData = {
+                id: entryId,
+                pageId: group.pageId,
+                gId: item.groupId,
+                hide: false,
+                icon: item.icon || '',
+                addDate: dateNow,
+                date: date,
+                name: item.title || '',
+                description: item.title || '',
+                type: 'bookmark',
+                url: item.url,
+            };
+
+            // 兼容现有代码风格：直接 put
+            await db.put('urls', saveData);
+            // results.push({ ok: true, data: saveData });
+            results.push(saveData);
+        } catch (err) {
+            console.error('saveBookmarksToDB item error', err, urlsData[i]);
+            // results.push({ ok: false, error: String(err), data: urlsData[i] });
+        }
+    }
+    return results;
+}
+
+
 export async function saveBookmarkToDB(urlData) {
     const db = await getDB();
-    const { title, url, icon, groupId, status } = urlData;
+    const { id, title, url, icon, groupId, status } = urlData;
     try {
         // const nodes = await db.getKey('nodes', 'id', groupId);
         const group = await db.get('nodes', groupId);
-        console.log('!!!! saving', group);
+        // console.log('!!!! saving', group);
         // const tx = db.transaction('urls', 'readwrite');
+        const dateNow = Date.now();
+        const date = formatTimestamp(dateNow);
         const saveData = {
-            id: uuid(),
+            id: id,
             pageId: group.pageId,
             gId: groupId,
             hide: false,
             icon: icon,
+            addDate: dateNow,
+            date: date,
             name: title,
             description: title,
             type: "bookmark",
@@ -163,13 +369,23 @@ export async function saveBookmarkToDB(urlData) {
         await db.put('urls', saveData);
         // await tx.done; // 确保事务完成
         console.log('save success', saveData);
-        return true;
+        return saveData;
     } catch (e) {
         console.error('save error', e);
-        return false;
+        return null;
     }
 }
 
+export async function getBookmarkById(id) {
+    try {
+        const db = await getDB();
+        const url = await db.get('urls', id);
+        return url;
+    } catch (e) {
+        console.error('exportPageJson error', e);
+        return null;
+    }
+}
 
 export async function exportPageJson(pageId) {
     try {
@@ -353,14 +569,38 @@ export async function deletePageBookmarks(pageId) {
     }
 }
 
+/**
+ * 根据 ID 删除一个书签 (url)
+ * @param id 要删除的书签 ID
+ * @returns {Promise<boolean>}
+ */
+export async function removeWebTag(id: string): Promise<boolean> {
+    try {
+        const db = await getDB();
+        await db.delete('urls', id);
+        return true;
+    } catch (e) {
+        console.error('removeWebTag error', e);
+        return false;
+    }
+}
 
+
+export async function getPageGroupData(groupId: string) {
+    const db = await getDB();
+    const group = await db.get('nodes', groupId);
+    const pageId = group.pageId;
+    const pageData = await getPageTree(pageId);
+    const groupDatas = pageData.filter(node => node.id === groupId)
+    return groupDatas[0];
+}
 
 export async function getPageTree(pageId) {
     const db = await getDB();
     const nodes = await db.getAllFromIndex('nodes', 'pageId', pageId);
     nodes.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-
     const urls = await db.getAllFromIndex('urls', 'pageId', pageId);
+
     function buildTree(parentId) {
         return nodes
             .filter(node => node.pId === parentId)
@@ -368,7 +608,7 @@ export async function getPageTree(pageId) {
                 if (node.type === 'folder') {
                     const children = buildTree(node.id);
                     const urlList = urls.filter(n => n.gId === node.id);
-
+                    urls.sort((a, b) => (a.addDate ?? 0) - (b.addDate ?? 0));
                     //大分组存在标签，复制新的对象，作为子分组
                     if (urlList && urlList.length > 0 && children.length > 0) {
                         const child1 = {
@@ -439,8 +679,8 @@ export async function getPageBookmarks(pageId) {
             icon: url.icon,
             url: url.url,
             title: url.title,
-            createAt: url.add_date || Date.now(), // 使用 add_date 作为创建时间
-            updateAt: url.last_modified || url.add_date || Date.now(), // 优先使用 last_modified，其次是 add_date
+            createAt: url.addDate || Date.now(), // 使用 addDate 作为创建时间
+            updateAt: url.last_modified || url.addDate || Date.now(), // 优先使用 last_modified，其次是 addDate
         }));
     } catch (e) {
         console.error('getPageBookmarks error', e);
@@ -515,9 +755,9 @@ export async function generateBookmarkHTML(pageId: number): Promise<string> {
 
                 htmlStr += `${'  '.repeat(level)}</DL><p>\n`;
             } else {
-                const addDate = Math.floor((node.add_date || Date.now()) / 1000);
-                const lastVisit = Math.floor((node.last_modified || node.add_date || Date.now()) / 1000);
-                htmlStr += `${'  '.repeat(level)}<DT><A HREF="${node.url}" ADD_DATE="${addDate}" LAST_VISIT="${lastVisit}" ICON="${node.icon || ''}">${node.name || node.title}</A>\n`;
+                const addDate = Math.floor((node.addDate || Date.now()) / 1000);
+                const lastVisit = Math.floor((node.last_modified || node.addDate || Date.now()) / 1000);
+                htmlStr += `${'  '.repeat(level)}<DT><A HREF="${node.url}" addDate="${addDate}" LAST_VISIT="${lastVisit}" ICON="${node.icon || ''}">${node.name || node.title}</A>\n`;
             }
         }
 

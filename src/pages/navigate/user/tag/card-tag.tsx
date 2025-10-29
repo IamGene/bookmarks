@@ -4,18 +4,14 @@ import React, { useEffect, useState } from 'react';
 import {
     IconMore,
 } from '@arco-design/web-react/icon';
-import {
-    Tooltip,
-    Dropdown,
-    Menu
-} from '@arco-design/web-react';
-import useLocale from '@/utils/useLocale';
-import EditTagForm from '../form/tag-form';
+import { Tooltip, Dropdown, Menu } from '@arco-design/web-react';
 import { removeConfirm } from '../form/remove-confirm-modal';
 import { WebTag } from '../interface';
 import { useDispatch } from 'react-redux'
 import { fetchBookmarksPageData } from '@/store/modules/global';
-import { removeWebTag } from '@/api/navigate';
+// import useLocale from '@/utils/useLocale';
+// import EditTagForm from '../form/tag-form';
+import { removeWebTag } from '@/db/bookmarksPages';
 
 const api = import.meta.env.VITE_REACT_APP_BASE_API;
 
@@ -27,11 +23,12 @@ interface CardBlockType {
     parentHide?: boolean;
     selectGroup: Array<number>;
     editTag: Function;
+    onDeleteSuccess?: (WebTag) => void;
     // tag={item} parentHide={parentHide} 
 }
 
 const App = (props: CardBlockType) => {
-    const { tag, no, parentHide, editTag, selectGroup } = props
+    const { tag, no, parentHide, editTag, selectGroup, onDeleteSuccess } = props
 
     const [visible, setVisible] = useState(false);
     //配置编辑表单展示与否
@@ -40,7 +37,7 @@ const App = (props: CardBlockType) => {
     const [loading, setLoading] = useState(props.loading);
     const dispatch = useDispatch();
     function openUrl(url: string) {
-        window.open(url, '_blank')
+        window.open(url, '_blank');
     }
 
     const onClickMenuItem = (key: string) => {
@@ -58,16 +55,20 @@ const App = (props: CardBlockType) => {
 
     const handleDelete = async () => {
         try {
+            // const response = await removeWebTag(tag.id);
             const response = await removeWebTag(tag.id);
-            if (response.code === 200) {
+            // console.log('handleDelete Tag', tag)
+            const ok = await removeWebTag(tag.id);
+            // if (response.code === 200) {
+            if (ok) {
                 // Message.success('删除成功');
-                getGroupData();
-                return true;
+                onDeleteSuccess(tag);
+                return tag;
             } else {
-                return false;
+                return null;
             }
         } catch (error) {
-            return false;
+            return null;
         }
     }
 
@@ -147,9 +148,14 @@ const App = (props: CardBlockType) => {
         const data: any = await dispatch(fetchBookmarksPageData(no))
     }
 
-
     const [imgSrc, setImgSrc] = useState(tag.icon);
     const [triedProxy, setTriedProxy] = useState(false);
+
+    // 当 tag.icon prop 发生变化时，同步更新内部的 imgSrc 状态
+    useEffect(() => {
+        setImgSrc(tag.icon);
+        setTriedProxy(false); // 重置代理尝试状态
+    }, [tag.icon]);
 
     // 当图片加载失败时自动回退到代理 API
     const handleImgError = () => {
@@ -191,25 +197,35 @@ const App = (props: CardBlockType) => {
                         />
                     </a>
                     <div className="xe-comment">
-                        {
+                        {/* <a href="#" onClick={() => openUrl(tag.url)}  > */}
+                        {/* {
                             tag.name.length > 26 || (tag.nameLength && tag.nameLength > 26) ?
                                 <Tooltip position='top' trigger='hover' content={tag.name}>
                                     <div style={{ paddingRight: "17px" }}>
-                                        {/* <a href="#" onClick={() => openUrl(tag.url)}  > */}
+                                        
                                         <a href={tag.url} target='_blank'>
                                             <strong className="overflowClip_2" >{tag.name}</strong>
                                         </a>
                                     </div>
                                 </Tooltip>
-
                                 :
                                 <div style={{ paddingRight: "17px" }}>
-                                    {/* <a href="#" onClick={() => openUrl(tag.url)}> */}
+                                  
                                     <a href={tag.url} target='_blank'>
                                         <strong className="overflowClip_2">{tag.name}</strong>
                                     </a>
                                 </div>
-                        }
+                        } */}
+
+                        <Tooltip position='top' trigger='hover' content={tag.date ? `${tag.name} (${tag.date})` : tag.name}>
+                            {/* <Tooltip position='top' trigger='hover' content={tag.name}> */}
+                            <div style={{ paddingRight: "17px" }}>
+                                {/* <a href="#" onClick={() => openUrl(tag.url)}  > */}
+                                <a href={tag.url} target='_blank'>
+                                    <strong className="overflowClip_2" >{tag.name}</strong>
+                                </a>
+                            </div>
+                        </Tooltip>
                         {/* target="_blank" */}
                         <Tooltip position='bottom' trigger='hover' content={tag.description}>
                             <p className="overflowClip_2">{tag.description}
@@ -217,7 +233,6 @@ const App = (props: CardBlockType) => {
                         </Tooltip>
                     </div>
                 </div>
-
 
                 <Dropdown
                     droplist={

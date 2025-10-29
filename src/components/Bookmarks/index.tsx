@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import groupBy from 'lodash/groupBy';
 import {
@@ -20,42 +20,25 @@ import {
 } from '@arco-design/web-react/icon';
 import useLocale from '../../utils/useLocale';
 import BookmarkPages, { BookmarksPagesType, MessageListType, BookmarksPageData } from './list';
-import { getPages, deletePageBookmarks, exportAllPagesJson, getCollectPageGroups } from '@/db/bookmarksPages';
+import { getPages, deletePageBookmarks, exportAllPagesJson } from '@/db/bookmarksPages';
 import { useFetchPageData } from '@/hooks/fetchPageData';
 import { removeConfirm } from '@/pages/navigate/user/form/remove-confirm-modal';
 import styles from './style/index.module.less';
 import Imports from './import/index';
-// import { set } from 'mobx';
-// const dispatch = useDispatch();
-// import { useDispatch } from 'react-redux';
+import { set } from 'mobx';
+import { useDispatch } from 'react-redux';
 
 function DropContent({ pages, currentPage, pagesChange, keepPopupVisible, activeKey }) {
-  const switchPageId = useFetchPageData();
+
   const t = useLocale();
+  const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(activeKey);
   const [currentPageId, setCurrentPageId] = useState(currentPage);
   // const [addedPageId, setAddedPageId] = useState(null);
   const [addedPageIds, setAddedPageIds] = useState([]);
 
-  // console.log("🌀 渲染 DropContent list pages=", pages);
-  async function getCollectPageGroupData() {
-    const res = await getCollectPageGroups();
-    console.log("🌀 getCollectPageGroups ", res);
-  }
-
-  function pageSwitch(pageId: number) {
-    // 立即更新UI，让按钮样式先生效
-    setCurrentPageId(pageId);
-    // 重置书签页数据，会导致content重新渲染
-    switchPageId(pageId);
-  }
-
-  useEffect(() => {
-    getCollectPageGroupData();
-  }, []);
-
-
+  console.log("🌀 渲染 DropContent list pages=", pages);
   const [groupData, setGroupData] = useState<{
     [key: string]: MessageListType;
   }>({});
@@ -104,9 +87,12 @@ function DropContent({ pages, currentPage, pagesChange, keepPopupVisible, active
    } */
 
 
+  const switchPageId = useFetchPageData();
   async function handleImportSuccess(pageIds: number[]) {
+    setCurrentPageId(pageIds[0]);
     setAddedPageIds(pageIds);
-    pagesChange(1, pageIds[0]); // 传递新的页面ID
+    pagesChange(1);
+    switchPageId(pageIds[0]);
   }
 
 
@@ -134,6 +120,7 @@ function DropContent({ pages, currentPage, pagesChange, keepPopupVisible, active
       URL.revokeObjectURL(url);
     }
   }
+
 
 
   function readMessage(data: BookmarksPagesType) {
@@ -181,7 +168,6 @@ function DropContent({ pages, currentPage, pagesChange, keepPopupVisible, active
           activeTab={activeTab}
           defaultActiveTab="pages"
           destroyOnHide
-
           // headerPadding={false}
           /*  extra={
              <Button icon={<IconUpload />} type="text" onClick={() => importBookMarks()}>
@@ -211,20 +197,17 @@ function DropContent({ pages, currentPage, pagesChange, keepPopupVisible, active
           >
             <BookmarkPages
               data={pages}
-              initialCurrentPageId={currentPageId}
-              pageSwitch={pageSwitch}
+              currentPageId={currentPageId}
               addedPageIds={addedPageIds}
-              keepPopupVisible={keepPopupVisible}
               onItemClick={(item) => {
-                pagesChange(0, true); // 点击时也保持弹窗打开
                 // readMessage([item]);
               }}
-              // onAllBtnClick={(unReadData) => {
-              //   // readMessage(unReadData);
-              // }}
+              onAllBtnClick={(unReadData) => {
+                // readMessage(unReadData);
+              }}
               onRemovePage={handlePageRemove}
             />
-            {/* <List1 /> */}
+
           </Tabs.TabPane>
 
 
@@ -256,52 +239,32 @@ function DropContent({ pages, currentPage, pagesChange, keepPopupVisible, active
 
 
 function BookmarkPageBox({ children, pages, currentPage }) {
-  // const BookmarkPageBox = memo(function BookmarkPageBox({ children, pages, currentPage }) {
   // 提供一个ref给DropContent
-  const [popupVisible, setPopupVisible] = useState(false);
-  const [currentPageId, setCurrentPageId] = useState(currentPage);
+  const [popupVisible, setPopupVisible] = React.useState(false);
+
 
   const [data, setData] = useState<BookmarksPagesType>(pages);
-  const forceOpenRef = useRef(false); // 使用 ref 来标记是否需要强制保持打开
 
-  console.log("🌀 渲染 BookmarkPageBox，popupVisible =", popupVisible, currentPage);
+  console.log("🌀 渲染 BookmarkPageBox，popupVisible =", data, currentPage);
   const [activeKey, setActiveKey] = useState<string>('pages');
   const [count, setCount] = useState<number>(0);
 
   function keepPopupVisible() {
-    // console.log('33333333333 keepPopupVisible')
-    forceOpenRef.current = true; // 设置标记
     setPopupVisible(true);
   }
-  useEffect(() => {
-  }, [popupVisible]);
-
-  useEffect(() => {
-    setCurrentPageId(currentPage);
-  }, [currentPage]);
 
   useEffect(() => {
     setData(pages);
   }, [pages]);
 
-  const handleVisibleChange = (visible) => {
-    if (forceOpenRef.current && !visible) {
-      // 如果标记为 true 且弹窗将要关闭，则阻止关闭
-      forceOpenRef.current = false; // 重置标记
-      return;
-    }
-    setPopupVisible(visible);
-  };
-
   async function refreshBookmarksPage() {
     const newPages = await getPages();
+    // console.log('onPagesChange 222222222 newPages', newPages);
     setData(newPages);
   }
 
-  function onPagesChange(count?: number, newPageId?: number) {
-    if (newPageId) {
-      setCurrentPageId(newPageId);
-    }
+  function onPagesChange(count?: number, callback?: () => void) {
+    // 简化逻辑，只负责刷新数据和UI
     refreshBookmarksPage();
     // 强制刷新 Tabs
     setActiveKey("");
@@ -312,51 +275,16 @@ function BookmarkPageBox({ children, pages, currentPage }) {
 
 
   return (
-    /*  <Trigger
-       // trigger="hover"
-       trigger={['hover', 'click', 'focus']}
-       // popupHoverStay
-       popupVisible={popupVisible}
-       blurToHide={false}
-       clickToClose={false} // 关键属性：点击弹层内容（包括Modal）不关闭
-       onVisibleChange={handleVisibleChange}
-       updateOnScroll={false}
-       autoFixPosition={false}
-       // defaultPopupVisible={true}
-       // updateOnScroll={false}
-       // mouseLeaveToClose={false}
-       // popupVisible={true}
-       // containerScrollToClose={false}
-       // autoFitPosition
-       // updateOnScroll={true} // 关键属性：在容器滚动时，更新弹出框的位置
-       // popupStyle={{ position: 'fixed' }}
-       // getPopupContainer={() => document.body}
-       // style={{ position: 'fixed' }}
-       // boundaryDistance={{ top: 100000 }}
-       // autoFitPosition={true}
-       // alignPoint={false}
- 
-       autoFitPosition={false}
-       unmountOnExit={false} // 推荐设置为 false 避免状态丢失
-       popup={() => <DropContent pages={data} currentPage={currentPageId} keepPopupVisible={keepPopupVisible} pagesChange={onPagesChange} activeKey={activeKey} />}
-       position="br"
-       // unmountOnExit={false}
-       popupAlign={{ bottom: 4 }}
-     >
-       <Badge count={count} dot>
-         {children}
-       </Badge>
-     </Trigger> */
-
     <Trigger
       // trigger="hover"
       trigger={['hover', 'click']}
+      popupHoverStay // 关键属性：鼠标在弹层中时，保持打开
+      clickToClose={false} // 关键属性：点击弹层内容（包括Modal）不关闭
       popupVisible={popupVisible}
-      onVisibleChange={handleVisibleChange}
-      autoFitPosition={false}
-      popup={() => <DropContent pages={data} currentPage={currentPageId} keepPopupVisible={keepPopupVisible} pagesChange={onPagesChange} activeKey={activeKey} />}
+      onVisibleChange={setPopupVisible}
+      popup={() => <DropContent pages={data} currentPage={currentPage} keepPopupVisible={keepPopupVisible} pagesChange={onPagesChange} activeKey={activeKey} />}
       position="br"
-      unmountOnExit={false}// 推荐设置为 false 避免状态丢失
+      unmountOnExit={false}
       popupAlign={{ bottom: 4 }}
     >
       <Badge count={count} dot>
@@ -364,9 +292,7 @@ function BookmarkPageBox({ children, pages, currentPage }) {
       </Badge>
     </Trigger>
   );
-};
+}
 
-// BookmarkPageBox.displayName = 'BookmarkPageBox';
 
-// export default BookmarkPageBox;
-export default memo(BookmarkPageBox);
+export default BookmarkPageBox;

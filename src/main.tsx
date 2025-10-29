@@ -1,5 +1,5 @@
 import './style/global.less';
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { Provider } from 'react-redux';
 import { ConfigProvider } from '@arco-design/web-react';
@@ -7,6 +7,7 @@ import zhCN from '@arco-design/web-react/es/locale/zh-CN';
 import enUS from '@arco-design/web-react/es/locale/en-US';
 import { BrowserRouter, Redirect, Switch, Route } from 'react-router-dom';
 // import { HashRouter as Router, Redirect, Switch, Route } from 'react-router-dom';
+// import Navigate from './navigate';
 import UserNavigate from './pages/navigate/user';
 import IndexedDB1 from './db/BookmarkRestore.jsx';
 import DefaultNavigate from './pages/navigate/default';
@@ -14,11 +15,13 @@ import { GlobalContext } from './context';
 import Login from './pages/login';
 import changeTheme from './utils/changeTheme';
 import useStorage from './utils/useStorage';
+import { getCollectPageGroups, saveBookmarkToDB, saveBookmarksToDB, getBookmarkById, getPages } from './db/bookmarksPages';
+// import { useDispatch, useSelector } from 'react-redux'
+// import { RootState } from '@/store';
+import { fetchBookmarksPageData, loadNewAddedBookmarks } from '@/store/modules/global'; // 确保路径正确
 import './mock';
 import store from './store';
-import { getCollectPageGroups, saveBookmarkToDB } from './db/bookmarksPages';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '@/store';
+
 // import PageLayout from './layout';
 // import checkLogin from './utils/checkLogin';
 // import { generatePermission } from '@/routes';
@@ -40,11 +43,6 @@ function Index() {
   const [lang, setLang] = useStorage('arco-lang', 'en-US');
   const [theme, setTheme] = useStorage('arco-theme', 'light');
 
-  // const globalState = useSelector((state: RootState) => state.global);
-  // const { settings, userLoading, userInfo, groups, activeGroup, hiddenGroup } = globalState;
-  // const { groups } = globalState;
-
-
   function getArcoLocale() {
     switch (lang) {
       case 'zh-CN':
@@ -56,6 +54,19 @@ function Index() {
     }
   }
 
+
+  async function getCurrentPageId() {
+    const { global } = store.getState();
+    let currentPageId = global.groups?.[0]?.pageId;
+    if (!currentPageId) {
+      const pages = await getPages();
+      if (pages.length > 0) {//只有用户存在标签数据才能查询
+        const defaultPage = pages.find(page => page.default === true);
+        return defaultPage ? defaultPage.pageId : pages[0].pageId;
+      }
+    }
+    return currentPageId;
+  }
 
   async function fetchUserInfo() {
     /*  store.dispatch({
@@ -84,22 +95,15 @@ function Index() {
     }, []); */
 
 
-  useEffect(() => {
-    // window.location.pathname = '/index';
-  }, []);
-
-
-  useEffect(() => {
-    changeTheme(theme);
-  }, [theme]);
+  /*   useEffect(() => {
+      // window.location.pathname = '/index';
+    }, []); */
 
   // 将 message 监听器提升到根组件
   useEffect(() => {
     const handleMessage = async (event) => {
       // 1. 安全检查：可以根据需要添加来源验证
       if (event.origin !== window.location.origin) return;
-      // console.log("event.origin", event.origin);
-      // console.log("window.location.origin", window.location.origin);
       if (!event.data || !event.data.type) {
         return;
       }
@@ -125,32 +129,68 @@ function Index() {
       // ------------------------------------------
       // B. 处理 Content Script 请求保存书签
       // ------------------------------------------
-      if (event.data.type === 'SAVE_TO_DB_REQUEST') {
+      else if (event.data.type === 'SAVE_TO_DB_REQUEST') {
         const bookmark = event.data.payload;
-        try {
-          await saveBookmarkToDB(bookmark);
-          console.log(`A.com 主线程: 已将书签 "${bookmark.title}" 写入 IndexedDB。`, bookmark, store);
+        // ✅ 当书签保存成功后，派发 action 重新获取该页面的数据，以刷新UI
+        // const { global } = store.getState();
+        // let currentPageId = global.groups?.[0]?.pageId;
+        //bookmarks页面数据尚未加载完成，则查询获取当前默认pageId
+        // if (!currentPageId) currentPageId = await getCurrentPageId();
+        const currentPageId = await getCurrentPageId();
 
+        let dbBookmark = await getBookmarkById(bookmark.id);
+        console.log("A.com 主线程: 检查书签是否已存在 IndexedDB:", dbBookmark);
+
+        if (dbBookmark) {
+          // console.log(`A.com 主线程: 书签 "${bookmark.title}" 已存在 IndexedDB，跳过保存。`, bookmark);
           event.source.postMessage({
-            type: 'SAVE_TO_DB_RESPONSE',
-            ok: true
+            type: 'SAVE_TO_DB_REPEAT_RESPONSE', ok: true, data: dbBookmark
           }, event.origin);
-
-          // ✅ 当书签保存成功后，派发 action 重新获取该页面的数据，以刷新UI
-          if (bookmark.pageId) {
-            // 动态导入 action 创建函数以避免循环依赖
-            const { fetchBookmarksPageData } = await import('./store/modules/global');
-            store.dispatch(fetchBookmarksPageData(bookmark.pageId));
+        } else {
+          try {
+            const saveBookMark = await saveBookmarkToDB(bookmark);
+            dbBookmark = saveBookMark;
+            console.log(`A.com 主线程: 已将书签 "${bookmark.title}" 写入 IndexedDB。`, bookmark, store);
+            event.source.postMessage({
+              type: 'SAVE_TO_DB_RESPONSE', ok: true, data: saveBookMark
+            }, event.origin);
+          } catch (e) {
+            // console.error("A.com 主线程: 写入书签到 IndexedDB 失败:", e);
+            event.source.postMessage({
+              type: 'SAVE_TO_DB_RESPONSE', ok: false, data: bookmark
+            }, event.origin);
           }
-        } catch (e) {
-          console.error("A.com 主线程: 写入书签到 IndexedDB 失败:", e);
         }
+
+        // 如果当前在 /bookmarks 页面，并且保存的书签属于当前展示的书签页，则刷新
+        console.log("A.com 主线程: 触发重新获取页面数据的操作?", currentPageId === dbBookmark.pageId, currentPageId, dbBookmark.pageId,);
+        if (window.location.pathname === '/bookmarks' && currentPageId === dbBookmark.pageId) {
+          store.dispatch(fetchBookmarksPageData(dbBookmark.pageId));
+        }
+      }
+
+      // ------------------------------------------
+      // C. 处理 Content Script 请求保存书签 多个(来自插件存储)
+      // ------------------------------------------
+      else if (event.data.type === 'SAVE_TO_DB_REQUEST_MANY') {
+        const bookmarkList = event.data.payload;
+        //bookmarks页面数据尚未加载完成，则查询获取当前默认pageId
+        const currentPageId = await getCurrentPageId();
+        // let dbBookmark = await getBookmarkById(bookmark.id);
+        const bookmarks = await saveBookmarksToDB(bookmarkList);
+        event.source.postMessage({
+          type: 'SAVE_TO_DB_RESPONSE', ok: true, data: bookmarks
+        }, event.origin);
+        console.log("A.com 主线程: 检查书签数组是否已存在 IndexedDB:", bookmarks);
+        if (window.location.pathname === '/bookmarks' && currentPageId === bookmarks[0].pageId) {
+          store.dispatch(fetchBookmarksPageData(bookmarks[0].pageId));
+        }
+        store.dispatch(loadNewAddedBookmarks(bookmarks));
       }
     };
 
     // console.log('注册全局 message 监听器');
     window.addEventListener('message', handleMessage);
-
     // 组件卸载时（即应用关闭时）移除监听器
     return () => {
       console.log('移除全局 message 监听器');
@@ -158,6 +198,17 @@ function Index() {
     };
   }, []); // 空依赖数组确保只在应用启动时注册一次
 
+
+  /**
+   * 调用触发
+   *  document.dispatchEvent(new CustomEvent('showPageToast', {
+                detail: { message: '书签已保存成功！' }
+            }));
+   */
+
+  useEffect(() => {
+    changeTheme(theme);
+  }, [theme]);
 
   const contextValue = {
     lang,
@@ -204,7 +255,7 @@ function Index() {
               {/* <Route path="/" component={PageLayout} /> */}
 
               {/* <Route path="/" component={DefaultNavigate} /> */}
-              <Route path="/" component={UserNavigate} />
+              <Route path="/" component={DefaultNavigate} />
             </Switch>
           </GlobalContext.Provider>
         </Provider>

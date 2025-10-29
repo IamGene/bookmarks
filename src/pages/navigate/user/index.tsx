@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useHistory } from 'react-router-dom';
-import { Layout, Menu, Breadcrumb, Spin, Anchor } from '@arco-design/web-react';
+import { Layout, Menu, Breadcrumb, Spin, Anchor, Message } from '@arco-design/web-react';
 
 const AnchorLink = Anchor.Link;
 import cs from 'classnames';
@@ -38,7 +38,6 @@ import { generatePermission } from '@/routes';
 import Navi from './navigate';
 import { getPages } from "@/db/bookmarksPages";
 import BackToTop from '../common/back-to-top';
-import { saveBookmarkToDB, getCollectPageGroups } from '@/db/bookmarksPages';
 import styles from '@/style/layout.module.less';
 // import { fetchGroupData } from './common';
 // import './index.css'
@@ -258,19 +257,20 @@ function UserNavigate() {
   const [navbarKeyWord, setNavbarKeyWord] = useState('');
 
   // console.log('render user navigate...navbarKeyWord=>', navbarKeyWord)
+
   const globalState = useSelector((state: RootState) => state.global);
 
-  const { settings, userLoading, userInfo, groups, activeGroup, hiddenGroup } = globalState;
+  const { settings, userLoading, userInfo, groups, activeGroup, hiddenGroup, loadedBookmarks } = globalState;
 
   // console.log('!!!!!!!!!!!!! index activeGroup', groups, activeGroup, hiddenGroup);
 
   const [list, setList] = useState(groups);
-  const [data, setData] = useState(groups);
   const [hasResult, setHasResult] = useState(true);
   const [display, setDisplay] = useState(hiddenGroup);//false
 
   const [hideGroup, setHideGroup] = useState(hiddenGroup);
   // const [data, setData] = useState(hiddenGroup ? filterHideItems(groups) : groups);
+  const [data, setData] = useState(groups);
   const [searchFromAll, setSearchFromAll] = useState(data);
   // const [filterFromAll, setFilterFromAll] = useState(hiddenGroup ? filterHideItems(groups) : groups);
   const [filterFromAll, setFilterFromAll] = useState(groups);
@@ -450,7 +450,7 @@ function UserNavigate() {
         .finally(() => setLoading(false));
     }; */
 
-  const fetchBookmarksData = async (page?: number) => {
+  const fetchBookmarksData = async (page: number) => {
     // const { groups, hiddenGroup } = globalState;
     // console.log('pages', pages);
     if (!groups || groups.length === 0) {//没有缓存到localStorage中
@@ -461,7 +461,6 @@ function UserNavigate() {
       setBookmarkPages(pages);
       if (pages.length > 0) {//只有用户存在标签数据才能查询
         // const data: any = await dispatch(fetchTagGroupsData(defaultPage ? defaultPage : page));
-        // const data: any = await dispatch(fetchTagGroupsData(1760173696766));
         const defaultPage = pages.find(page => page.default === true);
         const pageId = defaultPage ? defaultPage.pageId : pages[0].pageId;
         setCurrentPage(pageId);
@@ -471,17 +470,19 @@ function UserNavigate() {
     }
   };
 
-  /* useEffect(() => {
-    // const page = setUserInfo()//获取用户信息，标签页数据...
-    // fetchGroupData(page);// getNaviData();
-    fetchGroupData(1900000000);// getNaviData();
-  }, []); */
-
-
+  useEffect(() => {
+    if (loadedBookmarks && loadedBookmarks.length > 0) {
+      loadedBookmarks.forEach(bookmark => {
+        setTimeout(() => {
+          Message.success(`成功加载书签: '${bookmark.name}'`);
+        }, 1000);
+      });
+    }
+  }, [loadedBookmarks]);
 
   useEffect(() => {
     // console.log('888888888888888888888 user navigate useEffect groups', groups)
-    fetchBookmarksData();// getNaviData();
+    fetchBookmarksData(1760173696766);// getNaviData();
     setList(groups);//Card 全部的
     setHideGroup(hiddenGroup)//这个不能变->NavBar展示开关
     // setDisplay(!hiddenGroup);//显示与否直接由导航栏的开关控制

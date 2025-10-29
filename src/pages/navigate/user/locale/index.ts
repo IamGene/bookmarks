@@ -52,11 +52,14 @@ const i18n = {
     'cardList.tab.rules.placeholder': '搜索规则',
     'cardList.searchInput.placeholder': '搜索服务',
     'cardList.add.quality': '点击创建质检内容队列',
+
     'cardList.add.tag': '点击添加网页标签',
     'cardList.add.website.tag': '添加网页标签',
     'cardList.edit.website.tag': '编辑网页标签',
-    'cardList.add.website.group': '添加标签分组',
+    // 'cardList.add.website.group': '添加标签分组',
+    'cardList.add.bookmark.group': '添加书签或分组',
     'cardList.edit.website.group': '编辑标签分组',
+
     'cardList.enable': '启用',
     'cardList.disable': '禁用',
     'cardList.action': '操作',

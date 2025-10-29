@@ -11,11 +11,11 @@ import { Modal, Message } from '@arco-design/web-react';
  * @returns Promise<boolean> 用户确认并删除成功后返回 true，否则 false
  */
 export function removeConfirm(
-    id: number,
+    id: string,
     content: string,
     extra: string,
     type: string,
-    onOk: (id?: number) => Promise<boolean>
+    onOk: (id?: string) => Promise<boolean>
 ): Promise<boolean> {
     return new Promise((resolve) => {
         const handleOk = async () => {
