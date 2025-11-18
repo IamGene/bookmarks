@@ -2,9 +2,9 @@ import './bootstrap.min.css'
 import './index.css'
 import React, { useEffect, useState } from 'react';
 import {
-    IconMore,
+    IconMore, IconEdit
 } from '@arco-design/web-react/icon';
-import { Tooltip, Dropdown, Menu } from '@arco-design/web-react';
+import { Tooltip, Dropdown, Menu, Popover } from '@arco-design/web-react';
 import { removeConfirm } from '../form/remove-confirm-modal';
 import { WebTag } from '../interface';
 import { useDispatch } from 'react-redux'
@@ -145,7 +145,7 @@ const App = (props: CardBlockType) => {
      }
   */
     const getGroupData = async () => {
-        const data: any = await dispatch(fetchBookmarksPageData(no))
+        const data: any = await dispatch(fetchBookmarksPageData(no));
     }
 
     const [imgSrc, setImgSrc] = useState(tag.icon);
@@ -187,7 +187,7 @@ const App = (props: CardBlockType) => {
                             className="lozad img-circle"
                             width="40">
                         </img> */}
-
+                        {/* <span className="date">{tag.date ? tag.date : ''}</span> */}
                         <img
                             src={imgSrc}
                             referrerPolicy="no-referrer"
@@ -196,6 +196,10 @@ const App = (props: CardBlockType) => {
                             width="40"
                         />
                     </a>
+
+                    {/*    {tag.date && <span className="date">{tag.date}
+                    </span>} */}
+
                     <div className="xe-comment">
                         {/* <a href="#" onClick={() => openUrl(tag.url)}  > */}
                         {/* {
@@ -216,23 +220,68 @@ const App = (props: CardBlockType) => {
                                     </a>
                                 </div>
                         } */}
+                        {/* <a href="#" onClick={() => openUrl(tag.url)}  > */}
+                        {/* <Tooltip position='top' trigger='hover' content={tag.date ? `${tag.name}` + `(` + ` ${tag.date}` + `)` : tag.name}> */}
+                        {/* <Tooltip position='top' trigger='hover' content={tag.name}> */}
+                        <Tooltip position='top' trigger='hover' content={<div style={{}}>
+                            {tag.name}
+                            {tag.date && <br />}
+                            {/* {tag.date && tag.date} */}
+                            {<span style={{ color: 'var(--color-primary-light-4)' }}>
+                                {/* {<span style={{ color: '#5156be' }}> */}
+                                {tag.date && tag.date}
+                            </span>}
+                        </div>} >
 
-                        <Tooltip position='top' trigger='hover' content={tag.date ? `${tag.name} (${tag.date})` : tag.name}>
-                            {/* <Tooltip position='top' trigger='hover' content={tag.name}> */}
                             <div style={{ paddingRight: "17px" }}>
-                                {/* <a href="#" onClick={() => openUrl(tag.url)}  > */}
                                 <a href={tag.url} target='_blank'>
                                     <strong className="overflowClip_2" >{tag.name}</strong>
                                 </a>
                             </div>
                         </Tooltip>
+
+                        {/*   <Popover
+                            content={tag.date ? tag.date : ''}
+                            title={
+                                tag.name
+                            }
+                        >
+                            <div style={{ paddingRight: "17px" }}>
+                                <a href={tag.url} target='_blank'>
+                                    <strong className="overflowClip_2" >{tag.name}</strong>
+                                </a>
+                            </div>
+                        </Popover> */}
                         {/* target="_blank" */}
                         <Tooltip position='bottom' trigger='hover' content={tag.description}>
                             <p className="overflowClip_2">{tag.description}
                             </p>
                         </Tooltip>
+
                     </div>
                 </div>
+
+                {/*  <div className="more">
+                    <IconEdit />
+                </div> */}
+
+                {/*  {tag.date && <Dropdown
+                    droplist={
+                        <Menu
+                            onClickMenuItem={onClickMenuItem}
+                        >
+                            <Menu.Item key='date' >{tag.date}</Menu.Item>
+                        </Menu>
+                    }
+                    trigger="hover"
+                    onVisibleChange={setVisible}
+                    popupVisible={visible}
+                >
+                    <div className="date">
+                        <IconMore />
+                    </div>
+                </Dropdown>
+                } */}
 
                 <Dropdown
                     droplist={
@@ -244,14 +293,18 @@ const App = (props: CardBlockType) => {
                             ))}
                         </Menu>
                     }
-                    trigger="click"
+                    trigger="hover"
                     onVisibleChange={setVisible}
                     popupVisible={visible}
                 >
                     <div className="more">
                         <IconMore />
                     </div>
+
+
                 </Dropdown>
+
+
 
             </div>
 

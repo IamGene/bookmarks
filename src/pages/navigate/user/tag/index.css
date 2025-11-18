@@ -50,6 +50,7 @@
     opacity: 0;
 }
 
+
 .box2:hover .more {
     /* box-shadow: 4px 4px 10px rgba(0, 0, 0, 10%); */
     opacity: 1;
@@ -119,6 +120,11 @@ p {
 .xe-comment p {
     margin-bottom: 0px;
     margin-right: 15px;
+}
+
+.xe-comment-entry .date {
+    margin-bottom: 0px;
+    margin-right: 50px;
 }
 
 .overflowClip_1 {

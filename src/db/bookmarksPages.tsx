@@ -56,13 +56,14 @@ export async function addNewBookmark(bookmark) {
             date: date
         };
         await db.put('urls', saveBookmark);
-        console.log('addNewBookmark', saveBookmark);
+        // console.log('addNewBookmark', saveBookmark);
         return saveBookmark;
     } catch (e) {
         console.error('updateBookmarkById error', e);
         return null;
     }
 }
+
 export async function updateGroupById(group) {
     const db = await getDB();
     try {
@@ -77,6 +78,24 @@ export async function updateGroupById(group) {
             if (parentGroup) {
                 group.path = parentGroup.path + ',' + group.id;
             }
+
+            if (!existingGroup.pId) {
+                // console.log('>>>更新分组：祖节点更新所属分组');
+                //重新设置id（相当于新增分组）
+                const id = uuid();
+                //重新设置书签的gId为新的id
+                const urls = await db.getAllFromIndex('urls', 'gId', group.id);
+                for (let i = 0; i < urls.length; i++) {
+                    const url = urls[i];
+                    url.gId = id;
+                    await db.put('urls', url);
+                }
+                group.id = id;
+                group.path = group.pId + ',' + id;
+
+                //原来的分组进行删除
+                await db.delete('nodes', existingGroup.id);
+            }
         } else {
             group.path = `${group.id}`;
         }
@@ -87,6 +106,7 @@ export async function updateGroupById(group) {
             ...group,
         };
         // 3. 将更新后的数据存回数据库
+        console.log('updatedGroup', updatedGroup);
         await db.put('nodes', updatedGroup);
         return updatedGroup;
     } catch (e) {
@@ -97,7 +117,6 @@ export async function updateGroupById(group) {
 
 
 export async function updateBookmarkById(bookmark) {
-
     const db = await getDB();
     try {
         // 1. 根据 id 从 'urls' 表中获取现有的书签数据
@@ -119,16 +138,43 @@ export async function updateBookmarkById(bookmark) {
         console.error('updateBookmarkById error', e);
         return null;
     }
-
 }
 
-export async function saveSubGroup(group) {
+
+export async function renameBookmarkPageById(bookmarkPage) {
+    const db = await getDB();
+    try {
+        const dateNow = Date.now();
+        bookmarkPage.updatedAt = dateNow;
+        // 1. 根据 id 从 'urls' 表中获取现有的书签数据
+        const existingBookmarkPage = await db.get('pages', bookmarkPage.pageId);
+        if (!existingBookmarkPage) {
+            console.error(`BookmarkPage with pageId ${bookmarkPage.id} not found.`);
+            return null;
+        }
+        // 2. 将传入的新数据与旧数据合并
+        // 这样可以保留 'addDate' 等不在表单中的字段
+        const updatedBookmarkPage = {
+            ...existingBookmarkPage,
+            ...bookmarkPage,
+        };
+        // 3. 将更新后的数据存回数据库
+        await db.put('pages', updatedBookmarkPage);
+        return updatedBookmarkPage;
+    } catch (e) {
+        console.error('updateBookmarkById error', e);
+        return null;
+    }
+}
+
+
+export async function saveGroup(group) {
     const db = await getDB();
     const pId = group.pId;
     const id = uuid();
-    const path = `${pId}` + ',' + `${id}`;
+    const path = pId ? `${pId}` + ',' + `${id}` : `${id}`;
     try {
-        await db.put('nodes', {
+        const saveGroup = {
             id: id,
             pageId: group.pageId,
             type: "folder",
@@ -137,8 +183,9 @@ export async function saveSubGroup(group) {
             path: path,
             pId: pId,
             addDate: Date.now(),
-        });
-        return group;
+        }
+        await db.put('nodes', saveGroup);
+        return saveGroup;
     } catch (e) {
         console.error('savePageBookmarks error', e);
         return null;
@@ -209,55 +256,6 @@ export async function savePageBookmarks(pageData) {
     }
 }
 
-async function getPageNodesTree(pageId, db) {
-    const nodes = await db.getAllFromIndex('nodes', 'pageId', pageId);
-    nodes.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-    function buildTree(parentId) {
-        return nodes
-            .filter(node => node.pId === parentId)
-            .map(node => {
-                if (node.type === 'folder') {
-                    const children = buildTree(node.id);
-                    return {
-                        ...node,
-                        status: 1,
-                        children: children,
-                        // urlList: urlList,
-                    };
-                } else {
-                    return node;
-                }
-            });
-    }
-    return buildTree(null); // 根节点
-}
-
-
-export async function getCollectPageGroups() {
-    const db = await getDB();
-    const tx = db.transaction('pages', 'readonly');
-    const store = tx.objectStore('pages');
-    const pages = await store.getAll();
-    if (pages.length > 0) {//只有用户存在标签数据才能查询
-        const defaultPage = pages.find(page => page.default === true);
-        const pageId = defaultPage ? defaultPage.pageId : pages[0].pageId; //选择默认或者第一个书签页
-        const res = await getPageNodesTree(pageId, db);
-        // console.log('RRRRRRRRR res', res)
-        return res;
-    } else {
-        // 返回一个与 getPageNodesTree 结构一致的默认分组
-        return [
-            {
-                id: uuid(),
-                name: "默认分组",
-                type: 'folder',
-                status: 0,
-                children: [],
-                // urlList: [],
-            }];
-    }
-
-}
 
 
 export async function getPages() {
@@ -349,7 +347,6 @@ export async function saveBookmarkToDB(urlData) {
     try {
         // const nodes = await db.getKey('nodes', 'id', groupId);
         const group = await db.get('nodes', groupId);
-        // console.log('!!!! saving', group);
         // const tx = db.transaction('urls', 'readwrite');
         const dateNow = Date.now();
         const date = formatTimestamp(dateNow);
@@ -380,6 +377,16 @@ export async function getBookmarkById(id) {
     try {
         const db = await getDB();
         const url = await db.get('urls', id);
+        return url;
+    } catch (e) {
+        console.error('exportPageJson error', e);
+        return null;
+    }
+}
+export async function getBookmarkGroupById(id) {
+    try {
+        const db = await getDB();
+        const url = await db.get('nodes', id);
         return url;
     } catch (e) {
         console.error('exportPageJson error', e);
@@ -435,6 +442,30 @@ export async function exportAllPagesJson() {
         return null;
     }
 }
+
+
+export async function addBookmarksPage(title) {
+    try {
+        const db = await getDB();
+        const newPageId = Date.now();
+        // 1. 遍历并保存 pages，同时建立 pageId 映射
+        const newPageData = {
+            pageId: newPageId,
+            // title: `${oldPage.title}-导入`, // 标题添加后缀以区分
+            // title: `${page.name}`, // 标题添加后缀以区分
+            title: title, // 标题添加后缀以区分
+            default: false, // 导入的页面不设为默认
+            createdAt: newPageId,
+            updatedAt: newPageId,
+        };
+        await db.put('pages', newPageData);
+        return newPageData; // 返回所有新页面的 ID
+    } catch (e) {
+        console.error('addBookmarksPage error', e);
+        return null;
+    }
+}
+
 
 /**
  * 根据导出的 JSON 数据导入并保存为新的书签页
@@ -562,12 +593,66 @@ export async function deletePageBookmarks(pageId) {
         for (const url of urls) {
             await db.delete('urls', url.id);
         }
-        // console.log('!!!!!!!!!!!!!! deletePageBookmarks');
         return true;
     } catch (e) {
         return false;
     }
 }
+
+export async function removeGroupById(groupId) {
+    try {
+        const db = await getDB();
+        const group = await db.get('nodes', groupId);
+        const childGroups = await db.getAllFromIndex('nodes', 'pId', groupId);
+        if (group.pId === null) { //删除祖节点
+            const urls = await db.getAllFromIndex('urls', 'gId', groupId);
+            if (urls.length > 0 && childGroups.length > 0) {//仅仅删除其标签
+                for (const url of urls) {
+                    await db.delete('urls', url.id);
+                }
+                return true;
+            }
+        }
+        await db.delete('nodes', groupId);
+        // 删除 urls 表中所有 pageId 匹配的数据
+        const urls = await db.getAllFromIndex('urls', 'gId', groupId);
+        for (const url of urls) {
+            await db.delete('urls', url.id);
+        }
+        const childNodes = await db.getAllFromIndex('nodes', 'pId', groupId);
+        if (childNodes.length > 0) {
+            for (const node of childNodes) {
+                await db.delete('nodes', node.id);
+                const urls = await db.getAllFromIndex('urls', 'gId', node.id);
+                if (urls.length > 0) {
+                    for (const url of urls) {
+                        await db.delete('urls', url.id);
+                    }
+                }
+            }
+        }
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+
+export async function clearGroupBookmarksById(groupId) {
+    try {
+        const db = await getDB();
+        const urls = await db.getAllFromIndex('urls', 'gId', groupId);
+        if (urls.length > 0) {//删除标签
+            for (const url of urls) {
+                await db.delete('urls', url.id);
+            }
+        }
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
 
 /**
  * 根据 ID 删除一个书签 (url)
@@ -595,18 +680,79 @@ export async function getPageGroupData(groupId: string) {
     return groupDatas[0];
 }
 
+
+export async function testUpdate() {
+    const db = await getDB();
+    const group = await db.get('nodes', "i1bk37x58");
+    group.pId = "95rdpjwqy";
+    await db.put('nodes', group);
+}
+
+export async function getPageNodesTree1(pageId, db) {
+    // const db = await getDB();
+    const nodes = await db.getAllFromIndex('nodes', 'pageId', pageId);
+
+    function buildTree(parentId, isRoot = false) {
+        return nodes
+            .filter(node => node.pId === parentId)
+            .sort((a, b) => isRoot ? (a.addDate ?? 0) - (b.addDate ?? 0) : (b.addDate ?? 0) - (a.addDate ?? 0))
+            .map(node => {
+                if (node.type === 'folder') {
+                    const children = buildTree(node.id, parentId == null);
+                    return {
+                        ...node,
+                        status: 1,
+                        children: children,
+                        // urlList: urlList,
+                    };
+                } else {
+                    return node;
+                }
+            });
+    }
+    return buildTree(null); // 根节点
+}
+
+
+export async function getCollectPageGroups() {
+    const db = await getDB();
+    const tx = db.transaction('pages', 'readonly');
+    const store = tx.objectStore('pages');
+    const pages = await store.getAll();
+    if (pages.length > 0) {//只有用户存在标签数据才能查询
+        const defaultPage = pages.find(page => page.default === true);
+        const pageId = defaultPage ? defaultPage.pageId : pages[0].pageId; //选择默认或者第一个书签页
+        const res = await getPageNodesTree1(pageId, db);
+        // console.log('RRRRRRRRR res', res)
+        return res;
+    } else {
+        // 返回一个与 getPageNodesTree 结构一致的默认分组
+        return [
+            {
+                id: uuid(),
+                name: "默认分组",
+                type: 'folder',
+                status: 0,
+                children: [],
+                // urlList: [],
+            }];
+    }
+
+}
+
 export async function getPageTree(pageId) {
     const db = await getDB();
     const nodes = await db.getAllFromIndex('nodes', 'pageId', pageId);
-    nodes.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    // nodes.sort((a, b) => (a.addDate ?? 0) - (b.addDate ?? 0));
     const urls = await db.getAllFromIndex('urls', 'pageId', pageId);
 
-    function buildTree(parentId) {
+    function buildTree(parentId, isRoot = false) {
         return nodes
             .filter(node => node.pId === parentId)
+            .sort((a, b) => isRoot ? (a.addDate ?? 0) - (b.addDate ?? 0) : (b.addDate ?? 0) - (a.addDate ?? 0))
             .map(node => {
                 if (node.type === 'folder') {
-                    const children = buildTree(node.id);
+                    const children = buildTree(node.id, parentId == null);
                     const urlList = urls.filter(n => n.gId === node.id);
                     urls.sort((a, b) => (a.addDate ?? 0) - (b.addDate ?? 0));
                     //大分组存在标签，复制新的对象，作为子分组

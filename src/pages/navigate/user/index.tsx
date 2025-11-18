@@ -260,20 +260,24 @@ function UserNavigate() {
 
   const globalState = useSelector((state: RootState) => state.global);
 
-  const { settings, userLoading, userInfo, groups, activeGroup, hiddenGroup, loadedBookmarks } = globalState;
+  const { settings, userLoading, userInfo, groups, activeGroup, treeData, hiddenGroup, loadedBookmarks } = globalState;
 
   // console.log('!!!!!!!!!!!!! index activeGroup', groups, activeGroup, hiddenGroup);
 
   const [list, setList] = useState(groups);
   const [hasResult, setHasResult] = useState(true);
-  const [display, setDisplay] = useState(hiddenGroup);//false
+  const [display, setDisplay] = useState(!hiddenGroup);//false
 
   const [hideGroup, setHideGroup] = useState(hiddenGroup);
   // const [data, setData] = useState(hiddenGroup ? filterHideItems(groups) : groups);
   const [data, setData] = useState(groups);
+  const [treeDatas, setTreeDatas] = useState(treeData);
   const [searchFromAll, setSearchFromAll] = useState(data);
   // const [filterFromAll, setFilterFromAll] = useState(hiddenGroup ? filterHideItems(groups) : groups);
-  const [filterFromAll, setFilterFromAll] = useState(groups);
+
+  // const [filterFromAll, setFilterFromAll] = useState(groups);
+  const [filterFromAll, setFilterFromAll] = useState(treeData);
+
   const [bookmarkPages, setBookmarkPages] = useState([]);
   const [currentPage, setCurrentPage] = useState();
 
@@ -305,9 +309,11 @@ function UserNavigate() {
   // const flattenRoutes = useMemo(() => getFlattenRoutes(routes) || [], [routes]);
   // 点击(菜单)回调
   function onClickMenuItem(key, e, keyPath) {//key
+    // console.log('onClickMenuItem', keyPath);
     if (key.indexOf(',') !== -1) {
-      const stringArray: string[] = key.split(',');
-      const activeCardTab: number[] = stringArray.map(Number);
+      // const stringArray: string[] = key.split(',');
+      // const activeCardTab: number[] = stringArray.map(Number);
+      const activeCardTab: string[] = key.split(',');
       setTreeSelected(activeCardTab);
     } else {//父菜单,只有一级路径  String => Number
       const num = Number(key);
@@ -355,22 +361,29 @@ function UserNavigate() {
 
   // 接收Tree传过来的关键词
   const getTreeInputValue = (inputValue) => {
+    // console.log('aaaa', inputValue);
     setTreeInputValue(inputValue);
     if (!inputValue || !inputValue.trim()) {//搜索词为空
       if (display) {//显示隐藏
-        setData(list);
+        // setData(list);
+        // setTreeDatas(list);
+        setTreeDatas(treeData);
       } else {//显示已过滤隐藏
-        setData(filterFromAll);//在搜索结果上显示隐藏的
+        setTreeDatas(filterFromAll);//在搜索结果上显示隐藏的
       }
     } else {//搜索词不为空
-      const result = searchData(inputValue.trim(), list);
+      // const result = searchData(inputValue.trim(), list);
+      const result = searchData(inputValue.trim(), treeData);
+
       setSearchFromAll(result);//
       // console.log('getTreeInputValue', list, inputValue, result);
       if (display) {//在全部数据的基础上搜索
-        setData(result);
+        // console.log('33333 getTreeInputValue', inputValue, result);
+        setTreeDatas(result);
       } else {//在有隐藏项的基础上搜索
         const result = searchData(inputValue.trim(), data);
-        setData(result);
+        // console.log('44444444444 getTreeInputValue', inputValue, result);
+        setTreeDatas(result);
       }
     }
   }
@@ -497,7 +510,8 @@ function UserNavigate() {
 
 
   useEffect(() => {
-    setData(filteredData);//Tree
+    // setData(filteredData);//Tree
+    setTreeDatas(filteredData);//Tree
     setFilterFromAll(filteredData);
   }, [filteredData]);//
 
@@ -516,9 +530,9 @@ function UserNavigate() {
         // const iconDom = getIconFromKey(route.key);
         // const iconDom = getIconFromKey(route.id);
         //二级目录没有图标
-        const iconDom = route.pid ? '' : getIconFromKey(route.id);
+        const iconDom = route.pId ? '' : getIconFromKey(route.id);
         // const pid = route.pid;
-        const hrefId = route.pid ? route.pid : route.id;
+        const hrefId = route.pId ? route.pId : route.id;
         const titleDom = (
           <>
             {/* {iconDom} {locale[route.name] || route.name} */}
@@ -638,13 +652,15 @@ function UserNavigate() {
                     setOpenKeys(openKeys);
                   }}
                 >
-                  {renderRoutes(locale)(data, 1)}
+
+                  {/* {renderRoutes(locale)(data, 1)} */}
+                  {renderRoutes(locale)(groups, 1)}
                 </Menu>
                   :
                   <Tree setTreeSelected={getTreeSelect}
                     treeSelectedKeys={treeSelectedKeys}
                     // data={data}
-                    data={data}
+                    data={treeDatas}
                     inputValue={treeInputValue}
                     setTreeInputValue={getTreeInputValue}>
                   </Tree>

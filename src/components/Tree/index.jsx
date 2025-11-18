@@ -125,7 +125,7 @@ function App({ data, setTreeSelected, treeSelectedKeys, inputValue, setTreeInput
          }
      }, [data, inputValue]); */
     useEffect(() => {
-        console.log('treeData useEffect', data);
+        console.log('>>>>>>>>>>>>>>>>> treeData useEffect', data);
         let filteredData = filterChildrenArrayByPath(data);
         setTreeData(filteredData);
         if (!inputValue || !inputValue.trim()) {
@@ -194,14 +194,14 @@ function App({ data, setTreeSelected, treeSelectedKeys, inputValue, setTreeInput
                     if (inputValue) {
                         const index = name.toLowerCase().indexOf(inputValue.toLowerCase());
                         if (index === -1) {
-                            return <AnchorLink href={`#${hrefId}`} title={name} />;;
+                            return <AnchorLink href={`#${hrefId}`} title={name} onClick={(event) => scrollToAnchor(event, `${hrefId}`)} />;;
                         }
 
                         const prefix = name.substr(0, index);
                         const suffix = name.substr(index + inputValue.length);
 
                         return (
-                            <AnchorLink href={`#${hrefId}`} title={<span>
+                            <AnchorLink href={`#${hrefId}`} onClick={(event) => scrollToAnchor(event, `${hrefId}`)} title={<span>
                                 {prefix}
                                 <span style={{ color: 'var(--color-primary-light-4)' }}>
                                     {name.substr(index, inputValue.length)}
@@ -211,13 +211,24 @@ function App({ data, setTreeSelected, treeSelectedKeys, inputValue, setTreeInput
                             </AnchorLink>
                         );
                     }
-                    return <AnchorLink href={`#${hrefId}`} title={name} />;
+                    return <AnchorLink hash={false} href={`#${hrefId}`} onClick={(event) => scrollToAnchor(event, `${hrefId}`)} title={name} />;
                 }}
             >
                 <Anchor animation affix={false} hash={false} lineless></Anchor>
             </Tree>
 
         );
+    }
+
+    function scrollToAnchor(event, targetId) {
+        // console.log('scrollToAnchor', targetId);
+        event.preventDefault(); // 阻止默认的锚点跳转
+        const targetElement = document.getElementById(targetId);
+        if (targetElement) {
+            targetElement.scrollIntoView({
+                behavior: 'smooth' // 可选：平滑滚动
+            });
+        }
     }
 
     const getTree = (treeData) => {
@@ -249,14 +260,15 @@ function App({ data, setTreeSelected, treeSelectedKeys, inputValue, setTreeInput
                         const index = name.toLowerCase().indexOf(inputValue.toLowerCase());
 
                         if (index === -1) {
-                            return <AnchorLink href={`#${hrefId}`} title={name} />;
+                            return <AnchorLink href={`#${hrefId}`} title={name} onClick={(event) => scrollToAnchor(event, `${hrefId}`)} />;
                         }
 
                         const prefix = name.substr(0, index);
                         const suffix = name.substr(index + inputValue.length);
 
                         return (
-                            <AnchorLink href={`#${hrefId}`} title={<span>
+                            // <Anchor hash={false} affix={false} animation={false} lineless >
+                            <AnchorLink href={`#${hrefId}`} onClick={(event) => scrollToAnchor(event, `${hrefId}`)} title={<span>
                                 {prefix}
                                 {/* 匹配词高亮 */}
                                 <span style={{ color: 'var(--color-primary-light-4)' }}>
@@ -267,11 +279,12 @@ function App({ data, setTreeSelected, treeSelectedKeys, inputValue, setTreeInput
                             </AnchorLink>
                         );
                     }
-                    return <AnchorLink href={`#${hrefId}`} title={name} style={{ color: 'var(--color-primary-light-4)' }} />;
+                    return <AnchorLink href={`#${hrefId}`} title={name} onClick={(event) => scrollToAnchor(event, `${hrefId}`)} style={{ color: 'var(--color-primary-light-4)' }} />;
+                    // return <AnchorLink href={`#${hrefId}`} title={name} style={{ color: 'var(--color-primary-light-4)' }} />;
                 }}
             >
-                <Anchor hash={false} affix={false} animation lineless ></Anchor>
-            </Tree>
+                {/* <Anchor hash={false} affix={false} animation={false} lineless ></Anchor> */}
+            </Tree >
         );
     }
 

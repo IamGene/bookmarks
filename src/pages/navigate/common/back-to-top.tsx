@@ -1,7 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import {
-    IconCaretUp
-} from '@arco-design/web-react/icon';
 import { Button } from '@arco-design/web-react';
 
 function BackToTopButton() {
@@ -34,11 +31,11 @@ function BackToTopButton() {
                 position: 'fixed',
                 bottom: '10px',
                 right: '10px',
+                overflow: 'hide',
                 // right: '0',
                 zIndex: 999,
                 // 条件渲染，当 showButton 为 true 时显示按钮
                 display: showButton ? 'block' : 'none'
-
             }}
         >
             TOP

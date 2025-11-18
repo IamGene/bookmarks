@@ -13,8 +13,10 @@ import useLocale from '@/utils/useLocale';
 import styles from './style/index.module.less';
 // 导入自定义 Hook
 import { useFetchPageData } from '@/hooks/fetchPageData'; //
-import { setDefaultPage, getPages, getPageTree, exportPageJson } from '@/db/bookmarksPages';
+import RenamePageForm from '@/pages/navigate/user/form/rename_page_form';
+import { setDefaultPage, getPages, exportPageJson, testUpdate } from '@/db/bookmarksPages';
 import ExportModal from './exportModal';
+import { set } from 'mobx';
 // import { useSelector, useDispatch } from 'react-redux';
 
 export interface MessageItemData {
@@ -37,6 +39,7 @@ export interface BookmarksPageData {
   default: boolean
   createAt: number;
   updateAt: number;
+  new?: boolean;
   tag?: {
     text?: string;
     color?: string;
@@ -59,37 +62,44 @@ interface MessageListProps {
 interface BookmarksPageProps {
   data: BookmarksPageData[];
   currentPageId: number;
-  addedPageIds: number[];
+  // addedPageIds: number[];
   onItemClick?: (item: BookmarksPageData, index: number) => void;
   onAllBtnClick?: (data: BookmarksPageData[]) => void;
-  onRemovePage?: (item: BookmarksPageData, index: number) => void;
+  onRemovePage: (item: BookmarksPageData, index: number) => void;
+  onRenamePage: (item: BookmarksPageData, index: number) => void;
+  // onRenamePage: (pageId: number) => void;
+  // onSwitchPage: (item: BookmarksPageData) => void;
 }
 
 function BookmarksPages(props: BookmarksPageProps) {
   const t = useLocale();
-  const { data, currentPageId, addedPageIds, onRemovePage } = props;
+  const { data, currentPageId, onRemovePage, onRenamePage } = props;
 
   const [currentPage, setCurrentPage] = useState(currentPageId);
   const [localPages, setLocalPages] = useState(props.data);
-  // const [newPageId, setNewPageId] = useState(addedPageId);
-  const [newPageIds, setNewPageIds] = useState(addedPageIds);
+  // console.log('useEffect BookmarksPages addedPageIds', addedPageIds);
+  // const [newPageIds, setNewPageIds] = useState<number[]>(() => addedPageIds || []);
+  // 本地是否已修改过 newPageIds（用户交互后设为 true），如果为 true 则不再由 props 覆盖
+  console.log("BookmarksPages currentPageId=", currentPageId);
 
   function onItemClick(item: BookmarksPageData, index: number) {
     props.onItemClick && props.onItemClick(item, index);
   }
-  // console.log('1111111111 localPages', localPages, props.data);
 
   useEffect(() => {
     setLocalPages(data);
+    // console.log('useEffect setLocalPages', data);
   }, [data]);
+
 
   useEffect(() => {
     setCurrentPage(currentPageId);
+    // console.log('useEffect currentPageId', currentPageId)
   }, [currentPageId]);
 
   useEffect(() => {
-    setNewPageIds(addedPageIds);
-  }, [addedPageIds]);
+  }, [localPages]);
+
 
   async function handleSetDefaultPage(item: BookmarksPageData, index: number) {
     // 设置为默认书签页
@@ -135,26 +145,6 @@ function BookmarksPages(props: BookmarksPageProps) {
      await dispatchTagGroupsData(pageId);
    } */
 
-  async function exportPage(item: BookmarksPageData, index: number) {
-    // 导出书签页
-    const res = await exportPageJson(item.pageId);
-    if (res && res.pages) {
-      // 将 JSON 对象转换为格式化的字符串
-      const jsonString = JSON.stringify(res, null, 2);
-      // 创建一个 Blob 对象
-      const blob = new Blob([jsonString], { type: 'application/json' });
-      // 创建一个指向该 Blob 的 URL
-      const url = URL.createObjectURL(blob);
-      // 创建一个临时的 a 标签用于下载
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${res.pages[0].title}.json`; // 设置下载的文件名
-      a.click(); // 触发下载
-      // 释放 URL 对象
-      URL.revokeObjectURL(url);
-    }
-  }
-
   const [exportModalVisible, setExportModalVisible] = useState(false);
   const [exportPageItem, setExportPageItem] = useState<BookmarksPageData | null>(localPages?.length > 0 ? localPages[0] : null);
   function exportSelect(item: BookmarksPageData, index: number) {
@@ -162,7 +152,6 @@ function BookmarksPages(props: BookmarksPageProps) {
     setExportModalVisible(true);
     setExportPageItem(item);
   }
-
 
   /*  function formatDate(timestampStr) {
      const date = new Date(Number(timestampStr)); // 转换为数字并生成Date对象
@@ -173,64 +162,64 @@ function BookmarksPages(props: BookmarksPageProps) {
    }
   */
 
+  /*  const isContained1 = (pageId: number) => {
+     newPageIds.length > 0 && newPageIds.includes(pageId);
+   }
+ 
+   function isContained(pageId: number) {
+     const res = newPageIds.length > 0 && newPageIds.includes(pageId);
+     return res;
+   } */
 
+  /*  useEffect(() => {
+     // console.log('useEffect addedPageIds', addedPageIds)
+     setNewPageIds(addedPageIds || []);
+   }, [addedPageIds]); */
+
+  function isNew(item: BookmarksPageData) {
+    const res = item.new;
+    return res;
+  }
+
+  /*
+   const [renameForm, setRenameForm] = useState(false);
+   const [renamePage, setRenamePage] = useState(null);
+ 
+   function handleRenamePage(item: BookmarksPageData, index: number) {
+     setRenameForm(true);
+     setRenamePage(item);
+   } 
+ 
+   async function closeRenameModal(success: boolean, item: any) {
+     if (success) {
+       onRenamePage(item.pageId);
+     }
+     setRenameForm(false);
+   } */
 
   function switchPage(item: BookmarksPageData, index: number) {
     setCurrentPage(item.pageId);
-    // 示例
-    // console.log(formatDate("1735123456789")); // 输出：2024-12-25
-    // console.log("日期>>>>>>>>>>>>>>>>>>>>", formatDate("1735123456789")); // 输出：2024-12-25
-    // console.log("日期>>>>>>>>>>>>>>>>>>>>", formatDate("1728665329000")); // 输出：2024-12-25
-
-    /*  console.log("1735123456", formatTimestamp("1735123456"));    // "2024-12-25"（字符串秒级）
-     if (formatTimestamp("1735123456")) {
-       console.log(typeof formatTimestamp("1735123456"), true);
-     }
- 
-     console.log(1735123456, formatTimestamp(1735123456));      // "2024-12-25"（数字秒级）
-     if (formatTimestamp(1735123456)) {
-       console.log(typeof formatTimestamp(1735123456), true);
-     }
- 
-     console.log("1735123456789", formatTimestamp("1735123456789")); // "2024-12-25"（字符串毫秒级）
-     if (formatTimestamp("1735123456789")) {
-       console.log("1735123456789", true);
-     }
- 
-     console.log(1735123456789, formatTimestamp(1735123456789));   // "2024-12-25"（数字毫秒级）
-     if (formatTimestamp(1735123456789)) {
-       console.log(1735123456789, true);
-     }
- 
-     console.log("abc", formatTimestamp("abc"));           // ""
-     if (formatTimestamp("abc")) {
-       console.log("abc", true);
-     }
-     console.log("", formatTimestamp(""));           // ""
-     if (formatTimestamp("")) {
-       console.log("", true);
-     }
- 
-     console.log(null, formatTimestamp(null));            // ""
-     if (formatTimestamp(null)) {
-       console.log(null, true);
+    // onSwitchPage(item);
+    // testUpdate();
+    /*  if (isContained(item.pageId)) {
+       // 点击切换到刚添加的书签页，取消红点：使用函数式更新以避免闭包取到过期状态
+       setNewPageIds(prev => prev.filter(id => id !== item.pageId));
+       // console.log("点击切换到刚添加的书签页，取消红点：使用函数式更新以避免闭包取到过期状态", addedPageIds.filter(id => id !== item.pageId));
      } */
-
-    if (addedPageIds.length > 0 && isContained(item.pageId)) {
-      //点击切换到刚添加的书签页，取消红点
-      // setNewPageId(null);
-      // newPageIds.remove(item.pageId);
-      setNewPageIds(newPageIds.filter(id => id !== item.pageId));
+    if (isNew(item)) {
+      // setNewPageIds(prev => prev.filter(id => id !== item.pageId));
+      const idx = localPages.findIndex(p => p.pageId === item.pageId);
+      if (idx !== -1) {
+        localPages[idx].new = false; // 就地修改
+        setLocalPages([...localPages]); // 通过创建新数组引用来触发渲染
+      }
     }
     if (currentPage !== item.pageId) {
-      switchPageId(item.pageId);
+      switchPageId(item.pageId);//切换显示数据
     }
   }
 
-  const isContained = (pageId: number) =>
-    // console.log('isContained pageId=', pageId, ' newPageIds=', newPageIds);
-    newPageIds.length > 0 && newPageIds.includes(pageId);
-  ;
+
 
   return (
     <>
@@ -273,11 +262,9 @@ function BookmarksPages(props: BookmarksPageProps) {
                 title={
                   <div className={styles['message-title']}>
                     <Space size={4}>
-
-                      {/* <Badge count={item.pageId == newPageId ? 1 : 0} dot> */}
                       {/* <Badge count={isContained(item.pageId) ? 1 : 0} dot> */}
-                      <Badge count={isContained(item.pageId) ? 1 : 0} dot>
-                        <Button type={item.pageId == currentPage ? 'outline' : 'default'}
+                      <Badge count={isNew(item) ? 1 : 0} dot>
+                        <Button type={item.pageId === currentPage ? 'outline' : 'default'}
                           onClick={e => { e.stopPropagation(); switchPage(item, index); }}
                         >
                           {item.title}
@@ -289,8 +276,8 @@ function BookmarksPages(props: BookmarksPageProps) {
                     </Typography.Text> */}
                     </Space>
                     <Tag color="red" onClick={e => { e.stopPropagation(); onRemovePage(item, index); }}>删除</Tag>
-                    <Tag color="orange" onClick={e => { e.stopPropagation(); onRemovePage(item, index); }}>重命名</Tag>
-                    {/* <Tag color="green" onClick={e => { e.stopPropagation(); exportPage(item, index); }}>导出</Tag> */}
+                    <Tag color="orange" onClick={e => { e.stopPropagation(); onRenamePage(item, index); }}>重命名</Tag>
+                    {/* <Tag color="orange" onClick={e => { e.stopPropagation(); handleRenamePage(item, index); }}>重命名</Tag> */}
                     <Tag color="green" onClick={e => { e.stopPropagation(); exportSelect(item, index); }}>导出</Tag>
                     {item.default ? (
                       // <Tag icon={<IconStar />} color='arcoblue'>默认</Tag>) :
@@ -313,6 +300,8 @@ function BookmarksPages(props: BookmarksPageProps) {
         page={exportPageItem}
         onClose={() => setExportModalVisible(false)}
       />
+
+      {/* <RenamePageForm bookmarkPage={renamePage} visible={renameForm} closeWithSuccess={closeRenameModal}></RenamePageForm> */}
     </>
   );
 

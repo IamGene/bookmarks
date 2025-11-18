@@ -29,16 +29,15 @@ function App(props: TagDataParams) {
     const { isVisible, selectGroup, data, closeWithSuccess } = props;
 
     const [disabled, setDisabled] = React.useState(true);
-    const [visible, setVisible] = React.useState(false);
-    const [confirmLoading, setConfirmLoading] = useState(false);
-    const formRef = useRef<FormInstance>();
-
-    // console.log('tag form data selectGroup', selectGroup)
+    // const [visible, setVisible] = React.useState(false);
+    // const [confirmLoading, setConfirmLoading] = useState(false);
+    // const formRef = useRef<FormInstance>();
+    // console.log('44444444 tag form data selectGroup', selectGroup);
     const globalState = useSelector((state: any) => state.global);
-    const { groups } = globalState;
-    const cascaderOptions = groups;
+    const { treeData } = globalState;
+    const cascaderOptions = treeData;
 
-    //要显示的选择分组
+    //要显示的已选择分组
     const [optionValues, setOptionValues] = useState(selectGroup);
 
     const t = useLocale(locale);
@@ -47,32 +46,37 @@ function App(props: TagDataParams) {
     const [prefix, setPrefix] = useState<string>('https://')
 
     const processAddSaveTag = async (tag: WebTag) => {
-        console.log('form data', tag);
+        // console.log('form data', tag);
         const newTag = await addBookmark(tag);
         Message.success('Success !');
-        setConfirmLoading(false);
-        closeWithSuccess(true, newTag, true);//相当于点击取消/关闭按钮 true:新增；false:更新
+        // setConfirmLoading(false);
+        // closeWithSuccess(true, newTag, true);//相当于点击取消/关闭按钮 true:新增；false:更新
+        closeWithSuccess(true, newTag, 2);//相当于点击取消/关闭按钮 true:新增；false:更新
     }
-
 
     const processUpdateSaveTag = async (tag: WebTag) => {
         // const group = await submitTagData(tag)
         const newTag = await updateBookmark(tag);
         // const group = await saveTagData(tag)
         Message.success('Success !');
-        setConfirmLoading(false);
+        // setConfirmLoading(false);
+
+        console.log('processUpdateSaveTag', data.gId, newTag.gId, newTag)
         // setVisible(false);
-        if (newTag) closeWithSuccess(true, newTag, false);//相当于点击取消/关闭按钮
-        /*  if (data)//修改才需要
-             closeWithSuccess(true, group)//相当于点击取消/关闭按钮
-         else
-             closeWithSuccess(true)//相当于点击取消/关闭按钮 */
+        if (newTag) {
+            if (data.gId !== newTag.gId) {
+                closeWithSuccess(true, newTag, 0);
+            } else {
+                closeWithSuccess(true, newTag, 1);
+            }
+        }
+        //相当于点击取消/关闭按钮
     }
 
 
     const onOk = async () => {
         form.validate().then((res) => {
-            setConfirmLoading(true);
+            // setConfirmLoading(true);
             res.icon = res.icon.url;
 
             //截取字符串

@@ -45,9 +45,9 @@ import { generatePermission } from '@/routes';
 import { removeToken } from '@/utils1/auth';
 import { useStore } from '@/store1';
 import { fetchBookmarksPageData } from '@/store/modules/global';
-import TabGroupForm from '@/pages/navigate/user/form/tab-group-form';
+import { getPages } from "@/db/bookmarksPages";
+import CreatePageGroup from '@/pages/navigate/user/form/add_page_group';
 const api = import.meta.env.VITE_REACT_APP_BASE_API;
-// import cache from '@/plugins/cache';
 // function Navbar({ show }: { show: boolean }, setNavBarKey) {
 function Navbar({ pageNo, pages, show, display, setNavBarKey, setAllDisplay }) {
 
@@ -61,8 +61,11 @@ function Navbar({ pageNo, pages, show, display, setNavBarKey, setAllDisplay }) {
 
   const [_, setUserStatus] = useStorage('userStatus');
   const [role, setRole] = useStorage('userRole', 'admin');
+  const [currentPageId, setCurrentPageId] = useState(pageNo);
 
   const { setLang, lang, theme, setTheme } = useContext(GlobalContext);
+  // const [createType, setCreateType] = useState("page");
+  const [bookmarkPages, setBookmarkPages] = useState(pages);
   const { userStore } = useStore();
 
   // const [tagsShow, setTagsShow] = useState('hide')
@@ -71,14 +74,30 @@ function Navbar({ pageNo, pages, show, display, setNavBarKey, setAllDisplay }) {
   async function logout() {
     setUserStatus('logout');
     removeToken()
-    // cache.local.remove("")
     const res = await userStore.LogOut();
     window.location.href = '/login';
+  }
+
+  useEffect(() => {
+    setCurrentPageId(pageNo);
+  }, [pageNo]);
+
+  useEffect(() => {
+    setBookmarkPages(pages);
+  }, [pages]);
+
+  function setCurrentPage(pageId) {
+    setCurrentPageId(pageId);
   }
 
   // 监听搜索框输入变化
   const onInputChange = (key: string) => {
     setNavBarKey(key)
+  }
+  const [createNewForm, setCreateNewForm] = useState(false);//添加Tab
+
+  const onCreateNew = () => {
+    setCreateNewForm(true);
   }
 
   // 监听显示/隐藏切换
@@ -175,30 +194,40 @@ function Navbar({ pageNo, pages, show, display, setNavBarKey, setAllDisplay }) {
     </Menu>
   );
 
-  const onCreateNewTagGroup = () => {
-    setTabForm(true);
-  }
-  const [tabForm, setTabForm] = useState(false);//添加Tab
 
-  let timeoutId; // 用于存储 setTimeout 返回的标识符
+  const [addedBookmarkPages, setAddedBookmarkPages] = useState([]);
+
+  useEffect(() => {
+  }, [addedBookmarkPages]);
+
   //提交成功后关闭或取消关闭Modal窗口
   const closeAddTabModal = async (success: boolean, data?: any) => {
-    setTabForm(false)
+    setCreateNewForm(false);
     if (success) {//刷新当前页面数据
-      const res = await getGroupData();
-      if (res) {
-        // 清除之前的定时器（如果存在）
-        if (data) {
-          clearTimeout(timeoutId);
-          // 设置新的定时器
-          timeoutId = setTimeout(() => {
-            window.location.href = `/navigate/user#${data.id}`;
-          }, 800);//延时1秒，等组件重新渲染完毕
-        }
+      const pages = await getPages();
+      const idx = pages.findIndex(p => p.pageId === data.pageId);
+      if (idx !== -1) {
+        pages[idx].new = true; // 就地修改
+        setBookmarkPages([...pages]); // 通过创建新数组引用来触发渲染
+      } else {
+        setBookmarkPages(pages);
       }
+      // setAddedBookmarkPages([data.pageId]);
     }
   }
 
+  /* if (res) {
+         // 清除之前的定时器（如果存在）
+         if (data) {
+           clearTimeout(timeoutId);
+           // 设置新的定时器
+           timeoutId = setTimeout(() => {
+             window.location.href = `/navigate/user#${data.id}`;
+           }, 800);//延时1秒，等组件重新渲染完毕
+         }
+       } */
+
+  let timeoutId; // 用于存储 setTimeout 返回的标识符
   async function getGroupData() {
     try {
       const data: any = await dispatch(fetchBookmarksPageData(pageNo));
@@ -207,6 +236,10 @@ function Navbar({ pageNo, pages, show, display, setNavBarKey, setAllDisplay }) {
       return false;
     }
   }
+
+
+
+
   // 在组件卸载或其他合适时机清除定时器
   useEffect(() => {
     return () => {
@@ -215,75 +248,78 @@ function Navbar({ pageNo, pages, show, display, setNavBarKey, setAllDisplay }) {
   }, []);
 
 
+
   return (
-    <div className={styles.navbar}>
-      <div className={styles.left}>
-        <div className={styles.logo}>
-          <Logo />
-          <div className={styles['logo-name']}>Arco Pro</div>
+    <>
+      <div className={styles.navbar}>
+        <div className={styles.left}>
+          <div className={styles.logo}>
+            <Logo />
+            <div className={styles['logo-name']}>Arco Pro</div>
+          </div>
         </div>
-      </div>
-      <ul className={styles.right} style={{ marginBottom: '0rem' }}>
-        <li>
-          <Input.Search
-            allowClear
-            className={styles.round}
-            placeholder={t['navbar.search.placeholder']}
-            onChange={onInputChange}
-          />
-        </li>
-        <li>
-          <Select
-            triggerElement={<IconButton icon={<IconLanguage />} />}
-            options={[
-              { label: '中文', value: 'zh-CN' },
-              { label: 'English', value: 'en-US' },
-            ]}
-            value={lang}
-            triggerProps={{
-              autoAlignPopupWidth: false,
-              autoAlignPopupMinWidth: true,
-              position: 'br',
-            }}
-            trigger="hover"
-            onChange={(value) => {
-              setLang(value);
-              const nextLang = defaultLocale[value];
-              Message.info(`${nextLang['message.lang.tips']}${value}`);
-            }}
-          />
-        </li>
-
-        {/* {pageNo && <li> */}
-        {<li>
-          <Bookmarks pages={pages} currentPage={pageNo}>
-            <IconButton icon={<IconNav />} />
-          </Bookmarks>
-        </li>
-        }
-
-        <li>
-          <MessageBox>
-            <IconButton icon={<IconNotification />} />
-          </MessageBox>
-        </li>
-        <li>
-          <Tooltip
-            content={
-              theme === 'light'
-                ? t['settings.navbar.theme.toDark']
-                : t['settings.navbar.theme.toLight']
-            }
-          >
-            <IconButton
-              icon={theme !== 'dark' ? <IconMoonFill /> : <IconSunFill />}
-              onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+        <ul className={styles.right} style={{ marginBottom: '0rem' }}>
+          <li>
+            <Input.Search
+              allowClear
+              className={styles.round}
+              placeholder={t['navbar.search.placeholder']}
+              onChange={onInputChange}
             />
-          </Tooltip>
-        </li>
+          </li>
+          <li>
+            <Select
+              triggerElement={<IconButton icon={<IconLanguage />} />}
+              options={[
+                { label: '中文', value: 'zh-CN' },
+                { label: 'English', value: 'en-US' },
+              ]}
+              value={lang}
+              triggerProps={{
+                autoAlignPopupWidth: false,
+                autoAlignPopupMinWidth: true,
+                position: 'br',
+              }}
+              trigger="hover"
+              onChange={(value) => {
+                setLang(value);
+                const nextLang = defaultLocale[value];
+                Message.info(`${nextLang['message.lang.tips']}${value}`);
+              }}
+            />
+          </li>
+
+          {/* {pageNo && <li> */}
+          {<li>
+            {/* <Bookmarks pages={pages} currentPage={pageNo} setCurrentPage={setCurrentPage}> */}
+            <Bookmarks pages={bookmarkPages} currentPage={pageNo} newBookmarkPages={addedBookmarkPages} setCurrentPage={setCurrentPage}>
+              <IconButton icon={<IconNav />} />
+            </Bookmarks>
+          </li>
+          }
+
+          <li>
+            <MessageBox>
+              <IconButton icon={<IconNotification />} />
+            </MessageBox>
+          </li>
+          <li>
+            <Tooltip
+              content={
+                theme === 'light'
+                  ? t['settings.navbar.theme.toDark']
+                  : t['settings.navbar.theme.toLight']
+              }
+            >
+              <IconButton
+                icon={theme !== 'dark' ? <IconMoonFill /> : <IconSunFill />}
+                onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+              />
+            </Tooltip>
+          </li>
 
 
-        <li>
+          {/*  <li>
           <Tooltip
             content={t['website.tag.group.create']}
           >
@@ -292,42 +328,61 @@ function Navbar({ pageNo, pages, show, display, setNavBarKey, setAllDisplay }) {
               onClick={onCreateNewTagGroup}
             />
           </Tooltip>
-        </li>
+        </li> */}
 
-        {/* 显示/隐藏 */}
-        {display !== null && <li>
-          <Tooltip
-            content={
-              tagsShow ? t['settings.tags.hide'] : t['settings.tags.show']
-            }
-          >
-            <IconButton
-              icon={tagsShow ? <IconEye /> : <IconEyeInvisible />}
-              // icon={tagsShow ? <IconEyeInvisible /> : <IconEye />}
-              onClick={onToggleDisplay}
-            />
-          </Tooltip>
-        </li>
-        }
-
-        <Settings />
-        {userInfo && (
           <li>
-            <Dropdown droplist={droplist} position="br" disabled={userLoading}>
-              <Avatar size={32} style={{ cursor: 'pointer' }}>
-                {userLoading ? (
-                  <IconLoading />
-                ) : (
-                  <img alt="avatar" src={`${api}${userInfo.avatar}`} />
-                )}
-              </Avatar>
-            </Dropdown>
+            <Tooltip
+              content={t['bookmarks.page.group.create']}
+            >
+              <IconButton
+                icon={<IconPlus />}
+                onClick={onCreateNew}
+              />
+            </Tooltip>
           </li>
-        )}
-      </ul>
 
-      {tabForm && <TabGroupForm selectGroup={null} noPid={true} batchNo={pageNo} groupName={''} closeWithSuccess={closeAddTabModal} group={null}></TabGroupForm>}
-    </div >
+
+          {/* 显示/隐藏 */}
+          {display !== null && <li>
+            <Tooltip
+              content={
+                tagsShow ? t['settings.tags.hide'] : t['settings.tags.show']
+              }
+            >
+              <IconButton
+                icon={tagsShow ? <IconEye /> : <IconEyeInvisible />}
+                // icon={tagsShow ? <IconEyeInvisible /> : <IconEye />}
+                onClick={onToggleDisplay}
+              />
+            </Tooltip>
+          </li>
+          }
+
+          <Settings />
+          {userInfo && (
+            <li>
+              <Dropdown droplist={droplist} position="br" disabled={userLoading}>
+                <Avatar size={32} style={{ cursor: 'pointer' }}>
+                  {userLoading ? (
+                    <IconLoading />
+                  ) : (
+                    <img alt="avatar" src={`${api}${userInfo.avatar}`} />
+                  )}
+                </Avatar>
+              </Dropdown>
+            </li>
+          )}
+        </ul>
+
+      </div >
+
+      <CreatePageGroup
+        isVisible={createNewForm}
+        // selectGroup={cardData.id}
+        pageId={currentPageId}
+        closeWithSuccess={closeAddTabModal}>
+      </CreatePageGroup>
+    </>
   );
 }
 

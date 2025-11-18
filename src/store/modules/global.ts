@@ -97,6 +97,7 @@ export interface GlobalState {
   userLoading?: boolean;
   hasResult: boolean;
   groups: TagGroups;
+  treeData: TagGroups;
   // group1s: TagGroups;
   hiddenGroup: boolean;
 
@@ -115,6 +116,7 @@ const initialState: GlobalState = {
   },
   hasResult: true,
   groups: [],//当前标签分组列表,用于新增
+  treeData: [],//当前标签分组列表,用于新增
   // group1s: [],//当前标签分组列表,用于新增
   hiddenGroup: false,//有隐藏分组
   defaultPage: null,
@@ -168,6 +170,7 @@ const globalSlice = createSlice({
     updateTagGroups: (state, action) => {
       state.groups = action.payload.groups;
       state.hiddenGroup = action.payload.hideGroup;
+      state.treeData = action.payload.treeData;
       // state.group1s = action.payload.group1s;
     },
     updateUserPage: (state, action) => {
@@ -184,6 +187,29 @@ const globalSlice = createSlice({
 });
 
 
+function filterChildrenArrayByPath(arr) {
+  // 返回一个新数组，避免修改原数组
+  return arr.map(item => filterChildrenByPath(item));
+}
+
+
+// 保证每层都新建对象，不引用原对象
+function filterChildrenByPath(data) {
+  // 先浅拷贝一份（不引用原对象）
+  const newData = { ...data };
+
+  if (!Array.isArray(data.children)) {
+    // children不是数组，直接返回新对象
+    return newData;
+  }
+
+  // 过滤并递归深拷贝子元素
+  newData.children = data.children
+    .filter(child => child.path !== data.path)
+    .map(child => filterChildrenByPath(child));
+  return newData;
+}
+
 /* function dispatchTagGroupsData(page: number) {
   const dispatch = useDispatch();
   fetchTagGroupsData(page);
@@ -193,15 +219,16 @@ const fetchBookmarksPageData = (page: number) => {
   // console.log('fetchTagGroupsData', page)
   return async (dispatch) => {
     const res = await getPageTree(page);
-    // const pages = await getPages();
-    console.log('999999999999 fetchTagGroupsData res', page, res)
     if (res.length > 0) {
       //list: 分组书签（全字段）
       const list = res;
-      let hideGroup: boolean = hasHidden(list);
-      dispatch(updateTagGroups({ groups: list, hideGroup: hideGroup }))
+      const hideGroup: boolean = hasHidden(list);
+      const treeData = filterChildrenArrayByPath(list);
+      // console.log('999999999999 fetchTagGroupsData res', page, list, hideGroup);
+      dispatch(updateTagGroups({ groups: list, hideGroup: hideGroup, treeData: treeData }));
       return res; // 直接返回整个响应对象
     } else {
+      dispatch(updateTagGroups({ groups: [], hideGroup: false, treeData: [] }));
       return undefined;
       // 处理错误情况
       // throw new Error('请求失败');
@@ -211,7 +238,7 @@ const fetchBookmarksPageData = (page: number) => {
 
 
 const loadNewAddedBookmarks = (bookmarks: WebTag[]) => {
-  console.log('2222222222 loadNewAddedBookmarks action', bookmarks);
+  // console.log('2222222222 loadNewAddedBookmarks action', bookmarks);
   return async (dispatch) => {
     dispatch(setLoadBookmarks(bookmarks))
   }

@@ -9,7 +9,7 @@ import isUrl from 'is-url';
 import { useSelector } from 'react-redux';
 import { WebTag } from '../interface';
 import { GroupNode } from '@/store/modules/global';
-import { saveSubGroup } from '@/db/bookmarksPages';
+import { saveGroup } from '@/db/bookmarksPages';
 const FormItem = Form.Item;
 const TextArea = Input.TextArea;
 const api = import.meta.env.VITE_REACT_APP_BASE_API;
@@ -31,13 +31,14 @@ function App(props: TagDataParams) {
   const { isVisible, selectGroup, pageId, closeWithSuccess } = props;
   const selectGroupId = selectGroup.id;//选中的分组id数组
   const [disabled, setDisabled] = React.useState(true);
-  const [visible, setVisible] = React.useState(false);
+  // const [visible, setVisible] = React.useState(false);
   const [confirmLoading, setConfirmLoading] = useState(false);
 
   const globalState = useSelector((state: any) => state.global);
-  const { groups } = globalState;
+  // const { groups } = globalState;
+  const { treeData } = globalState;
   // console.log('sssssssssss tag form data', selectGroup, groups)
-  const cascaderOptions = groups;
+  const cascaderOptions = treeData;
   // const cascaderOptions = groups;
 
   //要显示的选择分组
@@ -51,12 +52,12 @@ function App(props: TagDataParams) {
 
   const processSaveTag = async (tag: WebTag) => {
     // const sucess = await submitTagData(tag)
-    const group = await submitTagData(tag)
+    const saveData = await submitTagData(tag)
     Message.success('Success !');
     setConfirmLoading(false);
     // console.log('processSaveTag', group);
     // setVisible(false);
-    closeWithSuccess(true, group)//相当于点击取消/关闭按钮
+    closeWithSuccess(true, saveData)//相当于点击取消/关闭按钮
 
     /* if (sucess) {
       Message.success('Success !');
@@ -85,6 +86,7 @@ function App(props: TagDataParams) {
         }
         res.gid = res.group;//取数组的最后一个为分组id
         res.url = url;
+
         processSaveTag(res);
 
         /* setTimeout(() => {
@@ -101,8 +103,11 @@ function App(props: TagDataParams) {
         if (name.length > 20) {
           res.name = name.substring(0, 20);
         }
-        // res.type = "folder";
-        console.log('3333333333 processSaveSubGroup', res);
+
+        if (res.pId && res.pId.length > 0 && typeof res.pId !== 'string') {
+          res.pId = res.pId[res.pId.length - 1];//取数组的最后一个为分组id
+        }
+        // console.log('group', res);
         processSaveSubGroup(res);
       })
     }
@@ -111,10 +116,10 @@ function App(props: TagDataParams) {
 
   const processSaveSubGroup = async (group) => {
     // const data = await submitGroupData(group);
-    const data = await saveSubGroup(group);
+    const data = await saveGroup(group);
     Message.success('添加成功');
     // setConfirmLoading(false);
-    closeWithSuccess(true, data.id)//相当于点击取消/关闭按钮
+    closeWithSuccess(true, data)//相当于点击取消/关闭按钮
     // setType(0);
     return true;
   }
@@ -149,8 +154,9 @@ function App(props: TagDataParams) {
       let newUrl = '';
 
       tagForm.setFields({
-        group: {
-          value: selectGroup
+        // group: {
+        gId: {
+          value: selectGroupId
         },
         url: {
           value: newUrl
@@ -315,6 +321,18 @@ function App(props: TagDataParams) {
     return regex.test(str);
   }
 
+  const handleOptionChange = (value) => {
+    if (!value) {
+      groupForm.setFields({
+        pId: { value: null },
+      });
+    } else {
+      setOptionValues(value);
+    }
+  };
+
+
+
   function replaceHttp(url: string) {
     // return str.replaceAll(regex);
     return url.replace(regex, '');
@@ -398,7 +416,8 @@ function App(props: TagDataParams) {
           >
             <FormItem
               label='分组'
-              field='group'
+              // field='group'
+              field='gId'
               rules={[
                 {
                   type: 'array',
@@ -419,9 +438,14 @@ function App(props: TagDataParams) {
                 changeOnSelect  //选择即改变
                 allowClear
                 value={optionValues}
-                onChange={(value, options) => {
+                /* onChange={(value, options) => {
                   // console.log(value, options);
                   setOptionValues(value)
+                }} */
+                onChange={(value, options) => {
+                  // setOptionValues(value)
+                  // console.log('optionValues', value);
+                  // handleOptionChange(value);
                 }}
 
                 fieldNames={{
@@ -556,7 +580,7 @@ function App(props: TagDataParams) {
               rules={[
                 {
                   type: 'array',
-                  // required: true,
+                  // required: true
                   // required: require,
                 }
               ]}
@@ -569,15 +593,16 @@ function App(props: TagDataParams) {
                 changeOnSelect  //选择即改变
                 allowClear
                 value={optionValues}
+                /*  onChange={(value, options) => {
+                   setOptionValues(value)
+                 }} */
                 onChange={(value, options) => {
-                  setOptionValues(value)
+                  handleOptionChange(value)
                 }}
-
                 fieldNames={{
                   // children: 'child',
                   label: 'name',
                   value: 'id',
-                  // value: 'name',
                 }}
               />
             </FormItem>

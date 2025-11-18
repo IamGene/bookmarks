@@ -20,25 +20,24 @@ import {
 } from '@arco-design/web-react/icon';
 import useLocale from '../../utils/useLocale';
 import BookmarkPages, { BookmarksPagesType, MessageListType, BookmarksPageData } from './list';
+// import RenamePageForm from '@compo';
+// import { set } from 'mobx';
 import { getPages, deletePageBookmarks, exportAllPagesJson } from '@/db/bookmarksPages';
 import { useFetchPageData } from '@/hooks/fetchPageData';
 import { removeConfirm } from '@/pages/navigate/user/form/remove-confirm-modal';
+import RenamePageForm from '@/pages/navigate/user/form/rename_page_form';
 import styles from './style/index.module.less';
 import Imports from './import/index';
-import { set } from 'mobx';
 import { useDispatch } from 'react-redux';
-
-function DropContent({ pages, currentPage, pagesChange, keepPopupVisible, activeKey }) {
+function DropContent({ pages, currentPage, pagesChange, activeRename, activeKey }) {
 
   const t = useLocale();
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(activeKey);
   const [currentPageId, setCurrentPageId] = useState(currentPage);
-  // const [addedPageId, setAddedPageId] = useState(null);
-  const [addedPageIds, setAddedPageIds] = useState([]);
-
-  console.log("🌀 渲染 DropContent list pages=", pages);
+  // const [addedPageIds, setAddedPageIds] = useState(newBookmarkPages);
+  // console.log("🌀 渲染 DropContent list newBookmarkPages=", newBookmarkPages);
   const [groupData, setGroupData] = useState<{
     [key: string]: MessageListType;
   }>({});
@@ -50,6 +49,16 @@ function DropContent({ pages, currentPage, pagesChange, keepPopupVisible, active
     }
   }, [activeKey]);
 
+  /*  useEffect(() => {
+     // console.log('3333333333333 useEffect newBookmarkPages ', newBookmarkPages, addedPageIds);
+     // 将传入的新 id 追加到现有数组并去重，避免覆盖本地标记
+     if (Array.isArray(newBookmarkPages) && newBookmarkPages.length > 0) {
+       setAddedPageIds(prev => {
+         const merged = Array.from(new Set([...(prev || []), ...newBookmarkPages]));
+         return merged;
+       });
+     }
+   }, [newBookmarkPages]);//newBookmarkPages发生变化的时候执行 */
 
   async function handlePageRemove(item, index) {
     try {
@@ -64,7 +73,7 @@ function DropContent({ pages, currentPage, pagesChange, keepPopupVisible, active
       // 用户点击了“确定”并删除成功
       if (confirmed) {
         // console.log('✅ 用户确认删除，刷新书签页列表');
-        pagesChange(0); // 删除成功后刷新列表
+        pagesChange(0, item.pageId); // 删除成功后刷新列表
       } else {
         console.log('❎ 用户取消或删除失败');
         //让父组件恢复因为弹窗而导致收起的展开状态
@@ -75,10 +84,15 @@ function DropContent({ pages, currentPage, pagesChange, keepPopupVisible, active
     }
   }
 
+  const [renameForm, setRenameForm] = useState(false);
+  const [bookmarkPage, setBookmarkPage] = useState(null);
 
-  /*   useEffect(() => {
-    }, [addedPageId]); */
 
+  async function handlePageSwtich(item) {
+    // console.log('5555555 handlePageSwtich', item)
+    // setBookmarkPage(item);
+    pagesChange(0, item.pageId);
+  }
 
   /*  async function switchPageId(pageId: number) {
      // const res = await getGroupData(pageId);
@@ -88,11 +102,27 @@ function DropContent({ pages, currentPage, pagesChange, keepPopupVisible, active
 
 
   const switchPageId = useFetchPageData();
+
+  async function handlePageRename(item, index) {
+    setRenameForm(true);
+    setBookmarkPage(item);
+  }
+
+  //提交成功后关闭或取消关闭Modal窗口
+  async function closeRenameModal(success: boolean, item: any) {
+    if (success) {
+      setRenameForm(false);
+      pagesChange(1, item.pageId);
+      activeRename(true);//保持弹出层弹开
+    } else {
+      setRenameForm(false);
+    }
+  }
+
   async function handleImportSuccess(pageIds: number[]) {
     setCurrentPageId(pageIds[0]);
-    setAddedPageIds(pageIds);
-    pagesChange(1);
     switchPageId(pageIds[0]);
+    pagesChange(1, pageIds[0]);
   }
 
 
@@ -120,7 +150,6 @@ function DropContent({ pages, currentPage, pagesChange, keepPopupVisible, active
       URL.revokeObjectURL(url);
     }
   }
-
 
 
   function readMessage(data: BookmarksPagesType) {
@@ -156,10 +185,17 @@ function DropContent({ pages, currentPage, pagesChange, keepPopupVisible, active
     title: '导入书签',
     titleIcon: <IconUpload style={{ marginRight: 6 }} />
   };
-
+  /* const addTab =
+  {
+    key: 'add',
+    title: '新建书签',
+    titleIcon: <IconUpload style={{ marginRight: 6 }} />
+  }; */
 
   return (
     <div className={styles['message-box']}>
+
+
       <Spin loading={loading} style={{ display: 'block' }}>
         <Tabs
           overflow="dropdown"
@@ -198,7 +234,7 @@ function DropContent({ pages, currentPage, pagesChange, keepPopupVisible, active
             <BookmarkPages
               data={pages}
               currentPageId={currentPageId}
-              addedPageIds={addedPageIds}
+              // addedPageIds={addedPageIds}
               onItemClick={(item) => {
                 // readMessage([item]);
               }}
@@ -206,6 +242,8 @@ function DropContent({ pages, currentPage, pagesChange, keepPopupVisible, active
                 // readMessage(unReadData);
               }}
               onRemovePage={handlePageRemove}
+              onRenamePage={handlePageRename}
+            // onSwitchPage={handlePageSwtich}
             />
 
           </Tabs.TabPane>
@@ -231,44 +269,101 @@ function DropContent({ pages, currentPage, pagesChange, keepPopupVisible, active
               }}
             />
           </Tabs.TabPane>
+
         </Tabs>
       </Spin>
+
+      <RenamePageForm bookmarkPage={bookmarkPage} visible={renameForm} closeWithSuccess={closeRenameModal}></RenamePageForm>
     </div>
   );
 }
 
 
-function BookmarkPageBox({ children, pages, currentPage }) {
+function BookmarkPageBox({ children, pages, currentPage, newBookmarkPages, setCurrentPage }) {
   // 提供一个ref给DropContent
   const [popupVisible, setPopupVisible] = React.useState(false);
-
-
+  console.log('222222222 BookmarkPageBox', newBookmarkPages, pages, popupVisible);
   const [data, setData] = useState<BookmarksPagesType>(pages);
 
-  console.log("🌀 渲染 BookmarkPageBox，popupVisible =", data, currentPage);
   const [activeKey, setActiveKey] = useState<string>('pages');
   const [count, setCount] = useState<number>(0);
+  // const [newPageIds, setNewPageIds] = useState<number[]>(newBookmarkPages);
 
   function keepPopupVisible() {
     setPopupVisible(true);
   }
 
-  useEffect(() => {
-    setData(pages);
-  }, [pages]);
-
-  async function refreshBookmarksPage() {
-    const newPages = await getPages();
-    // console.log('onPagesChange 222222222 newPages', newPages);
-    setData(newPages);
+  const [renameActive, setRenameActive] = useState<boolean>(false);
+  function setRenameActiveStatus(active: boolean) {
+    setRenameActive(active);
   }
 
-  function onPagesChange(count?: number, callback?: () => void) {
+  // Trigger 自动通知，但不再控制 popupVisible
+  const handleVisibleChange = (nextVisible) => {
+    console.log("Trigger reports visible:", nextVisible);
+    // ❗完全不根据它设置 popupVisible
+    if (renameActive) {//重命名中
+
+
+      setPopupVisible(true);
+    } else {
+      setPopupVisible(nextVisible);
+    }
+    // 想允许手动打开的话可以写 if (nextVisible) setPopupVisible(true)
+  };
+
+  /*   useEffect(() => {
+      setNewPageIds(newBookmarkPages);
+    }, [newBookmarkPages]); */
+
+  useEffect(() => {
+    setData(pages);
+    const idx = pages.findIndex(p => p.new);//新的
+    if (idx !== -1) {
+      setPopupVisible(true);//展开
+      setTimeout(() => setActiveKey("pages"), 0);
+    }
+  }, [pages]);
+
+  useEffect(() => {
+    console.log('useEffect popupVisible 3333333333', popupVisible);
+  }, [popupVisible]);
+
+  async function refreshBookmarksPage(pageId?: number, updated: boolean = false) {
+    const newPages = await getPages();
+    if (pageId && updated) {//新增或修改，增加红点提示
+      const idx = newPages.findIndex(p => p.pageId === pageId);
+      if (idx !== -1) {
+        newPages[idx].new = true; // 就地修改
+        // newPages[idx].version = Date.now();
+        setPopupVisible(true);//展开
+        setData([...newPages]); // 通过创建新数组引用来触发渲染
+      }
+    } else {
+      console.log('refreshBookmarksPage newPages remove3333333333', newPages);
+      setData(newPages);
+    }
+  }
+
+  /*   const ignoreNextVisibilityRef = useRef(false);
+    function handleVisibleChange(next) {
+      if (ignoreNextVisibilityRef.current) {
+        // 忽略一次，并重置标志
+        ignoreNextVisibilityRef.current = false;
+        return;
+      }
+      setPopupVisible(next);
+    } */
+
+
+  function onPagesChange(count?: number, pageId?: number, callback?: () => void) {
+    console.log('AAAAAA pageId', pageId);
+    setCurrentPage(pageId);
     // 简化逻辑，只负责刷新数据和UI
-    refreshBookmarksPage();
+    refreshBookmarksPage(pageId, count > 0);//显示更新的数量
     // 强制刷新 Tabs
     setActiveKey("");
-    setPopupVisible(true);
+    setPopupVisible(true);//保持弹出
     setTimeout(() => setActiveKey("pages"), 0);
     setCount(count || 0);
   }
@@ -278,11 +373,22 @@ function BookmarkPageBox({ children, pages, currentPage }) {
     <Trigger
       // trigger="hover"
       trigger={['hover', 'click']}
-      popupHoverStay // 关键属性：鼠标在弹层中时，保持打开
-      clickToClose={false} // 关键属性：点击弹层内容（包括Modal）不关闭
+      // trigger={['click']}
+      clickToClose={false} // 关键属性：点击弹层内容（包括Modal）不关闭 keepPopupVisible={keepPopupVisible} 
       popupVisible={popupVisible}
-      onVisibleChange={setPopupVisible}
-      popup={() => <DropContent pages={data} currentPage={currentPage} keepPopupVisible={keepPopupVisible} pagesChange={onPagesChange} activeKey={activeKey} />}
+      // onVisibleChange={setPopupVisible}
+      onVisibleChange={(visible) => {
+        handleVisibleChange(visible);
+      }}
+      onClickOutside={() => {
+        setPopupVisible(false);
+      }}
+      // onVisibleChange={handleVisibleChange}
+      clickOutsideToClose={false}
+      popupHoverStay={true} // 关键属性：鼠标在弹层中时，保持打开
+      // onVisibleChange={handleVisibleChange}
+      // newBookmarkPages={newPageIds}
+      popup={() => <DropContent pages={data} currentPage={currentPage} pagesChange={onPagesChange} activeRename={setRenameActiveStatus} activeKey={activeKey} />}
       position="br"
       unmountOnExit={false}
       popupAlign={{ bottom: 4 }}
@@ -291,6 +397,8 @@ function BookmarkPageBox({ children, pages, currentPage }) {
         {children}
       </Badge>
     </Trigger>
+
+
   );
 }
 

@@ -26,11 +26,9 @@ interface Props {
 }
 // tab标签类型
 // const [type, setType] = useState('card-gutter');
+// const { Title } = Typography;
 const TabPane = Tabs.TabPane;
-const { Title } = Typography;
 const { Row, Col, GridItem } = Grid;
-
-
 // import { BackTop, Button, Select, Input, Typography, Space } from '@arco-design/web-react';
 const { Paragraph, Text } = Typography;
 /* const easingTypes = [
@@ -188,7 +186,7 @@ function ListCard({ activeCardTab, display, activeGroup, setCardTabActive, keyWo
         style={{
           // 二
           // height: 820,//860?
-          overflow: 'auto',
+          // overflow: 'auto',
         }}
       >
 

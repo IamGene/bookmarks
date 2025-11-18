@@ -5,7 +5,7 @@ import { Modal, Input, Cascader, Switch, Form, Message } from '@arco-design/web-
 import useLocale from '@/utils/useLocale';
 import locale from '../locale';
 import { GroupNode } from '@/store/modules/global';
-import { updateBookmarkById, updateGroupById } from '@/db/bookmarksPages';
+import { updateBookmarkById, updateGroupById, saveGroup } from '@/db/bookmarksPages';
 import { saveTagGroup } from '@/api/navigate';
 import { useSelector } from 'react-redux';
 const FormItem = Form.Item;
@@ -24,16 +24,16 @@ function App(props: GroupFormParams) {
     const [disabled, setDisabled] = React.useState(true);
     const { closeWithSuccess, pageId, visible, selectGroup, group } = props;
 
-    console.log('tab form selectGroup', selectGroup);
-    console.log('tab form group', group);
-    // console.log('tab form noPid', noPid)
-    // console.log('form group', group)
+    // console.log('tab form selectGroup', selectGroup);
+    // console.log('tab form group', group);
+    // console.log('tab form noPid', noPid);
+    // console.log('form group', group);
     // const [visible, setVisible] = React.useState(false);
     // const formRef = useRef<FormInstance>();
     const [confirmLoading, setConfirmLoading] = useState(false);
 
     const globalState = useSelector((state: any) => state.global);
-    const cascaderOptions = globalState.groups;
+    const cascaderOptions = globalState.treeData;
 
     //要显示的选择分组
     const [optionValues, setOptionValues] = useState(selectGroup);
@@ -44,16 +44,19 @@ function App(props: GroupFormParams) {
         // console.log('group form submit before_group', group)
         //返回成功
         // const res = await submitGroupData(data)
-        const updatedGroup = await updateGroupById(data);
+
+        let groupData;
         if (group.id) {
+            groupData = await updateGroupById(data);
             Message.success('修改成功');
         } else {
+            groupData = await saveGroup(data);
             Message.success('添加成功');
         }
         setConfirmLoading(false);
         // 修改：pid发生变化： 锚点pid ， pid不发生变化：Tab0
         // 新增：无pid, 锚点id； 有pid，Tab
-        closeWithSuccess(true, updatedGroup)//相当于点击取消/关闭按钮
+        closeWithSuccess(true, groupData)//相当于点击取消/关闭按钮
         return true;
     }
 
@@ -68,8 +71,10 @@ function App(props: GroupFormParams) {
             // res.gid = res.group[res.group.length - 1];//取数组的最后一个为分组id
             // res.sort = sort;
             // if (res.pid && res.pid !== null) res.pid = res.pid[0];
-            if (res.pId && res.pId.length > 0) res.pId = res.pId[0];
-            console.log('group', res)
+            if (res.pId && res.pId.length > 0 && typeof res.pId !== 'string') {//数组
+                res.pId = res.pId[res.pId.length - 1];//取数组的最后一个为分组id    
+            }
+            console.log('group', res);
             processSaveSubGroup(res);
         });
     }
@@ -80,11 +85,14 @@ function App(props: GroupFormParams) {
         closeWithSuccess(false)
     };
 
+
+
     useEffect(() => {
-        console.log('form selectGroup', selectGroup)
+        // console.log('form selectGroup', selectGroup)
         form.setFields({
             pId: {
-                value: selectGroup ? selectGroup : null
+                // value: selectGroup ? selectGroup : null
+                value: group ? group.pId : null
             },
             id: {
                 value: group ? group.id : null
@@ -109,10 +117,10 @@ function App(props: GroupFormParams) {
         if (group) {
             form.setFields({
                 pId: {
-                    value: group.pId
+                    value: group ? group.pId : null
                 },
                 name: {
-                    value: group.name
+                    value: group ? group.name : null
                 },
                 id: {
                     value: group.id
@@ -164,6 +172,18 @@ function App(props: GroupFormParams) {
         setDisabled(true)//禁用拖动
     };
 
+    const handleOptionChange = (value) => {
+        // console.log('handleOptionChang', value);
+        if (!value) {
+            form.setFields({
+                pId: { value: null },
+            });
+        } else {
+            setOptionValues(value);
+        }
+        // setDisabled(true)//禁用拖动
+    };
+
     const handleChange = (event) => {
         if (event && event.trim()) {
             // console.log('当前url', event)
@@ -183,7 +203,7 @@ function App(props: GroupFormParams) {
                 style={{ cursor: 'move' }}
                 // title='Modal Title'
                 // title={t['cardList.add.website.tag']}
-                title={group ? t['cardList.edit.website.group'] : t['cardList.add.website.group']}
+                title={group && group.id ? t['cardList.edit.bookmark.group'] : t['cardList.add.bookmark.group']}
                 visible={visible}
                 // visible={isVisible}
                 // visible={true}
@@ -237,7 +257,7 @@ function App(props: GroupFormParams) {
                             allowClear
                             value={optionValues}
                             onChange={(value, options) => {
-                                setOptionValues(value)
+                                handleOptionChange(value);
                             }}
                             filterOption={(input, node) => {
                                 return node.value.indexOf(input) > -1 || node.label.indexOf(input) > -1;

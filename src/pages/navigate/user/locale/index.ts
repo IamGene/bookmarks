@@ -57,8 +57,8 @@ const i18n = {
     'cardList.add.website.tag': '添加网页标签',
     'cardList.edit.website.tag': '编辑网页标签',
     // 'cardList.add.website.group': '添加标签分组',
-    'cardList.add.bookmark.group': '添加书签或分组',
-    'cardList.edit.website.group': '编辑标签分组',
+    'cardList.add.bookmark.group': '添加标签分组',
+    'cardList.edit.bookmark.group': '编辑标签分组',
 
     'cardList.enable': '启用',
     'cardList.disable': '禁用',

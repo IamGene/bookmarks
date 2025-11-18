@@ -8,6 +8,7 @@ export type INavi = AuthParams & {
   key: string;
   id: number;
   pid?: number;
+  pId?: string;
   // 当前页是否展示面包屑
   breadcrumb?: boolean;
   children?: INavi[];

@@ -8,9 +8,11 @@ import TagForm from './form/tag-form';
 import TabGroupForm from './form/tab-group-form';
 import Add2Form from './form/add2form';
 import { removeConfirm } from './form/remove-confirm-modal';
+import { clearConfirm } from './form/clear-confirm-modal';
 import { removeGroup, saveTagGroup, moveGroupTopBottom } from '@/api/navigate';
 import { useDispatch } from 'react-redux'
 import { fetchBookmarksPageData, updateActiveGroup } from '@/store/modules/global';
+import { getBookmarkGroupById, removeGroupById, clearGroupBookmarksById } from '@/db/bookmarksPages';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { sortGroup } from '@/api/navigate';
@@ -132,22 +134,27 @@ function searchData(inputValue, cardData) {
                     let searchName = name;
                     if (parts.length >= 3) {
                         contains = true;
-                        searchName = Highlight(parts, inputValue)
+                        name = Highlight(parts, inputValue);
+                        // console.log("搜索结果 name ", data.name, navi.name, searchName);
                     }
                     const parts1 = description.split(regex);
                     if (parts1.length >= 3) {
                         contains = true;
-                        description = Highlight(parts1, inputValue)
+                        description = Highlight(parts1, inputValue);
+                        // console.log("搜索结果 description", data.name, navi.description, searchName);
                     }
 
                     if (contains) {
+
                         // urlListResult.push({ ...navi, name, intro });//A情况.分组中隐藏项的背景不变色
                         if (navi.hide || item.hide) {//该项目隐藏或所属的分组隐藏
-                            const resultNavi = { ...navi, name: searchName, nameLength: name.length, hide: true, description }
+                            // const resultNavi = { ...navi, name: searchName, nameLength: name.length, hide: true, description }
+                            const resultNavi = { ...navi, name, nameLength: name.length, hide: true, description }
                             searchResult.push(resultNavi);//搜索结果中隐藏项的背景变色
                             urlListResult.push(resultNavi);//B情况.分组中隐藏项的背景变色
                         } else {//不隐藏
-                            const resultNavi = { ...navi, name: searchName, nameLength: name.length, description }
+                            // const resultNavi = { ...navi, name: searchName, nameLength: name.length, description }
+                            const resultNavi = { ...navi, name, nameLength: name.length, description }
                             searchResult.push(resultNavi);
                             noHiddenSearchResult.push(resultNavi);
                             urlListResult.push(resultNavi);
@@ -178,12 +185,14 @@ function searchData(inputValue, cardData) {
             // 处理高亮
             if (parts.length >= 3) {
                 contains = true;
-                searchName = Highlight(parts, inputValue)
+                searchName = Highlight(parts, inputValue);
+                // console.log("111 搜索结果 name", data.name, navi.description, searchName);
             }
             const parts1 = description.split(regex);
             if (parts1.length >= 3) {
                 contains = true;
-                description = Highlight(parts1, inputValue)
+                description = Highlight(parts1, inputValue);
+                // console.log("111 搜索结果 description", data.name, navi.description, searchName);
             }
 
             if (contains) {
@@ -405,7 +414,7 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
         let defalultKey = true;
         if (activeGroup) {
             //编辑或新增的Tag所属的要激活的Tab,属于当前Card 一级或二级
-            if (activeGroup.id === cardData.id || cardData.id === activeGroup.pid) {
+            if (activeGroup.id === cardData.id || cardData.id === activeGroup.pId) {
                 if (!activeGroup.hide || showItem) {//当前不隐藏
                     // if (cardData.id === 27) console.log(cardData.name + 'useEffect cardData activeGroup setActiveTab=', activeGroup.id + '')
                     setActiveTab(activeGroup.id + '');
@@ -558,7 +567,7 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
         data.children.forEach((item) => {
             ids.push(item.id);
         })
-        const success = await processSortGroups({ pid: data.id, ids: ids });
+        const success = await processSortGroups({ pId: data.id, ids: ids });
         if (success) {
             setResort(false);
             getGroupData()
@@ -589,7 +598,7 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
 
     // 处理空字符串搜索
     const processEmptySearch = () => {
-        console.log(cardData.name + ' processEmptySearch setActiveTab', defaultActiveKey);
+        // console.log(cardData.name + ' processEmptySearch setActiveTab', defaultActiveKey);
         setSearching(false);
         setShow(true);
         setData(cardData);//展示原始的全部数据
@@ -662,18 +671,20 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
 
     //添加2级分组Tab
     const handleAddTab = () => {
-        // setAddTabVisible(true);
+        // console.log('添加2级分组Tab handleAddTab');
         setTabForm(true);
-        setTabGroup(null)
-        // setSelectGroup(cardData.id);
-        setSelectGroup([cardData.id]);
-        // setRequirePid(true)
+        // setTabGroup({null});
+        setTabGroup({ pId: cardData.id });
+        // setSelectGroup([cardData.id]);
+        setSelectGroup(cardData.id);
     };
+
+
     //test
     const editGroup1 = () => {
         setTabForm(true)
         setTabGroup(cardData);
-        setSelectGroup(null)
+        setSelectGroup(null);
     }
     const switchGroup1 = () => {
         const result = submitGroupData({ id: cardData.id, hide: !cardData.hide })
@@ -729,11 +740,11 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
         if (success) {//刷新当前页面数据
             await getGroupData();
             // 清除之前的定时器（如果存在）
-            clearTimeout(timeoutId);
-            // 设置新的定时器
-            timeoutId = setTimeout(() => {
-                window.location.href = `/navigate/user#${data.id}`;
-            }, 500);
+            /*  clearTimeout(timeoutId);
+             // 设置新的定时器
+             timeoutId = setTimeout(() => {
+                 window.location.href = `/navigate/user#${data.id}`;
+             }, 500); */
         }
     }
     //置顶
@@ -744,6 +755,7 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
     const moveGroupToBottom = () => {
         moveAndReload(false);
     }
+
     //打开全部标签
     const openGroupAllTags = (group) => {
         // console.log('打开全部标签', group)
@@ -757,11 +769,11 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
     }
 
     const removeGroup1 = () => {
-        removeConfirm(cardData.id, cardData.name, '点击确定将删除该分组及其所有标签', '分组', processRemoveGroup);
+        removeConfirm(cardData.id, cardData.name, '点击确定将删除该分组及其所有标签', '分组', processRemoveGroup1);
     }
 
     const clearGroup = () => {
-        // removeConfirm(cardData.id, cardData.name, '点击确定将删除该分组及其所有标签', '分组', processRemoveGroup);
+        clearConfirm(cardData.id, cardData.name, '点击确定将清空该的所有标签', '分组', processClearGroup);
     }
 
     // 四、增删改部分 end====================================================================================
@@ -795,6 +807,38 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
         }
     }
 
+    async function processRemoveGroup1(id: string) {
+        try {
+            const response = await removeGroupById(id);
+            if (response) {
+                // if (response.code === 200) {
+                // Message.success('删除成功');
+                getGroupData();
+                return true;
+            } else {
+                return false;
+            }
+        } catch (error) {
+            return false;
+        }
+    }
+
+    async function processClearGroup(id: string) {
+        try {
+            const response = await clearGroupBookmarksById(id);
+            if (response) {
+                // if (response.code === 200) {
+                // Message.success('删除成功');
+                getGroupData();
+                return true;
+            } else {
+                return false;
+            }
+        } catch (error) {
+            return false;
+        }
+    }
+
     const openUrls = (tags) => {
         if (tags.length > 0) {
             tags.forEach((tag, index) => {
@@ -811,11 +855,27 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
     const [visible, setVisible] = useState(false);
     const tabMore = (subGroup) => {
         // 创建自定义事件并分发
-        const json = JSON.stringify({ id: subGroup.id, name: subGroup.name, hide: subGroup.hide, pid: subGroup.pid });
-        const processRemoveGroup = async () => {
+        const json = JSON.stringify({ id: subGroup.id, name: subGroup.name, hide: subGroup.hide, pId: subGroup.pId });
+
+        /*  const processRemoveGroup = async () => {
             try {
                 const response = await removeGroup(subGroup.id);
                 if (response.code === 200) {
+                    // Message.success('删除成功');
+                    getGroupData();
+                    return true;
+                } else {
+                    return false;
+                }
+            } catch (error) {
+                return false;
+            }
+        } */
+
+        const processRemoveGroup1 = async () => {
+            try {
+                const response = await removeGroupById(subGroup.id);
+                if (response) {
                     // Message.success('删除成功');
                     getGroupData();
                     return true;
@@ -834,13 +894,16 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
         const onClickMenuItem = (key: string, event) => {
             const index = key.indexOf('-');
             if (index !== -1) {
-                const [part1, part2] = key.split('-', 2);
+                const [part1, ...rest] = key.split('-');
+                // 2. 使用 join 将 rest 数组重新组合成一个字符串
+                //    ["123", "profile"].join('-') 会变成 "123-profile"
+                const part2 = rest.join('-');
                 const subGroup = JSON.parse(part2);
                 key = part1;
                 if (key === '0') {//添加Tag
                     setAddTagVisible(true);
                     setEditTag(null)
-                    setTagSelectGroup([cardData.id, subGroup.id])
+                    setTagSelectGroup(cardData.id === subGroup.id ? [subGroup.id] : [cardData.id, subGroup.id]);
                 } else if (key === '1') {//编辑Group2
                     setTabForm(true);
                     setTabGroup(subGroup);
@@ -849,7 +912,7 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
                 } else if (key === '2') {//删除Group2
                     //弹出确认框
                     // removeConfirm(sub subGroup.name, '点击确定将删除该分组及其所有标签', '分组', processRemoveGroup);
-                    removeConfirm(subGroup.id, subGroup.name, '点击确定将删除该分组及其所有标签', '分组', processRemoveGroup);
+                    removeConfirm(subGroup.id, subGroup.name, '点击确定将删除该分组及其所有标签', '分组', processRemoveGroup1);
                 } else if (key === '3') {//打开全部标签
                     //test
                     let tags = [];
@@ -874,14 +937,16 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
                         {/* {['添加', '编辑', '删除', '打开'].map((item, index) => (
                             <Menu.Item key={index.toString() + '-' + json} >{item}</Menu.Item>
                         ))} */}
-                        {subGroup.pid != null &&
+
+                        {/* {subGroup.pId != null && */}
+                        {
                             <>
                                 <Menu.Item key={'0-' + json} >添加</Menu.Item>
                                 <Menu.Item key={'1-' + json} >编辑</Menu.Item>
                                 <Menu.Item key={'2-' + json} >删除</Menu.Item>
                             </>
                         }
-                        {subGroup.urlList && <Menu.Item key={'3-' + json} >打开</Menu.Item>}
+                        {subGroup.urlList && subGroup.urlList.length > 0 && <Menu.Item key={'3-' + json} >打开</Menu.Item>}
                     </Menu>
                 }
                 trigger="hover"
@@ -897,27 +962,36 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
     const [loading, setLoading] = useState(true);
 
     //提交成功后关闭或取消关闭Modal窗口
-    async function closeAddTagModal(success: boolean, newTag: WebTag, add: boolean) {
+    async function closeAddTagModal(success: boolean, newTag: WebTag, type: number) {
         setAddTagVisible(false);
         if (success) {//刷新当前页面数据
             // console.log('close Modal group', newTag);
             // getGroupData();
             if (newTag) {//所在的分组，重置位置
-                // processReload(group);
-                if (add) {
-                    // console.log('closeAddTagModal add refreshDataByAddBookmark', newTag);
-                    refreshDataByAddBookmark(newTag);
-                } else {
-                    refreshDataByUpdateBookmark(newTag);
+                if (type === 0) {//修改了分组
+                    // console.log('close Modal group', newTag);
+                    const group = await getBookmarkGroupById(newTag.gId);
+                    processReload(group);//切换到新的分组
+                    // setActiveTab(newTag.gId + '');//激活新的分组Tab
+                } else if (type === 1) {
+                    refreshDataByUpdateBookmark(newTag);//修改
+                } else if (type === 2) {
+                    refreshDataByAddBookmark(newTag);//新增
                 }
             }
         }
     }
 
+
     const processReload = async (group) => {
         await getGroupData();
-        /* if (group.pid) {//2级分组
-            if (cardData.id !== group.pid) {//所在的Card发生了变化 设置activegroup
+        // console.log('33333333 processReload setActiveGroup', group)
+        if (group && group.type == "folder") {
+            dispatch(updateActiveGroup(group));
+        }
+
+        /* if (group.pId) {//2级分组
+            if (cardData.id !== group.pId) {//所在的Card发生了变化 设置activegroup
                 dispatch(updateActiveGroup(group))
             } else if (!group.hide || showItem) {//
                 if (cardData.id === 27) console.log(cardData.name + 'processReload  setActiveTab=', group.id + '')
@@ -933,18 +1007,10 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
                 dispatch(updateActiveGroup(group))
             }
         } */
-        dispatch(updateActiveGroup(group));
 
         // 设置新的定时器
         // clearTimeout(timeoutId);
-
         // timeoutId = setTimeout(() => {
-        /* if (group.pid) {
-            // window.location.href = `/navigate/user#${group.pid}`;
-            window.location.href = `/bookmarks#${group.pid}`;
-        } else {
-            window.location.href = `/bookmarks#${group.id}`;
-        } */
         // }, 500);
     }
 
@@ -953,7 +1019,7 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
         setTabForm(false);
         if (success) {//刷新当前页面数据
             processReload(group);
-            /*  if (cardData.id !== group.pid) {//pid发生了变化 设置activegroup
+            /*  if (cardData.id !== group.pId) {//pId发生了变化 设置activegroup
                  dispatch(updateActiveGroup(group))
              } else if (!group.hide || showItem) {//仍然在当前大分组
                  setActiveTab(group.id + '')
@@ -962,8 +1028,8 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
              clearTimeout(timeoutId);
              // 设置新的定时器
              timeoutId = setTimeout(() => {
-                 if (group.pid) {
-                     window.location.href = `/navigate/user#${group.pid}`;
+                 if (group.pId) {
+                     window.location.href = `/navigate/user#${group.pId}`;
                  } else {
                      window.location.href = `/navigate/user#${group.id}`;
                  }
@@ -973,7 +1039,7 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
 
     const getGroupData = async () => {
         // console.log('card getGroupData')
-        const data: any = await dispatch(fetchBookmarksPageData(pageId))
+        const data: any = await dispatch(fetchBookmarksPageData(pageId));
     }
 
     const addTagOrGroup = (id: number) => {
@@ -999,6 +1065,8 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
             <>
                 <Card id={data.id} key={index}
                     title={
+
+
                         <>
                             <a ref={linkRef} onClick={() => onCardTitleClick(data.id)}> <span>{data.name} {data.hide ? <IconEyeInvisible></IconEyeInvisible> : ''}</span>
                             </a>
@@ -1009,9 +1077,9 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
                                 {data.hide && <Button onClick={switchGroup1} icon={<IconEye />} >展示</Button>}
                                 {!data.hide && <Button onClick={switchGroup1} icon={<IconEyeInvisible />} >隐藏</Button>}
                                 <Button onClick={removeGroup1} icon={<IconDelete />} >删除</Button>
-                                <Button onClick={clearGroup} icon={<IconEraser />} >清空</Button>
-                                {!first && < Button onClick={moveGroupToTop} icon={<IconToTop />} >置顶</Button>}
-                                {!last && < Button onClick={moveGroupToBottom} icon={<IconToBottom />} >置底</Button>}
+                                {data.urlList.length > 0 && <Button onClick={clearGroup} icon={<IconEraser />} >清空</Button>}
+                                {/* {!first && < Button onClick={moveGroupToTop} icon={<IconToTop />} >置顶</Button>}
+                                {!last && < Button onClick={moveGroupToBottom} icon={<IconToBottom />} >置底</Button>} */}
                                 {data.urlList.length > 0 && < Button onClick={(e) => openGroupAllTags(data)} icon={<IconLink />} >打开全部</Button>}
                             </ButtonGroup>
                         </>
@@ -1092,14 +1160,14 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
                         <span>{data.name}</span>
                         {data.hide ? <IconEyeInvisible></IconEyeInvisible> : ''}
                         <ButtonGroup style={{ marginLeft: "10px" }}>
-                            <Button onClick={addGroup1Tag} icon={<IconPlus />} >添加</Button>
+                            {/* < Button onClick={addGroup1Tag} icon={<IconPlus />} >添加</Button> */}
                             <Button onClick={editGroup1} icon={<IconEdit />} >编辑</Button>
                             {<Button onClick={switchGroup1} icon={data.hide ? <IconEye /> : <IconEyeInvisible />}>{data.hide ? '展示' : '隐藏'}</Button>}
                             {/* {!data.hide && <Button onClick={switchShowGroup1} icon={<IconEyeInvisible />} >隐藏</Button>} */}
                             {/* 只能添加标签不添加分组 */}
                             <Button onClick={removeGroup1} icon={<IconDelete />} >删除</Button>
-                            {!first && < Button onClick={moveGroupToTop} icon={<IconToTop />} >置顶</Button>}
-                            {!last && < Button onClick={moveGroupToBottom} icon={<IconToBottom />} >置底</Button>}
+                            {/* {!first && < Button onClick={moveGroupToTop} icon={<IconToTop />} >置顶</Button>}
+                            {!last && < Button onClick={moveGroupToBottom} icon={<IconToBottom />} >置底</Button>} */}
                         </ButtonGroup>
                     </>
                 }
@@ -1177,7 +1245,7 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
                                 <TabPane key={item.id + ''}
                                     // 当前处于搜索状态且排除临时显示(搜索结果为0但是) 显示结果数量
                                     title=
-                                    {<WrapTabNode key={index} index={index} moveTabNode={moveTabNode}>
+                                    {<WrapTabNode key={item.id} index={index} moveTabNode={moveTabNode}>
                                         {/* {(searching && (searchResult.length !== 0)) ? */}
                                         {/* 正在搜索且有结果或当前Card被Tree选择 */}
                                         {(searching && (searchResult.length !== 0 || cardData.id == activeCardTab[0])) ?
@@ -1186,7 +1254,7 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
                                                 <span>{currentSearch}</span>
                                                 {item.hide ? <IconEyeInvisible></IconEyeInvisible> : ''}
                                                 <span style={{ color: 'red' }}>{`(${showItem ? item.urlList.length : item.notHideTabCount || 0})`}</span>
-                                                {/* {item.pid !== null && tabMore(item)} */}
+                                                {/* {item.pId !== null && tabMore(item)} */}
                                                 {tabMore(item)}
                                             </span>
                                             :
@@ -1194,7 +1262,7 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
                                                 <span>{item.name}</span>
                                                 {item.hide ? <IconEyeInvisible></IconEyeInvisible> : ''}
                                                 {/* 一级分组没有菜单，位于顶部 */}
-                                                {/* {!item.pid && tabMore(item)} */}
+                                                {/* {!item.pId && tabMore(item)} */}
                                                 {tabMore(item)}
                                             </span>}
                                     </WrapTabNode>}
@@ -1299,6 +1367,13 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
                 const idx = node.urlList.findIndex((item: any) => item.id === tagId);
                 if (idx !== -1) {
                     const updatedItem = node.urlList[idx];
+
+                    /* if (bookmark.gId != updatedItem.gId) { // 分组发生变化，直接删除该项
+                        processReload(null);
+                        return { node, updated: true };
+                    } */
+
+
                     // const newUrlList = node.urlList.filter((item: any) => item.id !== tagId);
                     const updatedBookmark = {
                         ...updatedItem,
@@ -1306,10 +1381,6 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
                     };
                     const newUrlList = [...node.urlList];
                     newUrlList[idx] = updatedBookmark;
-                    // 仅当被删除项不是隐藏项时，才减少 notHideTabCount
-                    // const decrease = updatedItem && updatedItem.hide ? 0 : 1;
-                    // const newNotHide = Math.max(0, (node.notHideTabCount || 0) - decrease);
-                    // 返回新的节点并标记已删除，终止进一步递归
                     return {
                         node: { ...node, urlList: newUrlList },
                         updated: true,
@@ -1479,7 +1550,7 @@ function renderCard({ cardData, display, index, activeCardTab, first, activeGrou
             {/* 添加或编辑标签、分组 */}
             <TagForm isVisible={addTagVisible} selectGroup={tagSelectGroup} data={editTag} closeWithSuccess={closeAddTagModal}></TagForm>
             {/* {tabForm && <TabGroupForm selectGroup={selectGroup} pageId={pageId} groupName={cardData.name} closeWithSuccess={closeTabModal} group={tabGroup}></TabGroupForm>} */}
-            <TabGroupForm selectGroup={selectGroup} pageId={pageId} visible={tabForm} group={cardData} closeWithSuccess={closeTabModal} group={tabGroup}></TabGroupForm>
+            <TabGroupForm selectGroup={selectGroup} pageId={pageId} visible={tabForm} closeWithSuccess={closeTabModal} group={tabGroup}></TabGroupForm>
         </>
     )
 
