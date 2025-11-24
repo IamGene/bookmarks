@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Add2Bookmark",
+  "name": "Add2Bookmarks",
   "version": "1.0.0",
   "description": "右键添加当前网页到我的书签",
   "permissions": [

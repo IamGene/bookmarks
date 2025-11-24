@@ -27,12 +27,13 @@ import { useFetchPageData } from '@/hooks/fetchPageData';
 import { removeConfirm } from '@/pages/navigate/user/form/remove-confirm-modal';
 import RenamePageForm from '@/pages/navigate/user/form/rename_page_form';
 import styles from './style/index.module.less';
+import { reloadUserPages } from '@/store/modules/global';
 import Imports from './import/index';
 import { useDispatch } from 'react-redux';
 function DropContent({ pages, currentPage, pagesChange, activeRename, activeKey }) {
 
   const t = useLocale();
-  const dispatch = useDispatch();
+  // const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(activeKey);
   const [currentPageId, setCurrentPageId] = useState(currentPage);
@@ -279,12 +280,13 @@ function DropContent({ pages, currentPage, pagesChange, activeRename, activeKey 
 }
 
 
-function BookmarkPageBox({ children, pages, currentPage, newBookmarkPages, setCurrentPage }) {
+// function BookmarkPageBox({ children, pages, currentPage, newBookmarkPages, setCurrentPage }) {
+function BookmarkPageBox({ children, pages, currentPage, setCurrentPage }) {
   // 提供一个ref给DropContent
   const [popupVisible, setPopupVisible] = React.useState(false);
-  console.log('222222222 BookmarkPageBox', newBookmarkPages, pages, popupVisible);
+  // console.log('222222222 BookmarkPageBox', pages, popupVisible);
   const [data, setData] = useState<BookmarksPagesType>(pages);
-
+  const dispatch = useDispatch();
   const [activeKey, setActiveKey] = useState<string>('pages');
   const [count, setCount] = useState<number>(0);
   // const [newPageIds, setNewPageIds] = useState<number[]>(newBookmarkPages);
@@ -300,11 +302,9 @@ function BookmarkPageBox({ children, pages, currentPage, newBookmarkPages, setCu
 
   // Trigger 自动通知，但不再控制 popupVisible
   const handleVisibleChange = (nextVisible) => {
-    console.log("Trigger reports visible:", nextVisible);
+    // console.log("Trigger reports visible:", nextVisible);
     // ❗完全不根据它设置 popupVisible
     if (renameActive) {//重命名中
-
-
       setPopupVisible(true);
     } else {
       setPopupVisible(nextVisible);
@@ -325,22 +325,29 @@ function BookmarkPageBox({ children, pages, currentPage, newBookmarkPages, setCu
     }
   }, [pages]);
 
-  useEffect(() => {
-    console.log('useEffect popupVisible 3333333333', popupVisible);
-  }, [popupVisible]);
+
+
+  /*  useEffect(() => {
+     // console.log('useEffect popupVisible 3333333333', popupVisible);
+   }, [popupVisible]); */
 
   async function refreshBookmarksPage(pageId?: number, updated: boolean = false) {
-    const newPages = await getPages();
+    // const newPages = await getPages();
+    const newPages: any = await dispatch(reloadUserPages());
     if (pageId && updated) {//新增或修改，增加红点提示
       const idx = newPages.findIndex(p => p.pageId === pageId);
       if (idx !== -1) {
-        newPages[idx].new = true; // 就地修改
-        // newPages[idx].version = Date.now();
+        // newPages[idx].new = true; // 就地修改
+        const updatedPages = newPages.map(p =>
+          p.pageId === pageId ? { ...p, new: true } : p
+        );
+        // setBookmarkPages(updated);
         setPopupVisible(true);//展开
-        setData([...newPages]); // 通过创建新数组引用来触发渲染
+        // setData([...newPages]); // 通过创建新数组引用来触发渲染
+        setData(updatedPages); // 通过创建新数组引用来触发渲染
       }
     } else {
-      console.log('refreshBookmarksPage newPages remove3333333333', newPages);
+      // console.log('refreshBookmarksPage newPages remove3333333333', newPages);
       setData(newPages);
     }
   }
@@ -357,7 +364,7 @@ function BookmarkPageBox({ children, pages, currentPage, newBookmarkPages, setCu
 
 
   function onPagesChange(count?: number, pageId?: number, callback?: () => void) {
-    console.log('AAAAAA pageId', pageId);
+    // console.log('AAAAAA pageId', pageId);
     setCurrentPage(pageId);
     // 简化逻辑，只负责刷新数据和UI
     refreshBookmarksPage(pageId, count > 0);//显示更新的数量

@@ -145,7 +145,6 @@ function searchData(inputValue, cardData) {
                     }
 
                     if (contains) {
-
                         // urlListResult.push({ ...navi, name, intro });//A情况.分组中隐藏项的背景不变色
                         if (navi.hide || item.hide) {//该项目隐藏或所属的分组隐藏
                             // const resultNavi = { ...navi, name: searchName, nameLength: name.length, hide: true, description }
@@ -217,7 +216,6 @@ function searchData(inputValue, cardData) {
     }
     return search(cardData);
 }
-
 
 
 function renderCard({ cardData, display, index, activeCardTab, first, activeGroup, last, setCardTabActive, keyWord, hasResult }) {//hasResult

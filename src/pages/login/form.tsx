@@ -16,7 +16,7 @@ import styles from './style/index.module.less';
 import { useStore } from '@/store1';
 import cache from '@/plugins/cache';
 import { useDispatch } from 'react-redux';
-import { updateUserInfo, updateUserPage } from '@/store/modules/global';
+import { updateUserInfo, asyncUserPages } from '@/store/modules/global';
 import { useHistory } from 'react-router-dom';
 import { generatePermission } from '@/routes';
 
@@ -80,7 +80,7 @@ export default function LoginForm() {
         dispatch(updateUserInfo({ userInfo, userLoading: false }))
 
         const page = { pages: infoRes.pages, defaultPage: infoRes.defaultPage };
-        dispatch(updateUserPage(page))
+        // dispatch(updateUserPage(page));
         cache.session.setJSON('page', page);
 
         // 登录成功，判断记住我是否勾选了

@@ -33,7 +33,7 @@ import { isArray } from '@/utils/is';
 import useLocale from '@/utils/useLocale';
 import getUrlParams from '@/utils/getUrlParams';
 import { RootState } from '@/store';
-import { updateUserInfo, updateUserPage, updateTagGroups, fetchBookmarksPageData } from '@/store/modules/global';
+import { updateUserInfo, reloadUserPages, fetchBookmarksPageData } from '@/store/modules/global';
 import { generatePermission } from '@/routes';
 import Navi from './navigate';
 import { getPages } from "@/db/bookmarksPages";
@@ -260,7 +260,7 @@ function UserNavigate() {
 
   const globalState = useSelector((state: RootState) => state.global);
 
-  const { settings, userLoading, userInfo, groups, activeGroup, treeData, hiddenGroup, loadedBookmarks } = globalState;
+  const { settings, userLoading, userInfo, groups, pageId, activeGroup, treeData, hiddenGroup, loadedBookmarks } = globalState;
 
   // console.log('!!!!!!!!!!!!! index activeGroup', groups, activeGroup, hiddenGroup);
 
@@ -279,7 +279,7 @@ function UserNavigate() {
   const [filterFromAll, setFilterFromAll] = useState(treeData);
 
   const [bookmarkPages, setBookmarkPages] = useState([]);
-  const [currentPage, setCurrentPage] = useState();
+  const [currentPage, setCurrentPage] = useState(null);
 
   const [routes, defaultRoute] = useNavi(userInfo?.permissions);
   const defaultSelectedKeys = [currentComponent || defaultRoute];
@@ -435,7 +435,6 @@ function UserNavigate() {
     // setNavbarKeyWord(keyword)
   }
 
-
   const dispatch = useDispatch();
   // 获取用户信息和标签数据
   function setUserInfo() {
@@ -443,7 +442,7 @@ function UserNavigate() {
     const page = cache.session.getJSON('page');//当前标签页
     if (userInfo && page) {//两个都要存在,缺一不可
       dispatch(updateUserInfo({ userInfo, userLoading: false }))
-      dispatch(updateUserPage(page))
+      // dispatch(asyncUserPages(page));
       //刷新页面后defaultPage变为空,但是获取标签页数据需要用到defaultPage
       return page.defaultPage;
     } else {
@@ -463,25 +462,46 @@ function UserNavigate() {
         .finally(() => setLoading(false));
     }; */
 
-  const fetchBookmarksData = async (page: number) => {
-    // const { groups, hiddenGroup } = globalState;
-    // console.log('pages', pages);
-    if (!groups || groups.length === 0) {//没有缓存到localStorage中
-      //如果Redux中没有数据才进行获取,localStorage中没有？
-      // 刷新时defaultPage变为空
-      // if (page || defaultPage) {//只有用户存在标签数据才能查询
-      const pages = await getPages();
-      setBookmarkPages(pages);
-      if (pages.length > 0) {//只有用户存在标签数据才能查询
-        // const data: any = await dispatch(fetchTagGroupsData(defaultPage ? defaultPage : page));
-        const defaultPage = pages.find(page => page.default === true);
-        const pageId = defaultPage ? defaultPage.pageId : pages[0].pageId;
-        setCurrentPage(pageId);
-        const data: any = await dispatch(fetchBookmarksPageData(pageId));
-        setLoading(false);
-      }
+  /*  const fetchBookmarksData = async (page: number) => {
+     // const { groups, hiddenGroup } = globalState;
+     // console.log('pages', pages);
+     if (!groups || groups.length === 0) {//没有缓存到localStorage中
+       //如果Redux中没有数据才进行获取,localStorage中没有？
+       // 刷新时defaultPage变为空
+       // if (page || defaultPage) {//只有用户存在标签数据才能查询
+       const pages = await getPages();
+       setBookmarkPages(pages);
+       if (pages.length > 0) {//只有用户存在标签数据才能查询
+         // const data: any = await dispatch(fetchTagGroupsData(defaultPage ? defaultPage : page));
+         const defaultPage = pages.find(page => page.default === true);
+         const pageId = defaultPage ? defaultPage.pageId : pages[0].pageId;
+         setCurrentPage(pageId);
+         const data: any = await dispatch(fetchBookmarksPageData(pageId));
+         setLoading(false);
+       }
+     }
+   }; */
+
+
+  const fetchDefaultPageBookmarksData = async () => {
+    //没有缓存到localStorage中
+    const pages: any = await dispatch(reloadUserPages());//加载所有书签页->Redux
+    setBookmarkPages(pages);
+    if (pages.length > 0) {//只有用户存在标签数据才能查询
+      const defaultPage = pages.find(page => page.default === true);
+      const pageId = defaultPage ? defaultPage.pageId : pages[0].pageId;//获取默认展示的书签页
+      setCurrentPage(pageId);
+      const data: any = await dispatch(fetchBookmarksPageData(pageId));//获取当前书签页的分组和书签数据
+      setList(data);//Card 全部的
+      setHideGroup(hiddenGroup)//这个不能变->NavBar展示开关
+      setLoading(false);
     }
   };
+
+
+  useEffect(() => {
+    fetchDefaultPageBookmarksData();
+  }, []);//仅在初次加载组件时候执行(pageId未设置到redux状态)
 
   useEffect(() => {
     if (loadedBookmarks && loadedBookmarks.length > 0) {
@@ -493,24 +513,34 @@ function UserNavigate() {
     }
   }, [loadedBookmarks]);
 
-  useEffect(() => {
-    // console.log('888888888888888888888 user navigate useEffect groups', groups)
-    fetchBookmarksData(1760173696766);// getNaviData();
-    setList(groups);//Card 全部的
-    setHideGroup(hiddenGroup)//这个不能变->NavBar展示开关
-    // setDisplay(!hiddenGroup);//显示与否直接由导航栏的开关控制
-  }, [groups]);
+  /*   useEffect(() => {
+      console.log('888888888888888888888 user navigate useEffect groups', groups);
+      setList(groups);//Card 全部的
+      setHideGroup(hiddenGroup)//这个不能变->NavBar展示开关
+      // setDisplay(!hiddenGroup);//显示与否直接由导航栏的开关控制
+    }, [groups]); */
 
   const filteredData = useMemo(() => {
     if (hiddenGroup) {//有隐藏的分组，进行过滤
       return filterHideItems(groups);
     }
+    setList(groups);
+    setHideGroup(hiddenGroup);//这个不能变->NavBar展示开关
     return groups;
   }, [groups, hiddenGroup]);
 
+  /*   useEffect(() => {
+      fetchPageBookmarksData(pageId);//一开始为null
+    }, [pageId]);//仅在初次加载组件时候执行(pageId未设置到redux状态) */
+
+
+  /*原来的   const filteredData = useMemo(() => {
+      if (hiddenGroup) {//有隐藏的分组，进行过滤
+        return filterHideItems(groups);
+      }
+    }, [hiddenGroup]); */
 
   useEffect(() => {
-    // setData(filteredData);//Tree
     setTreeDatas(filteredData);//Tree
     setFilterFromAll(filteredData);
   }, [filteredData]);//

@@ -16,6 +16,7 @@ const i18n = {
     'cardList.add.quality': 'Create quality inspection queue',
     'cardList.add.tag': 'Create new website url',
     'cardList.add.website.tag': 'Create new website url',
+    'cardList.add.page.group': 'Create new page or group',
     'cardList.edit.website.tag': 'Edit website url',
     'cardList.add.website.group': 'Create new website group',
     'cardList.edit.website.group': 'Edit website group',
@@ -57,8 +58,9 @@ const i18n = {
     'cardList.add.website.tag': '添加网页标签',
     'cardList.edit.website.tag': '编辑网页标签',
     // 'cardList.add.website.group': '添加标签分组',
-    'cardList.add.bookmark.group': '添加标签分组',
+    'cardList.add.bookmark.group': '添加标签或分组',
     'cardList.edit.bookmark.group': '编辑标签分组',
+    'cardList.add.page.group': '添加书签页或分组',
 
     'cardList.enable': '启用',
     'cardList.disable': '禁用',

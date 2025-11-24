@@ -5,7 +5,6 @@ import { Modal, Upload, Input, Cascader, Radio, Switch, Form, Select, Message } 
 import useLocale from '@/utils/useLocale';
 import locale from '../locale';
 import { getUrlInfo, saveWebTag, saveTagGroup } from '@/api/navigate';
-import isUrl from 'is-url';
 import { useSelector } from 'react-redux';
 import { WebTag } from '../interface';
 import { GroupNode } from '@/store/modules/global';
@@ -18,22 +17,25 @@ interface TagDataParams {
   // selectGroup: GroupNode;
   // selectGroup: string[];
   // selectGroup: GroupNode;
-  pageId: number;
+  // pageId: number;
   // batchNo: number;
   closeWithSuccess: Function;
-  // data?: WebTag;
+  // bookmarkPages: [];
 }
 
 
 function App(props: TagDataParams) {
-  const { isVisible, closeWithSuccess, pageId } = props;
+  const { isVisible, closeWithSuccess } = props;
   const [disabled, setDisabled] = React.useState(true);
   const [confirmLoading, setConfirmLoading] = useState(false);
-  // console.log('sssssssssss tag form data', pageId);
+
+  const globalState = useSelector((state: any) => state.global);
+  const { currentPage, pages } = globalState;
+  const cascaderOptions = pages;
+  console.log('sssssssssss tag form data', pages);
 
   //要显示的选择分组
   const t = useLocale(locale);
-
 
   const onOk = async () => {
     createForm.validate().then((res) => {
@@ -55,51 +57,42 @@ function App(props: TagDataParams) {
   }
 
   const processSaveSubGroup = async (group) => {
-    // const data = await submitGroupData(group);
+    // console.log('processSaveSubGroup', group);
     const data = await saveGroup(group);
     Message.success('添加成功');
     // setConfirmLoading(false);
-    closeWithSuccess(true, data)//相当于点击取消/关闭按钮
+    closeWithSuccess(true, group.pageId ? 1 : 2, data.pageId)//相当于点击取消/关闭按钮
+    // closeWithSuccess(true, 2, 0)//相当于点击取消/关闭按钮
     // setType(0);
     return true;
   }
 
-
   const processSavePage = async (title) => {
-    // const data = await submitGroupData(group);
+    // console.log('data', title);
     const data = await addBookmarksPage(title);
     Message.success('添加成功');
     // setConfirmLoading(false);
-    console.log('data', data);
-    closeWithSuccess(true, data)//相当于点击取消/关闭按钮
+    // console.log('data', data);
+    closeWithSuccess(true, 1, data.pageId)//相当于点击取消/关闭按钮
     // setType(0);
     return true;
   }
-
-
-  // 提交表单数据
-  const submitGroupData = async (group: GroupNode): Promise<any> => {
-    try {
-      const response = await saveTagGroup(group);
-      if (response.code === 200) {
-        return response.data; // 直接返回整个响应对象
-      } else {
-        // return false;
-        // 处理错误情况
-        throw new Error('请求失败');
-      }
-    } catch (error) {
-      // 处理异常
-      console.error('请求错误:', error);
-      throw error;
-    }
-  };
-
 
   //点击取消==>关闭窗口
   const cancel = () => {
     closeWithSuccess(false);
   };
+
+  /*  useEffect(() => {
+     createForm.setFields({
+       name: {
+         value: ''
+       },
+       pageId: {
+         value: pageId ? pageId : null
+       }
+     });
+   }, [isVisible, pageId]); */
 
   useEffect(() => {
     createForm.setFields({
@@ -110,10 +103,10 @@ function App(props: TagDataParams) {
         value: ''
       },
       pageId: {
-        value: pageId ? pageId : null
+        value: currentPage ? currentPage.pageId : null
       }
     });
-  }, [isVisible, pageId]);
+  }, [isVisible, currentPage]);
 
 
   const [form] = Form.useForm();
@@ -159,17 +152,11 @@ function App(props: TagDataParams) {
   };
 
 
-  /* 
-    const handleOptionChange = (value) => {
-      if (!value) {
-        createForm.setFields({
-          pId: { value: null },
-        });
-      } else {
-        setOptionValues(value);
-      }
-    };
-   */
+  const handleOptionChange = (value) => {
+    createForm.setFields({
+      pageId: { value: value ? value[0] : null },
+    });
+  };
 
   const handleFocus = (event) => {
     // console.log('event 聚焦', event)
@@ -178,12 +165,12 @@ function App(props: TagDataParams) {
 
 
   // 默认展示为“分组”
-  // const [type, setType] = useState(1);
+  const [type, setType] = useState(2);
   const onTypeChange = (value, event) => {
     if (value === "书签页") {
-      // setType(1);
+      setType(1);
     } else {
-      // setType(2);
+      setType(2);
       // console.log('分组');
     }
   }
@@ -192,7 +179,8 @@ function App(props: TagDataParams) {
     <div>
       <Modal
         style={{ cursor: 'move' }}
-        title={t['cardList.add.bookmark.group']}
+        // title={t['cardList.add.bookmark.group']}
+        title={t['cardList.add.page.group']}
         visible={isVisible}
         onOk={onOk}
         // onCancel={() => setVisible(false)}
@@ -219,7 +207,7 @@ function App(props: TagDataParams) {
           }}
         >
           {/*  */}
-          <Form.Item field='type' label='类型' initialValue={'分组'}>
+          <Form.Item field='type' label='类型' initialValue={type == 2 ? '分组' : '书签页'}>
             <Radio.Group onChange={onTypeChange} options={['分组', '书签页']}></Radio.Group>
           </Form.Item>
 
@@ -233,10 +221,54 @@ function App(props: TagDataParams) {
             />
           </FormItem>
 
-          <FormItem label='pageId' field='pageId' hidden rules={[{ required: false }]}>
-            <Input
+          {type == 2 && pages.length > 0 && <FormItem
+            label='书签页'
+            // field='group'
+            field='pageId'
+            rules={[
+              {
+                type: 'number',
+                required: true,
+              }
+              /* {
+                  type: 'array',
+                  length: 4,
+              }, */
+            ]}
+          >
+
+            <Cascader
+              placeholder='Please select ...'
+              options={cascaderOptions}
+              showSearch
+              // mode='multiple'
+              changeOnSelect  //选择即改变
+              allowClear
+              value={currentPage ? currentPage.pageId : null}
+              /* onChange={(value, options) => {
+                // console.log(value, options);
+                setOptionValues(value)
+              }} */
+              onChange={(value, options) => {
+                // setOptionValues(value)
+                // console.log('optionValues', value);
+                handleOptionChange(value);
+              }}
+
+              fieldNames={{
+                // children: 'child',
+                label: 'title',
+                value: 'pageId',
+              }}
             />
           </FormItem>
+          }
+
+
+          {/* <FormItem label='pageId' field='pageId' hidden rules={[{ required: false }]}>
+            <Input
+            />
+          </FormItem> */}
 
           {/*  <FormItem
             label='隐藏'

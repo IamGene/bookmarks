@@ -30,6 +30,7 @@ import {
   IconLoading,
 } from '@arco-design/web-react/icon';
 import { useSelector, useDispatch } from 'react-redux';
+import { useFetchPageData } from '@/hooks/fetchPageData';
 // import { GlobalState } from '@/info';
 import { GlobalContext } from '@/context';
 import useLocale from '@/utils/useLocale';
@@ -44,9 +45,10 @@ import useStorage from '@/utils/useStorage';
 import { generatePermission } from '@/routes';
 import { removeToken } from '@/utils1/auth';
 import { useStore } from '@/store1';
-import { fetchBookmarksPageData } from '@/store/modules/global';
+import { } from '@/store/modules/global';
 import { getPages } from "@/db/bookmarksPages";
 import CreatePageGroup from '@/pages/navigate/user/form/add_page_group';
+import { updateUserInfo, reloadUserPages, fetchBookmarksPageData } from '@/store/modules/global';
 const api = import.meta.env.VITE_REACT_APP_BASE_API;
 // function Navbar({ show }: { show: boolean }, setNavBarKey) {
 function Navbar({ pageNo, pages, show, display, setNavBarKey, setAllDisplay }) {
@@ -200,17 +202,32 @@ function Navbar({ pageNo, pages, show, display, setNavBarKey, setAllDisplay }) {
   useEffect(() => {
   }, [addedBookmarkPages]);
 
+  const switchPageId = useFetchPageData();
+
   //提交成功后关闭或取消关闭Modal窗口
-  const closeAddTabModal = async (success: boolean, data?: any) => {
+  const closeAddModal = async (success: boolean, type: number, pageId: number) => {
+    // console.log('data', pageId);
     setCreateNewForm(false);
-    if (success) {//刷新当前页面数据
-      const pages = await getPages();
-      const idx = pages.findIndex(p => p.pageId === data.pageId);
-      if (idx !== -1) {
-        pages[idx].new = true; // 就地修改
-        setBookmarkPages([...pages]); // 通过创建新数组引用来触发渲染
-      } else {
-        setBookmarkPages(pages);
+    if (success) {
+      const pages: any = await dispatch(reloadUserPages());
+      // const pages = await getPages();//刷新书签页数据
+      if (type === 1) { //添加书签页
+        const idx = pages.findIndex(p => p.pageId === pageId);
+        if (idx !== -1) {
+          // 不要就地修改可能是不可扩展/冻结的对象，使用不可变方式创建新数组和对象
+          const updated = pages.map(p =>
+            p.pageId === pageId ? { ...p, new: true } : p
+          );
+          setBookmarkPages(updated);
+        } else {
+          setBookmarkPages(pages);
+        }
+        // await dispatch(asyncUserPages(pages));
+
+        // switchPageId(pageId);
+      } else { //添加书签分组->刷新页面数据
+        switchPageId(pageId);
+        // switchPageId(item.pageId);//切换显示数据
       }
       // setAddedBookmarkPages([data.pageId]);
     }
@@ -239,14 +256,12 @@ function Navbar({ pageNo, pages, show, display, setNavBarKey, setAllDisplay }) {
 
 
 
-
   // 在组件卸载或其他合适时机清除定时器
   useEffect(() => {
     return () => {
       clearTimeout(timeoutId);
     };
   }, []);
-
 
 
   return (
@@ -290,13 +305,24 @@ function Navbar({ pageNo, pages, show, display, setNavBarKey, setAllDisplay }) {
           </li>
 
           {/* {pageNo && <li> */}
-          {<li>
-            {/* <Bookmarks pages={pages} currentPage={pageNo} setCurrentPage={setCurrentPage}> */}
-            <Bookmarks pages={bookmarkPages} currentPage={pageNo} newBookmarkPages={addedBookmarkPages} setCurrentPage={setCurrentPage}>
+          <li>
+            {/* <Bookmarks pages={pages} currentPage={pageNo} newBookmarkPages={addedBookmarkPages} setCurrentPage={setCurrentPage}> */}
+            <Bookmarks pages={bookmarkPages} currentPage={pageNo} setCurrentPage={setCurrentPage}>
               <IconButton icon={<IconNav />} />
             </Bookmarks>
           </li>
-          }
+
+
+          <li>
+            <Tooltip
+              content={t['bookmarks.page.group.create']}
+            >
+              <IconButton
+                icon={<IconPlus />}
+                onClick={onCreateNew}
+              />
+            </Tooltip>
+          </li>
 
           <li>
             <MessageBox>
@@ -329,17 +355,6 @@ function Navbar({ pageNo, pages, show, display, setNavBarKey, setAllDisplay }) {
             />
           </Tooltip>
         </li> */}
-
-          <li>
-            <Tooltip
-              content={t['bookmarks.page.group.create']}
-            >
-              <IconButton
-                icon={<IconPlus />}
-                onClick={onCreateNew}
-              />
-            </Tooltip>
-          </li>
 
 
           {/* 显示/隐藏 */}
@@ -378,9 +393,8 @@ function Navbar({ pageNo, pages, show, display, setNavBarKey, setAllDisplay }) {
 
       <CreatePageGroup
         isVisible={createNewForm}
-        // selectGroup={cardData.id}
-        pageId={currentPageId}
-        closeWithSuccess={closeAddTabModal}>
+        // bookmarkPages={bookmarkPages}
+        closeWithSuccess={closeAddModal}>
       </CreatePageGroup>
     </>
   );

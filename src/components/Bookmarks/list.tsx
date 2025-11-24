@@ -12,7 +12,7 @@ import {
 import useLocale from '@/utils/useLocale';
 import styles from './style/index.module.less';
 // 导入自定义 Hook
-import { useFetchPageData } from '@/hooks/fetchPageData'; //
+import { useFetchPageData } from '@/hooks/fetchPageData';
 import RenamePageForm from '@/pages/navigate/user/form/rename_page_form';
 import { setDefaultPage, getPages, exportPageJson, testUpdate } from '@/db/bookmarksPages';
 import ExportModal from './exportModal';
@@ -137,14 +137,14 @@ function BookmarksPages(props: BookmarksPageProps) {
 
   // 替换掉原来的 useDispatch() 和 switchPageId 函数定义
   // 💥 在组件顶层调用自定义 Hook
-  const switchPageId = useFetchPageData();
+
 
   /*  async function switchPageId(pageId: number) {
      // const res = await getGroupData(pageId);
      console.log("切换标签页 111 switchPageId pageId=", pageId);
      await dispatchTagGroupsData(pageId);
    } */
-
+  const switchPageId = useFetchPageData();
   const [exportModalVisible, setExportModalVisible] = useState(false);
   const [exportPageItem, setExportPageItem] = useState<BookmarksPageData | null>(localPages?.length > 0 ? localPages[0] : null);
   function exportSelect(item: BookmarksPageData, index: number) {
@@ -218,7 +218,6 @@ function BookmarksPages(props: BookmarksPageProps) {
       switchPageId(item.pageId);//切换显示数据
     }
   }
-
 
 
   return (

@@ -39,6 +39,7 @@ function filterChildrenByPath(data) {
 
 function filterChildrenArrayByPath(arr) {
     // 返回一个新数组，避免修改原数组
+    if (!arr) return [];
     return arr.map(item => filterChildrenByPath(item));
 }
 

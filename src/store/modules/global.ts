@@ -67,7 +67,7 @@ export default store
 import { createSlice } from '@reduxjs/toolkit';
 import defaultSettings from '../../settings.json';
 // import { getUserNaviate } from '@/api/navigate';
-import { getPageTree } from "@/db/bookmarksPages";
+import { getPageTree, getPages, getPage } from "@/db/bookmarksPages";
 import { WebTag } from '@/pages/navigate/user/interface';
 export interface GroupNode {
   id: string;
@@ -79,6 +79,16 @@ export interface GroupNode {
   pageId: number; //页编号
   pId?: number; // 父节点ID，可能为空
   children?: GroupNode[]; // 子节点，可能为空数组
+}
+
+export interface Page {
+  createAt: number;
+  updatedAt: number;
+  title: string;
+  default: boolean;
+  // batchNo: number; // 页编号
+  pageId: number; //页编号
+  // children?: GroupNode[]; // 子节点，可能为空数组
 }
 // 定义一个TreeNode类型的数组
 type TagGroups = GroupNode[];
@@ -98,11 +108,12 @@ export interface GlobalState {
   hasResult: boolean;
   groups: TagGroups;
   treeData: TagGroups;
+  pageId: number,
+  currentPage: Page,
   // group1s: TagGroups;
   hiddenGroup: boolean;
-
   defaultPage: number;
-  pages: string[];
+  pages: [];
   activeGroup: GroupNode;
   loadedBookmarks: WebTag[];
 }
@@ -115,12 +126,15 @@ const initialState: GlobalState = {
     permissions: {},
   },
   hasResult: true,
-  groups: [],//当前标签分组列表,用于新增
+  // groups: [],//当前标签分组列表,用于新增
+  groups: null,//当前标签分组列表,用于新增
   treeData: [],//当前标签分组列表,用于新增
   // group1s: [],//当前标签分组列表,用于新增
   hiddenGroup: false,//有隐藏分组
   defaultPage: null,
+  currentPage: null,
   pages: [],
+  pageId: null,
   activeGroup: null,
   loadedBookmarks: null
 }
@@ -171,9 +185,10 @@ const globalSlice = createSlice({
       state.groups = action.payload.groups;
       state.hiddenGroup = action.payload.hideGroup;
       state.treeData = action.payload.treeData;
-      // state.group1s = action.payload.group1s;
+      state.currentPage = action.payload.currentPage;
     },
-    updateUserPage: (state, action) => {
+    setUserPages: (state, action) => {
+      // console.log('1111111111 setUserPages', action.payload);
       state.defaultPage = action.payload.defaultPage;
       state.pages = action.payload.pages;
     },
@@ -196,6 +211,12 @@ function filterChildrenArrayByPath(arr) {
 // 保证每层都新建对象，不引用原对象
 function filterChildrenByPath(data) {
   // 先浅拷贝一份（不引用原对象）
+
+  if (!data) {
+    // children不是数组，直接返回新对象
+    return data;
+  }
+
   const newData = { ...data };
 
   if (!Array.isArray(data.children)) {
@@ -210,26 +231,23 @@ function filterChildrenByPath(data) {
   return newData;
 }
 
-/* function dispatchTagGroupsData(page: number) {
-  const dispatch = useDispatch();
-  fetchTagGroupsData(page);
-} */
 
 const fetchBookmarksPageData = (page: number) => {
   // console.log('fetchTagGroupsData', page)
   return async (dispatch) => {
     const res = await getPageTree(page);
+    const currentPage = await getPage(page);
     if (res.length > 0) {
       //list: 分组书签（全字段）
       const list = res;
       const hideGroup: boolean = hasHidden(list);
       const treeData = filterChildrenArrayByPath(list);
       // console.log('999999999999 fetchTagGroupsData res', page, list, hideGroup);
-      dispatch(updateTagGroups({ groups: list, hideGroup: hideGroup, treeData: treeData }));
+      dispatch(updateTagGroups({ groups: list, hideGroup: hideGroup, currentPage: currentPage, treeData: treeData }));
       return res; // 直接返回整个响应对象
     } else {
-      dispatch(updateTagGroups({ groups: [], hideGroup: false, treeData: [] }));
-      return undefined;
+      dispatch(updateTagGroups({ groups: [], hideGroup: false, currentPage: currentPage, treeData: [] }));
+      return [];
       // 处理错误情况
       // throw new Error('请求失败');
     }
@@ -240,12 +258,21 @@ const fetchBookmarksPageData = (page: number) => {
 const loadNewAddedBookmarks = (bookmarks: WebTag[]) => {
   // console.log('2222222222 loadNewAddedBookmarks action', bookmarks);
   return async (dispatch) => {
-    dispatch(setLoadBookmarks(bookmarks))
+    dispatch(setLoadBookmarks(bookmarks));
   }
 };
 
+const reloadUserPages = () => {
+  return async (dispatch) => {
+    const pages = await getPages();
+    dispatch(setUserPages({ pages: pages }));
+    return pages; // 直接返回整个响应对象
+  }
+};
+
+
 // export const { updateSettings, updateUserInfo, updateHasResult, updateTagGroups } = globalSlice.actions;
-const { updateSettings, updateUserInfo, updateHasResult, updateTagGroups, updateUserPage, updateActiveGroup, setLoadBookmarks } = globalSlice.actions;
-export { updateSettings, updateUserInfo, updateHasResult, updateTagGroups, updateUserPage, updateActiveGroup, fetchBookmarksPageData, loadNewAddedBookmarks };
+const { updateSettings, updateUserInfo, updateHasResult, updateTagGroups, setUserPages, updateActiveGroup, setLoadBookmarks } = globalSlice.actions;
+export { updateSettings, updateUserInfo, updateHasResult, updateTagGroups, updateActiveGroup, reloadUserPages, fetchBookmarksPageData, loadNewAddedBookmarks };
 export default globalSlice.reducer;
 // export { dispatchTagGroupsData };

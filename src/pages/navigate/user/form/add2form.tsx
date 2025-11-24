@@ -459,7 +459,7 @@ function App(props: TagDataParams) {
             <FormItem label='网址' field='url' rules={[{ required: true }]}>
               {/* <Input placeholder='请输入网址url' value={inputValue} onChange={handleChange} onBlur={handleBlur} /> */}
               <Input
-                placeholder='请输入网址url,系统会自动尝试获取标题和图标'
+                placeholder='请输入网址url'
                 onChange={handleChange} onBlur={handleBlur}
                 onFocus={handleFocus}
                 addBefore={

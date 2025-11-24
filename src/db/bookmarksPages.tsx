@@ -1,5 +1,6 @@
 import { getDB } from './db';
 
+
 // 保存书签页及其节点
 function uuid() {
     return Math.random().toString(36).substr(2, 9);
@@ -173,7 +174,22 @@ export async function saveGroup(group) {
     const pId = group.pId;
     const id = uuid();
     const path = pId ? `${pId}` + ',' + `${id}` : `${id}`;
+
+    let pageId = group.pageId;
     try {
+        if (!pageId) {
+            const newPageId = Date.now();
+            const newPageData = {
+                pageId: newPageId,
+                title: '新建书签页', // 标题添加后缀以区分
+                default: false, // 导入的页面不设为默认
+                createdAt: newPageId,
+                updatedAt: newPageId,
+            };
+            await db.put('pages', newPageData);
+            group.pageId = newPageId;
+            // return newPageData; // 返回所有新页面的 ID
+        }
         const saveGroup = {
             id: id,
             pageId: group.pageId,
@@ -184,6 +200,7 @@ export async function saveGroup(group) {
             pId: pId,
             addDate: Date.now(),
         }
+        // console.log('save node', saveGroup);
         await db.put('nodes', saveGroup);
         return saveGroup;
     } catch (e) {
@@ -256,8 +273,6 @@ export async function savePageBookmarks(pageData) {
     }
 }
 
-
-
 export async function getPages() {
     const db = await getDB();
     const tx = db.transaction('pages', 'readonly');
@@ -266,7 +281,15 @@ export async function getPages() {
     return allPages; // 根节点
 }
 
-
+export async function getPage(pageId) {
+    const db = await getDB();
+    const page = await db.get('pages', pageId);
+    if (!page) {
+        console.error(`BookmarkPage with pageId ${pageId} not found.`);
+        return null;
+    }
+    return page;
+}
 
 
 export async function setDefaultPage(pageId) {

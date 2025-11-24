@@ -55,6 +55,7 @@ const { Paragraph, Text } = Typography;
 
 function ListCard({ activeCardTab, display, activeGroup, setCardTabActive, keyWord, list, hasResult, loading }) {
   const t = useLocale(locale);
+
   // const { activeCardTab, display, activeGroup, setCardTabActive, keyWord, list, hasResult, loading } = props;
   let search: boolean = keyWord && keyWord.length > 0;
 
@@ -115,34 +116,35 @@ function ListCard({ activeCardTab, display, activeGroup, setCardTabActive, keyWo
     )
   }
 
-  const getCardItems = (list) => {
+  /*  const getCardItems = (list) => {
+ 
+     const result = [];
+ 
+     list.map((item, index) => {
+       //显示(不隐藏) 
+       // let eachDisplay = display && hasResult;
+       result.push(<CardItem key={index}
+         setCardTabActive={setCardTabActive}
+         cardData={item}
+         index={index}
+         last={index == list.length - 1}
+         first={index == 0}
+         // display={display}
+         display={display}
+         activeCardTab={activeCardTab}
+         keyWord={keyWord}
+         hasResult={hasResult}
+         activeGroup={activeGroup}
+       // pageNo={pageNo}
+       >
+       </CardItem>)
+     })
+     return result;
+   } 
+  
+   const result = getCardItems(list);
+   */
 
-    // console.log('--------list', list)
-    const result = [];
-
-    list.map((item, index) => {
-      //显示(不隐藏) 
-      // let eachDisplay = display && hasResult;
-      result.push(<CardItem key={index}
-        setCardTabActive={setCardTabActive}
-        cardData={item}
-        index={index}
-        last={index == list.length - 1}
-        first={index == 0}
-        // display={display}
-        display={display}
-        activeCardTab={activeCardTab}
-        keyWord={keyWord}
-        hasResult={hasResult}
-        activeGroup={activeGroup}
-      // pageNo={pageNo}
-      >
-      </CardItem>)
-    })
-    return result;
-  }
-
-  const result = getCardItems(list);
 
   /*  return (
      <div>
@@ -190,7 +192,7 @@ function ListCard({ activeCardTab, display, activeGroup, setCardTabActive, keyWo
         }}
       >
 
-        {list.map((item, index) => {
+        {list && list.length > 0 && list.map((item, index) => {
           return <CardItem key={index}
             setCardTabActive={setCardTabActive}
             cardData={item}
@@ -207,7 +209,8 @@ function ListCard({ activeCardTab, display, activeGroup, setCardTabActive, keyWo
           </CardItem>
         })}
 
-        {!hasResult && <CardEmpty search={search}></CardEmpty>}
+        {/* {!hasResult && <CardEmpty search={search}></CardEmpty>} */}
+        {(!hasResult || (list && list.length === 0)) && <CardEmpty search={search}></CardEmpty>}
 
         {/* <Footer /> */}
         {/* 三 */}
