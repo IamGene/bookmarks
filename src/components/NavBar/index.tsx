@@ -270,7 +270,8 @@ function Navbar({ pageNo, pages, show, display, setNavBarKey, setAllDisplay }) {
         <div className={styles.left}>
           <div className={styles.logo}>
             <Logo />
-            <div className={styles['logo-name']}>Arco Pro</div>
+            {/* <div className={styles['logo-name']}>Arco Pro</div> */}
+            <div className={styles['logo-name']}>Bookmarks Pro</div>
           </div>
         </div>
         <ul className={styles.right} style={{ marginBottom: '0rem' }}>

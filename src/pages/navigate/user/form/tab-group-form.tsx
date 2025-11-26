@@ -24,9 +24,7 @@ function App(props: GroupFormParams) {
     const [disabled, setDisabled] = React.useState(true);
     const { closeWithSuccess, pageId, visible, selectGroup, group } = props;
 
-    // console.log('tab form selectGroup', selectGroup);
     // console.log('tab form group', group);
-    // console.log('tab form noPid', noPid);
     // console.log('form group', group);
     // const [visible, setVisible] = React.useState(false);
     // const formRef = useRef<FormInstance>();
@@ -34,17 +32,16 @@ function App(props: GroupFormParams) {
 
     const globalState = useSelector((state: any) => state.global);
     const cascaderOptions = globalState.treeData;
-
+    // console.log('tab form selectGroup group', selectGroup, group);
+    // console.log('tab form cascaderOptions cascaderOptions', cascaderOptions);
     //要显示的选择分组
     const [optionValues, setOptionValues] = useState(selectGroup);
 
     const t = useLocale(locale);
 
     const processSaveSubGroup = async (data) => {
-        // console.log('group form submit before_group', group)
+        console.log('group form submit before_group', data)
         //返回成功
-        // const res = await submitGroupData(data)
-
         let groupData;
         if (group.id) {
             groupData = await updateGroupById(data);
@@ -74,7 +71,7 @@ function App(props: GroupFormParams) {
             if (res.pId && res.pId.length > 0 && typeof res.pId !== 'string') {//数组
                 res.pId = res.pId[res.pId.length - 1];//取数组的最后一个为分组id    
             }
-            console.log('group', res);
+            // console.log('group', res);
             processSaveSubGroup(res);
         });
     }
@@ -85,14 +82,11 @@ function App(props: GroupFormParams) {
         closeWithSuccess(false)
     };
 
-
-
     useEffect(() => {
         // console.log('form selectGroup', selectGroup)
         form.setFields({
             pId: {
-                // value: selectGroup ? selectGroup : null
-                value: group ? group.pId : null
+                value: selectGroup
             },
             id: {
                 value: group ? group.id : null
@@ -110,15 +104,25 @@ function App(props: GroupFormParams) {
                 value: pageId
             }
         });
-        selectGroup && setOptionValues(selectGroup);
+        // selectGroup && setOptionValues(selectGroup);
     }, []);
+
+    useEffect(() => {
+        if (selectGroup) {
+            form.setFields({
+                pId: {
+                    value: selectGroup
+                },
+            });
+        }
+    }, [selectGroup]);
 
     useEffect(() => {
         if (group) {
             form.setFields({
-                pId: {
+                /* pId: {
                     value: group ? group.pId : null
-                },
+                }, */
                 name: {
                     value: group ? group.name : null
                 },
@@ -234,22 +238,21 @@ function App(props: GroupFormParams) {
                     }}
                 >
 
-                    {/* {(noPid == null || !noPid) && */}
-
                     <FormItem
                         label='上级'
                         field='pId'
                         rules={[
                             {
                                 type: 'array',
-                                required: false,
+                                required: true,
                                 // required: require,
                             }
                         ]}
                     >
 
+
                         <Cascader
-                            placeholder='请选择分组...'
+                            placeholder='Please select ...'
                             options={cascaderOptions}
                             showSearch
                             // mode='multiple'
@@ -257,17 +260,17 @@ function App(props: GroupFormParams) {
                             allowClear
                             value={optionValues}
                             onChange={(value, options) => {
-                                handleOptionChange(value);
+                                // console.log(value, options);
+                                setOptionValues(value);
                             }}
-                            filterOption={(input, node) => {
-                                return node.value.indexOf(input) > -1 || node.label.indexOf(input) > -1;
-                            }}
+
                             fieldNames={{
                                 // children: 'child',
                                 label: 'name',
                                 value: 'id',
                             }}
                         />
+
                     </FormItem>
 
                     <FormItem label='名称' field='name' rules={[{ required: true }]}>
@@ -280,18 +283,6 @@ function App(props: GroupFormParams) {
                         />
                     </FormItem>
 
-                    {/*    {(noPid != null && noPid) && <FormItem label='排序' field='sort' rules={[{ required: false }]}>
-                        <Input
-                            type='number'
-                            min={1}
-                            max={22}
-                            placeholder='请输入序号，数字越小越靠前'
-                            onFocus={handleFocus}
-                            allowClear={true}
-                        />
-                    </FormItem>} */}
-
-                    {/* 隐藏项 :id*/}
                     <FormItem label='id' field='id' hidden rules={[{ required: false }]}>
                         <Input
                             allowClear={true}

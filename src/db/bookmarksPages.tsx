@@ -173,7 +173,14 @@ export async function saveGroup(group) {
     const db = await getDB();
     const pId = group.pId;
     const id = uuid();
-    const path = pId ? `${pId}` + ',' + `${id}` : `${id}`;
+    // const path = pId ? `${pId}` + ',' + `${id}` : `${id}`;
+    // const path = pId ? `${pId}` + ',' + `${id}` : `${id}`;
+    let path = `${id}`;
+    if (pId) {
+        const pGroup = await db.get('nodes', pId);
+        const parentPath = pGroup.path;
+        path = parentPath + ',' + `${id}`;
+    }
 
     let pageId = group.pageId;
     try {
@@ -417,6 +424,28 @@ export async function getBookmarkGroupById(id) {
     }
 }
 
+export async function getBookmarkGroupsByPId(pId) {
+    try {
+        const db = await getDB();
+        const nodes = await db.getAllFromIndex('nodes', 'pId', pId);
+        if (nodes.length > 0) {
+            nodes.sort((a, b) => (b.addDate ?? 0) - (a.addDate ?? 0));
+            const urls = await db.getAllFromIndex('urls', 'gId', pId);
+            if (urls.length > 0) {//复制分组
+                const node = await db.get('nodes', pId);
+                node.self = true;
+                return [node, ...nodes]
+                // return [...nodes, node];
+            }
+            return nodes;
+        }
+        return null;
+    } catch (e) {
+        console.error('getBookmarkGroupsByPId error', e);
+        return null;
+    }
+}
+
 export async function exportPageJson(pageId) {
     try {
         const db = await getDB();
@@ -548,6 +577,7 @@ export async function importPageJson(jsonData) {
             }
 
             const oldNodeId = node.id;
+            const oldPath = node.path;
             const newNodeId = uuid(); // 使用文件顶部的 uuid 函数
             nodeIdMap[oldNodeId] = newNodeId;
 
@@ -565,6 +595,7 @@ export async function importPageJson(jsonData) {
                 id: newNodeId,
                 pageId: newPageId, // 关联到新的页面 ID
                 pId: newPId, // 使用映射后的新父 ID
+                // path: newPId ? `${newPId},${newNodeId}` : `${newNodeId}`, // 根据新的父子ID生成path
                 path: newPId ? `${newPId},${newNodeId}` : `${newNodeId}`, // 根据新的父子ID生成path
             });
         }
@@ -621,6 +652,7 @@ export async function deletePageBookmarks(pageId) {
         return false;
     }
 }
+
 
 export async function removeGroupById(groupId) {
     try {
@@ -706,8 +738,12 @@ export async function getPageGroupData(groupId: string) {
 
 export async function testUpdate() {
     const db = await getDB();
-    const group = await db.get('nodes', "i1bk37x58");
-    group.pId = "95rdpjwqy";
+    // const group = await db.get('nodes', "i1bk37x58");
+    // group.pId = "95rdpjwqy";
+    const group = await db.get('nodes', "0oawbeuhz");
+    group.path = "0l5tbdjit,v3zlzwr2f,ysb4ng4i9,0oawbeuhz";
+    group.pId = "ysb4ng4i9";
+    group.name = "书签工具栏";
     await db.put('nodes', group);
 }
 
@@ -783,6 +819,7 @@ export async function getPageTree(pageId) {
                         const child1 = {
                             ...node,
                             children: [],
+                            self: true,
                             urlList: urlList,
                         };
                         return {

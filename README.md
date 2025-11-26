@@ -50,4 +50,18 @@ Render
 - **如何更新**：当您修改完分组后，请务必在**任意网页**上右键点击菜单中的 **“⟳ 刷新分组”** 功能来手动更新，以确保菜单项与您的应用保持一致。当然，执行此操作时，书签应用页面必须是打开的。
 
 
-ssssssssss
+## 插件的混淆打包
+
+### 1.首先，在你的项目根目录下，通过终端安装 Webpack 及其混淆插件：
+npm install --save-dev webpack webpack-cli webpack-obfuscator
+### 2.配置 webpack.config.js
+在你的项目根目录下新建或修改 webpack.config.js 文件。
+### 3.在你的 package.json 中，应该有两个脚本命令：
+"scripts": {
+  "dev": "webpack --mode development --watch",
+  "build": "webpack --mode production"
+}
+### 4.发布/分享前： 运行 npm run build。
+此时 Webpack 会执行混淆插件，生成的 dist 目录下的文件就是加密后的文件。
+混淆器只能处理 JS 文件。千万不要把 manifest.json 放入 Webpack 的 JS 入口中混淆。
+将 manifest.json 原样复制到 dist 目录。

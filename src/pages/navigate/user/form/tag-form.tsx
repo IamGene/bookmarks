@@ -32,13 +32,15 @@ function App(props: TagDataParams) {
     // const [visible, setVisible] = React.useState(false);
     // const [confirmLoading, setConfirmLoading] = useState(false);
     // const formRef = useRef<FormInstance>();
-    // console.log('44444444 tag form data selectGroup', selectGroup);
+
     const globalState = useSelector((state: any) => state.global);
     const { treeData } = globalState;
     const cascaderOptions = treeData;
 
+    // console.log('44444444 tag form data selectGroup', selectGroup);
     //要显示的已选择分组
     const [optionValues, setOptionValues] = useState(selectGroup);
+
 
     const t = useLocale(locale);
     const [url, setUrl] = useState('')
@@ -61,7 +63,7 @@ function App(props: TagDataParams) {
         Message.success('Success !');
         // setConfirmLoading(false);
 
-        console.log('processUpdateSaveTag', data.gId, newTag.gId, newTag)
+        // console.log('processUpdateSaveTag', data.gId, newTag.gId, newTag)
         // setVisible(false);
         if (newTag) {
             if (data.gId !== newTag.gId) {

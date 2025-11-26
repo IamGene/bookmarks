@@ -177,8 +177,9 @@ function BookmarksPages(props: BookmarksPageProps) {
    }, [addedPageIds]); */
 
   function isNew(item: BookmarksPageData) {
-    const res = item.new;
-    return res;
+    // const res = item.new;
+    // return res;
+    return item.new;
   }
 
   /*
