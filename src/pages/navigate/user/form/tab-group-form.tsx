@@ -25,22 +25,23 @@ function App(props: GroupFormParams) {
     const { closeWithSuccess, pageId, visible, selectGroup, group } = props;
 
     // console.log('tab form group', group);
-    // console.log('form group', group);
+    // console.log('form selectGroup', selectGroup);
     // const [visible, setVisible] = React.useState(false);
     // const formRef = useRef<FormInstance>();
     const [confirmLoading, setConfirmLoading] = useState(false);
 
     const globalState = useSelector((state: any) => state.global);
-    const cascaderOptions = globalState.treeData;
+    // const cascaderOptions = globalState.treeData;
     // console.log('tab form selectGroup group', selectGroup, group);
     // console.log('tab form cascaderOptions cascaderOptions', cascaderOptions);
     //要显示的选择分组
     const [optionValues, setOptionValues] = useState(selectGroup);
+    const [cascaderOptions, setCascaderOptions] = useState(globalState.treeData);
 
     const t = useLocale(locale);
 
     const processSaveSubGroup = async (data) => {
-        console.log('group form submit before_group', data)
+        // console.log('group form submit before_group', data)
         //返回成功
         let groupData;
         if (group.id) {
@@ -109,6 +110,7 @@ function App(props: GroupFormParams) {
 
     useEffect(() => {
         if (selectGroup) {
+
             form.setFields({
                 pId: {
                     value: selectGroup
@@ -117,8 +119,28 @@ function App(props: GroupFormParams) {
         }
     }, [selectGroup]);
 
+
+    function setDisabledNodes(nodes, selectNode) {
+        function setDisabledForGroupChldren(nodes, selectNode) {
+            return nodes
+                .map(node => {
+                    const children = setDisabledForGroupChldren(node.children, selectNode);
+                    return {
+                        ...node,
+                        disabled: node.pId === selectNode.id ? true : false,
+                        children: children,
+                    };
+                });
+        }
+        return setDisabledForGroupChldren(nodes, selectNode); // 根节点
+    }
+
+
     useEffect(() => {
         if (group) {
+            // console.log('000000000000 useEffect group', group);
+            //将属于group的子分组禁用 ok
+            setCascaderOptions(setDisabledNodes(cascaderOptions, group))
             form.setFields({
                 /* pId: {
                     value: group ? group.pId : null

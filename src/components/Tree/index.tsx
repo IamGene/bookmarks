@@ -23,27 +23,13 @@ function searchData(inputValue, treeData) {
     return loop(treeData);
 }
 
+
 /* function filterChildrenArrayByPath(arr) {
-    // 递归处理数组中的每个对象
-    return arr.map(item => filterChildrenByPath(item));
-}
-
-function filterChildrenByPath(data) {
-    if (!data.children || !Array.isArray(data.children)) return data;
-    // 只保留 path 不同的 children
-    data.children = data.children.filter(child => child.path !== data.path);
-    // 递归处理每个子元素
-    data.children = data.children.map(child => filterChildrenByPath(child));
-    return data;
-} */
-
-function filterChildrenArrayByPath(arr) {
     // 返回一个新数组，避免修改原数组
     if (!arr) return [];
     return arr.map(item => filterChildrenByPath(item));
-}
-
-
+} 
+    
 // 保证每层都新建对象，不引用原对象
 function filterChildrenByPath(data) {
     // 先浅拷贝一份（不引用原对象）
@@ -56,11 +42,16 @@ function filterChildrenByPath(data) {
 
     // 过滤并递归深拷贝子元素
     newData.children = data.children
-        .filter(child => child.path !== data.path)
+        // .filter(child => child.path !== data.path)
+        .filter(child => child.id !== data.id)
         .map(child => filterChildrenByPath(child));
 
     return newData;
 }
+*/
+
+
+
 
 // 示例用法
 // const filteredArray = filterChildrenArrayByPath(jsonArray);
@@ -92,7 +83,7 @@ function App({ data, setTreeSelected, treeSelectedKeys, inputValue, setTreeInput
     const [selectedKeys, setSelectedKeys] = useState([]);
 
     const onTreeSelect = (selectedKeys, extra) => {
-        console.log('==========selectedKeys', selectedKeys, extra)
+        // console.log('==========selectedKeys', selectedKeys, extra)
         //回传当前选中项到父组件传递到兄弟组件展示对应的Card和Tab
         setTreeSelected(selectedKeys);
         //高亮选中的key
@@ -104,7 +95,7 @@ function App({ data, setTreeSelected, treeSelectedKeys, inputValue, setTreeInput
             const stringArray = selectedKeys[0].split(',');
             // const activeCardTab: number[] = stringArray.map(Number);
             const keys = stringArray.map(String);
-            // console.log('=========onTreeSelect keys', keys);
+            console.log('=========onTreeSelect keys', keys);
             if (keys.length > 1) {
                 setExpandedKeys([selectedKeys[0], keys[0]]);
             } else {
@@ -125,10 +116,12 @@ function App({ data, setTreeSelected, treeSelectedKeys, inputValue, setTreeInput
              setTempExpand(true);
          }
      }, [data, inputValue]); */
+
     useEffect(() => {
-        console.log('>>>>>>>>>>>>>>>>> treeData useEffect', data);
-        let filteredData = filterChildrenArrayByPath(data);
-        setTreeData(filteredData);
+        // console.log('>>>>>>>>>>>>>>>>> treeData useEffect', data);
+        // let filteredData = filterChildrenArrayByPath(data);
+        // console.log('>>>>>>>>>>>>>>>>> treeData useEffect filterChildrenArrayByPath', filteredData);
+        setTreeData(data);
         if (!inputValue || !inputValue.trim()) {
             setTempExpand(false);
         } else if (data.length) {

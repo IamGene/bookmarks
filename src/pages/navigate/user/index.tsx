@@ -48,7 +48,6 @@ import styles from '@/style/layout.module.less';
 // import lazyload from './utils/lazyload';
 // import { GlobalState } from './info';
 // import { setUserInfo } from '@/store/modules/user'
-// import Navbar from './components/NavBar1';
 
 const MenuItem = Menu.Item;
 const SubMenu = Menu.SubMenu;
@@ -262,7 +261,7 @@ function UserNavigate() {
 
   const { settings, userLoading, userInfo, groups, pageId, activeGroup, treeData, hiddenGroup, loadedBookmarks } = globalState;
 
-  // console.log('!!!!!!!!!!!!! index activeGroup', groups, activeGroup, hiddenGroup);
+  console.log('!!!!!!!!!!!!! index ', treeData, activeGroup, hiddenGroup);
 
   const [list, setList] = useState(groups);
   const [hasResult, setHasResult] = useState(true);
@@ -374,7 +373,6 @@ function UserNavigate() {
     } else {//搜索词不为空
       // const result = searchData(inputValue.trim(), list);
       const result = searchData(inputValue.trim(), treeData);
-
       setSearchFromAll(result);//
       // console.log('getTreeInputValue', list, inputValue, result);
       if (display) {//在全部数据的基础上搜索
@@ -529,10 +527,11 @@ function UserNavigate() {
     return groups;
   }, [groups, hiddenGroup]);
 
-  /*   useEffect(() => {
-      fetchPageBookmarksData(pageId);//一开始为null
-    }, [pageId]);//仅在初次加载组件时候执行(pageId未设置到redux状态) */
 
+  useEffect(() => {
+    // setTreeDatas(filteredData);//TreeDatas应该从TreeData进行处理
+    setTreeDatas(treeData);
+  }, [treeData]);//
 
   /*原来的   const filteredData = useMemo(() => {
       if (hiddenGroup) {//有隐藏的分组，进行过滤
@@ -541,7 +540,7 @@ function UserNavigate() {
     }, [hiddenGroup]); */
 
   useEffect(() => {
-    setTreeDatas(filteredData);//Tree
+    // setTreeDatas(filteredData);//TreeDatas应该从TreeData进行处理
     setFilterFromAll(filteredData);
   }, [filteredData]);//
 
@@ -690,6 +689,7 @@ function UserNavigate() {
                   <Tree setTreeSelected={getTreeSelect}
                     treeSelectedKeys={treeSelectedKeys}
                     // data={data}
+                    // data={treeDatas}
                     data={treeDatas}
                     inputValue={treeInputValue}
                     setTreeInputValue={getTreeInputValue}>

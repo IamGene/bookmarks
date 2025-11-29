@@ -21,7 +21,8 @@ interface CardBlockType {
     no: number;
     loading?: boolean;
     parentHide?: boolean;
-    selectGroup: Array<number>;
+    // selectGroup: Array<string>;
+    selectGroup: string;
     editTag: Function;
     onDeleteSuccess?: (WebTag) => void;
     // tag={item} parentHide={parentHide} 
@@ -43,7 +44,7 @@ const App = (props: CardBlockType) => {
     const onClickMenuItem = (key: string) => {
         if (key === '0') {
             console.log('点击了菜单,编辑', key)
-            editTag(tag);
+            editTag(tag, selectGroup);
         } else if (key === '1') {//删除
             //弹出确认框
             // console.log('点击了菜单,删除', key)

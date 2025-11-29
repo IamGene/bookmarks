@@ -145,7 +145,8 @@ function hasHidden(arr) {
   // 遍历数组中的每个元素
   for (const item of arr) {
     // 检查当前元素自身的hide属性
-    if (item.hide === true) {
+    // if (item.hide !== 'undefined' && item.hide !== null && item.hide) {
+    if (item.hide) {
       return true;
     }
     // 检查naviList中的元素
@@ -210,13 +211,13 @@ function filterChildrenArrayByPath(arr) {
 
 // 保证每层都新建对象，不引用原对象
 function filterChildrenByPath(data) {
-  // 先浅拷贝一份（不引用原对象）
 
   if (!data) {
     // children不是数组，直接返回新对象
     return data;
   }
 
+  // 先浅拷贝一份（不引用原对象）
   const newData = { ...data };
 
   if (!Array.isArray(data.children)) {
@@ -226,23 +227,24 @@ function filterChildrenByPath(data) {
 
   // 过滤并递归深拷贝子元素
   newData.children = data.children
-    .filter(child => child.path !== data.path)
+    // .filter(child => child.path !== data.path)//过滤掉复制分组
+    .filter(child => child.id !== data.id)//过滤掉复制分组
     .map(child => filterChildrenByPath(child));
   return newData;
 }
 
 
-const fetchBookmarksPageData = (page: number) => {
+const fetchBookmarksPageData = (pageId: number) => {
   // console.log('fetchTagGroupsData', page)
   return async (dispatch) => {
-    const res = await getPageTree(page);
-    const currentPage = await getPage(page);
+    const res = await getPageTree(pageId);
+    const currentPage = await getPage(pageId);
     if (res.length > 0) {
       //list: 分组书签（全字段）
       const list = res;
       const hideGroup: boolean = hasHidden(list);
       const treeData = filterChildrenArrayByPath(list);
-      // console.log('999999999999 fetchTagGroupsData res', page, list, hideGroup);
+      // console.log('999999999999 fetchTagGroupsData treeData', treeData);
       dispatch(updateTagGroups({ groups: list, hideGroup: hideGroup, currentPage: currentPage, treeData: treeData }));
       return res; // 直接返回整个响应对象
     } else {

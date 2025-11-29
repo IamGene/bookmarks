@@ -74,40 +74,33 @@ export async function updateGroupById(group) {
             console.error(`Group with id ${group.id} not found.`);
             return null;
         }
-        if (group.pId) {
-            const parentGroup = await db.get('nodes', group.pId);
-            if (parentGroup) {
-                group.path = parentGroup.path + ',' + group.id;
-            }
+        console.log('updateGroupById group', group);
 
-            if (!existingGroup.pId) {
-                // console.log('>>>更新分组：祖节点更新所属分组');
-                //重新设置id（相当于新增分组）
-                const id = uuid();
-                //重新设置书签的gId为新的id
-                const urls = await db.getAllFromIndex('urls', 'gId', group.id);
-                for (let i = 0; i < urls.length; i++) {
-                    const url = urls[i];
-                    url.gId = id;
-                    await db.put('urls', url);
-                }
-                group.id = id;
-                group.path = group.pId + ',' + id;
-
-                //原来的分组进行删除
-                await db.delete('nodes', existingGroup.id);
+        //如果group.pId变为===group.id则新建一个子分组,并且将原来的书签数据转移到该子分组
+        if (group.id === group.pId) {
+            // const parentGroup = await db.get('nodes', group.pId);
+            const id = uuid(); //重新设置id（相当于新增分组）
+            //重新设置书签的gId为新的id
+            const urls = await db.getAllFromIndex('urls', 'gId', group.pId);
+            for (let i = 0; i < urls.length; i++) {
+                const url = urls[i];
+                url.gId = id;
+                await db.put('urls', url);
             }
-        } else {
-            group.path = `${group.id}`;
+            group.id = id;
         }
+
+
         // 2. 将传入的新数据与旧数据合并
         // 这样可以保留 'addDate' 等不在表单中的字段
+
+        group.path = await getNodePath(group);
         const updatedGroup = {
             ...existingGroup,
             ...group,
         };
         // 3. 将更新后的数据存回数据库
-        console.log('updatedGroup', updatedGroup);
+        // console.log('updatedGroup', updatedGroup);
         await db.put('nodes', updatedGroup);
         return updatedGroup;
     } catch (e) {
@@ -175,12 +168,9 @@ export async function saveGroup(group) {
     const id = uuid();
     // const path = pId ? `${pId}` + ',' + `${id}` : `${id}`;
     // const path = pId ? `${pId}` + ',' + `${id}` : `${id}`;
-    let path = `${id}`;
-    if (pId) {
-        const pGroup = await db.get('nodes', pId);
-        const parentPath = pGroup.path;
-        path = parentPath + ',' + `${id}`;
-    }
+
+    group.id = id;
+    const path = await getNodePath(group);
 
     let pageId = group.pageId;
     try {
@@ -207,7 +197,7 @@ export async function saveGroup(group) {
             pId: pId,
             addDate: Date.now(),
         }
-        // console.log('save node', saveGroup);
+        console.log('save node', saveGroup);
         await db.put('nodes', saveGroup);
         return saveGroup;
     } catch (e) {
@@ -416,11 +406,40 @@ export async function getBookmarkById(id) {
 export async function getBookmarkGroupById(id) {
     try {
         const db = await getDB();
-        const url = await db.get('nodes', id);
-        return url;
+
+        const group = await db.get('nodes', id);
+        group.path = await getNodePath(group);
+        return group;
     } catch (e) {
         console.error('exportPageJson error', e);
         return null;
+    }
+}
+
+
+export async function getNodePath(node: any) {
+    // if (!node.pId) return node.id;
+    if (!node.pId) return `${node.id}`;
+    const db = await getDB();
+    async function nodePath(pId: string, path: string) {
+        const pGroup = await db.get('nodes', pId);
+        if (pGroup) {//存在
+            return pGroup.pId ? nodePath(pGroup.pId, pGroup.id + "," + path)
+                : pGroup.id + "," + path;
+        }
+        return path;
+    }
+    return nodePath(node.pId, node.id);
+}
+
+export async function getBookmarksNumByGId(gId) {
+    try {
+        const db = await getDB();
+        const urls = await db.getAllFromIndex('urls', 'gId', gId);
+        return urls.length;
+    } catch (e) {
+        console.error('getBookmarksNumByGId error', e);
+        return 0;
     }
 }
 
@@ -433,7 +452,7 @@ export async function getBookmarkGroupsByPId(pId) {
             const urls = await db.getAllFromIndex('urls', 'gId', pId);
             if (urls.length > 0) {//复制分组
                 const node = await db.get('nodes', pId);
-                node.self = true;
+                node.copy = true;
                 return [node, ...nodes]
                 // return [...nodes, node];
             }
@@ -518,6 +537,26 @@ export async function addBookmarksPage(title) {
     }
 }
 
+export async function resortNodes(sortData: any[]) {
+    try {
+        const db = await getDB();
+        console.log('sortData', sortData);
+        for (let i = 0; i < sortData.length; i++) {
+            const sortedNode = sortData[i];
+            const group = await db.get('nodes', sortedNode.id);
+            const newGroup = {
+                ...group,
+                ...sortedNode
+            }
+            console.log('sortData 1111111111', newGroup);
+            await db.put('nodes', newGroup);
+        }
+        return true;
+    } catch (e) {
+        console.error('addBookmarksPage error', e);
+        return false;
+    }
+}
 
 /**
  * 根据导出的 JSON 数据导入并保存为新的书签页
@@ -578,13 +617,36 @@ export async function importPageJson(jsonData) {
 
             const oldNodeId = node.id;
             const oldPath = node.path;
-            const newNodeId = uuid(); // 使用文件顶部的 uuid 函数
-            nodeIdMap[oldNodeId] = newNodeId;
+
+            let newNodeId = nodeIdMap[oldNodeId];
+            if (!newNodeId) {
+                newNodeId = uuid();
+                nodeIdMap[oldNodeId] = newNodeId;
+            }
+            let newPath: string;
+            const pathArr: string[] = oldPath.split(",");
+            if (pathArr.length > 1) {
+                let newPathArr: string[] = [];
+                for (let i = 0; i < pathArr.length; i++) {
+                    const path = pathArr[i];
+                    if (!nodeIdMap[path]) {
+                        const newPath = uuid();
+                        nodeIdMap[path] = newPath;
+                        newPathArr[i] = newPath;
+                    } else {
+                        newPathArr[i] = nodeIdMap[path];
+                    }
+                }
+                newPath = newPathArr.join(',');
+            } else {
+                newPath = newNodeId;
+            }
 
             // 获取新的 pageId
             const newPageId = pageIdMap[node.pageId];
             // 获取新的父节点 ID，如果父节点未导入或不存在，则为 null
             const newPId = node.pId ? nodeIdMap[node.pId] : null;
+
             // 如果父节点存在但其新的ID未被映射（意味着父节点可能未被导入或处理），则跳过此节点或将其视为根节点
             if (node.pId && !newPId) {
                 console.warn(`Parent node ${node.pId} for node ${node.id} not found in mapping. Treating as root.`);
@@ -595,8 +657,7 @@ export async function importPageJson(jsonData) {
                 id: newNodeId,
                 pageId: newPageId, // 关联到新的页面 ID
                 pId: newPId, // 使用映射后的新父 ID
-                // path: newPId ? `${newPId},${newNodeId}` : `${newNodeId}`, // 根据新的父子ID生成path
-                path: newPId ? `${newPId},${newNodeId}` : `${newNodeId}`, // 根据新的父子ID生成path
+                path: newPath // 根据新的父子ID生成path
             });
         }
 
@@ -653,43 +714,53 @@ export async function deletePageBookmarks(pageId) {
     }
 }
 
-
-export async function removeGroupById(groupId) {
+export async function deletePageBookmarks1(pageId) {
     try {
         const db = await getDB();
-        const group = await db.get('nodes', groupId);
-        const childGroups = await db.getAllFromIndex('nodes', 'pId', groupId);
-        if (group.pId === null) { //删除祖节点
-            const urls = await db.getAllFromIndex('urls', 'gId', groupId);
-            if (urls.length > 0 && childGroups.length > 0) {//仅仅删除其标签
-                for (const url of urls) {
-                    await db.delete('urls', url.id);
-                }
-                return true;
-            }
+        // 删除 pages 表
+        await db.delete('pages', pageId);
+        // 删除 nodes 表中所有 pageId 匹配的数据
+        const nodes = await db.getAllFromIndex('nodes', 'pageId', pageId);
+        for (const node of nodes) {
+            await db.delete('nodes', node.id);
         }
-        await db.delete('nodes', groupId);
         // 删除 urls 表中所有 pageId 匹配的数据
-        const urls = await db.getAllFromIndex('urls', 'gId', groupId);
+        const urls = await db.getAllFromIndex('urls', 'pageId', pageId);
         for (const url of urls) {
             await db.delete('urls', url.id);
-        }
-        const childNodes = await db.getAllFromIndex('nodes', 'pId', groupId);
-        if (childNodes.length > 0) {
-            for (const node of childNodes) {
-                await db.delete('nodes', node.id);
-                const urls = await db.getAllFromIndex('urls', 'gId', node.id);
-                if (urls.length > 0) {
-                    for (const url of urls) {
-                        await db.delete('urls', url.id);
-                    }
-                }
-            }
         }
         return true;
     } catch (e) {
         return false;
     }
+}
+
+
+export async function getThroughChild(groupId) {
+    async function getLastChild(group, db) {
+        const urls = await db.getAllFromIndex('urls', 'gId', group.id);
+        //a.本身有书签数据且已排序在最前
+        if (urls.length > 0 && group.order1 == 0) {//已排序在最前
+            return { ...group, path: group.path + ',' + group.id };
+        }
+        const nodes = await db.getAllFromIndex('nodes', 'pId', group.id);
+        if (nodes && nodes.length > 0) {//b.其中一个子分组
+            if (nodes.length > 1) {
+                // nodes.sort((a, b) => (a.addDate ?? 0) - (b.addDate ?? 0));
+                nodes.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+            }
+            const firstChildNode = nodes[0];
+            if (urls.length > 0 && group.order1 < firstChildNode.order) {//优先选择排序在前面的
+                return { ...group, path: group.path + ',' + group.id };
+            }//本身有书签数据，但排序不在最前，则返回本身
+            return getLastChild(firstChildNode, db);
+        } else {//c.其他情况，返回本身，结束了
+            return group;
+        }
+    }
+    const db = await getDB();
+    const group = await db.get('nodes', groupId);
+    return getLastChild(group, db); // 根节点
 }
 
 
@@ -740,11 +811,19 @@ export async function testUpdate() {
     const db = await getDB();
     // const group = await db.get('nodes', "i1bk37x58");
     // group.pId = "95rdpjwqy";
-    const group = await db.get('nodes', "0oawbeuhz");
-    group.path = "0l5tbdjit,v3zlzwr2f,ysb4ng4i9,0oawbeuhz";
-    group.pId = "ysb4ng4i9";
-    group.name = "书签工具栏";
+    //ysb4ng4i9  |  qrz3nhln3,v3zlzwr2f,ysb4ng4i9  //私密
+    const group = await db.get('nodes', "scppfgkns");//临时
+    group.pId = "0l5tbdjit";
+    group.path = "0l5tbdjit,scppfgkns";
+
+    // const group1 = await db.get('nodes', "0oawbeuhz");//
+    // group1.pId = "ysb4ng4i9";//其他书签 0l5tbdjit
+    // group1.path = "qrz3nhln3,v3zlzwr2f,ysb4ng4i9,0oawbeuhz";
+    // const group1 = await db.get('nodes', "0l5tbdjit");
+    // group1.add_date = "1709921846";//其他书签 0l5tbdjit
+
     await db.put('nodes', group);
+    // await db.put('nodes', group1);
 }
 
 export async function getPageNodesTree1(pageId, db) {
@@ -754,19 +833,20 @@ export async function getPageNodesTree1(pageId, db) {
     function buildTree(parentId, isRoot = false) {
         return nodes
             .filter(node => node.pId === parentId)
-            .sort((a, b) => isRoot ? (a.addDate ?? 0) - (b.addDate ?? 0) : (b.addDate ?? 0) - (a.addDate ?? 0))
+            // .sort((a, b) => isRoot ? (a.addDate ?? 0) - (b.addDate ?? 0) : (b.addDate ?? 0) - (a.addDate ?? 0))
+            .sort((a, b) => isRoot ? (a.addDate ?? 0) - (b.addDate ?? 0) : (a.order ?? 0) - (b.order ?? 0))
             .map(node => {
-                if (node.type === 'folder') {
-                    const children = buildTree(node.id, parentId == null);
-                    return {
-                        ...node,
-                        status: 1,
-                        children: children,
-                        // urlList: urlList,
-                    };
-                } else {
-                    return node;
-                }
+                // if (node.type === 'folder') {
+                const children = buildTree(node.id, parentId == null);
+                return {
+                    ...node,
+                    status: 1,
+                    children: children,
+                    // urlList: urlList,
+                };
+                /*  } else {
+                     return node;
+                 } */
             });
     }
     return buildTree(null); // 根节点
@@ -805,38 +885,48 @@ export async function getPageTree(pageId) {
     // nodes.sort((a, b) => (a.addDate ?? 0) - (b.addDate ?? 0));
     const urls = await db.getAllFromIndex('urls', 'pageId', pageId);
 
-    function buildTree(parentId, isRoot = false) {
+    // function buildTree(parentId, parentPath, isRoot = false) {
+    function buildTree(parentId, parentPath) {
         return nodes
             .filter(node => node.pId === parentId)
-            .sort((a, b) => isRoot ? (a.addDate ?? 0) - (b.addDate ?? 0) : (b.addDate ?? 0) - (a.addDate ?? 0))
+            // .sort((a, b) => isRoot ? (a.addDate ?? 0) - (b.addDate ?? 0) : (b.addDate ?? 0) - (a.addDate ?? 0))
+            .sort((a, b) => !parentId ? ((b.addDate ?? 0) - (a.addDate ?? 0)) : ((a.order ?? 0) - (b.order ?? 0)))
             .map(node => {
-                if (node.type === 'folder') {
-                    const children = buildTree(node.id, parentId == null);
-                    const urlList = urls.filter(n => n.gId === node.id);
-                    urls.sort((a, b) => (a.addDate ?? 0) - (b.addDate ?? 0));
-                    //大分组存在标签，复制新的对象，作为子分组
-                    if (urlList && urlList.length > 0 && children.length > 0) {
-                        const child1 = {
-                            ...node,
-                            children: [],
-                            self: true,
-                            urlList: urlList,
-                        };
-                        return {
-                            ...node,
-                            children: [child1, ...children]
-                        };
-                    } else return {
+                const currentPath = parentPath ? parentPath + ',' + node.id : node.id;
+                const children = buildTree(node.id, currentPath);
+                const urlList = urls.filter(n => n.gId === node.id);
+                urls.sort((a, b) => (a.addDate ?? 0) - (b.addDate ?? 0));
+                node.path = currentPath;
+                //大分组存在标签，复制新的对象，作为子分组
+                if (urlList && urlList.length > 0 && children.length > 0) {
+                    node.list = true;//有数组
+                    const child1 = {
                         ...node,
-                        children: children,
+                        children: [],
+                        copy: true,
+                        list: false,
                         urlList: urlList,
                     };
-                } else {
-                    return node;
-                }
+                    if (node.order1) {
+                        const idx = Math.max(0, Math.floor(Number(node.order1)));
+                        const newChildren = [...children];
+                        // 若索引超出范围，则追加到末尾；否则在指定位置插入
+                        const insertIndex = Math.min(idx, newChildren.length);
+                        newChildren.splice(insertIndex, 0, child1);//插入一个
+                        return { ...node, children: newChildren };
+                    }
+                    return {
+                        ...node,
+                        children: [child1, ...children]
+                    };
+                } else return {
+                    ...node,
+                    children: children,
+                    urlList: urlList,
+                };
             });
     }
-    return buildTree(null); // 根节点
+    return buildTree(null, null); // 根节点
 }
 
 /**
@@ -894,7 +984,48 @@ export async function getPageBookmarks(pageId) {
     }
 }
 
+/* export async function removeGroupById1(groupId) {
+    return true;
+}
+ */
 
+export async function removeGroupById(groupId) {
+    try {
+        const db = await getDB();
+        const group = await db.get('nodes', groupId);
+        const childGroups = await db.getAllFromIndex('nodes', 'pId', groupId);
+        if (group.pId === null) { //删除祖节点
+            const urls = await db.getAllFromIndex('urls', 'gId', groupId);
+            if (urls.length > 0 && childGroups.length > 0) {//仅仅删除其标签
+                for (const url of urls) {
+                    await db.delete('urls', url.id);
+                }
+                return true;
+            }
+        }
+        await db.delete('nodes', groupId);
+        // 删除 urls 表中所有 pageId 匹配的数据
+        const urls = await db.getAllFromIndex('urls', 'gId', groupId);
+        for (const url of urls) {
+            await db.delete('urls', url.id);
+        }
+        const childNodes = await db.getAllFromIndex('nodes', 'pId', groupId);
+        if (childNodes.length > 0) {
+            for (const node of childNodes) {
+                await db.delete('nodes', node.id);
+                const urls = await db.getAllFromIndex('urls', 'gId', node.id);
+                if (urls.length > 0) {
+                    for (const url of urls) {
+                        await db.delete('urls', url.id);
+                    }
+                }
+            }
+        }
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
 
 /**
  * 生成 HTML 书签，支持层级结构

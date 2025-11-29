@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { Tabs, BackTop, Card, Input, Empty, Typography, Link, Grid, Button, Select, Space } from '@arco-design/web-react';
 // import { IconCaretUp } from '@arco-design/web-react/icon';
@@ -10,9 +10,16 @@ import styles from './style/index.module.less';
 import CardBlock1 from './card-block1';
 import CardItem from './card';
 import CardEmpty from './card-empty';
+
+import { TabPaneProps } from '@arco-design/web-react/es/Tabs';
+import { DndProvider, useDrag, useDrop } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import type { Identifier, XYCoord } from 'dnd-core';
+// const TabPane = Tabs.TabPane;
 // import AddCard from './card-add';
 import { WebTag } from './interface';
 import './mock';
+
 
 
 interface CardBlockType {
@@ -55,6 +62,9 @@ const { Paragraph, Text } = Typography;
 
 function ListCard({ activeCardTab, display, activeGroup, setCardTabActive, keyWord, list, hasResult, loading }) {
   const t = useLocale(locale);
+
+
+
 
   // const { activeCardTab, display, activeGroup, setCardTabActive, keyWord, list, hasResult, loading } = props;
   let search: boolean = keyWord && keyWord.length > 0;
@@ -192,13 +202,14 @@ function ListCard({ activeCardTab, display, activeGroup, setCardTabActive, keyWo
         }}
       >
 
+
         {list && list.length > 0 && list.map((item, index) => {
           return <CardItem key={index}
             setCardTabActive={setCardTabActive}
             cardData={item}
-            index={index}
-            last={index == list.length - 1}
-            first={index == 0}
+            // index={index}
+            // last={index == list.length - 1}
+            // first={index == 0}
             display={display}
             activeCardTab={activeCardTab}
             keyWord={keyWord}

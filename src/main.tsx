@@ -251,9 +251,7 @@ function Index() {
                 <Redirect to={`/navigate/default`} />
               </Route> */}
               {/* <Route path="/navigate/default" component={DefaultNavigate} /> */}
-
               {/* <Route path="/" component={PageLayout} /> */}
-
               {/* <Route path="/" component={DefaultNavigate} /> */}
               <Route path="/" component={DefaultNavigate} />
             </Switch>

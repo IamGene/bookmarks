@@ -14,7 +14,7 @@ import styles from './style/index.module.less';
 // 导入自定义 Hook
 import { useFetchPageData } from '@/hooks/fetchPageData';
 import RenamePageForm from '@/pages/navigate/user/form/rename_page_form';
-import { setDefaultPage, getPages, exportPageJson, testUpdate } from '@/db/bookmarksPages';
+import { setDefaultPage, getPages, exportPageJson, getNodePath, testUpdate } from '@/db/bookmarksPages';
 import ExportModal from './exportModal';
 import { set } from 'mobx';
 // import { useSelector, useDispatch } from 'react-redux';
@@ -202,6 +202,10 @@ function BookmarksPages(props: BookmarksPageProps) {
     setCurrentPage(item.pageId);
     // onSwitchPage(item);
     // testUpdate();
+    // const path = await getNodePath({ id: '3ve0wr3tn', pId: 'voqqcfkih' })
+    // console.log("getNodePath path", path);
+
+
     /*  if (isContained(item.pageId)) {
        // 点击切换到刚添加的书签页，取消红点：使用函数式更新以避免闭包取到过期状态
        setNewPageIds(prev => prev.filter(id => id !== item.pageId));
