@@ -261,7 +261,7 @@ function UserNavigate() {
 
   const { settings, userLoading, userInfo, groups, pageId, activeGroup, treeData, hiddenGroup, loadedBookmarks } = globalState;
 
-  console.log('!!!!!!!!!!!!! index ', treeData, activeGroup, hiddenGroup);
+  // console.log('!!!!!!!!!!!!! index ', treeData, activeGroup, hiddenGroup);
 
   const [list, setList] = useState(groups);
   const [hasResult, setHasResult] = useState(true);

@@ -20,7 +20,7 @@ interface CardBlockType {
     tag: WebTag;
     no: number;
     loading?: boolean;
-    parentHide?: boolean;
+    // parentHide?: boolean;
     // selectGroup: Array<string>;
     selectGroup: string;
     editTag: Function;
@@ -29,7 +29,7 @@ interface CardBlockType {
 }
 
 const App = (props: CardBlockType) => {
-    const { tag, no, parentHide, editTag, selectGroup, onDeleteSuccess } = props
+    const { tag, no, editTag, selectGroup, onDeleteSuccess } = props
 
     const [visible, setVisible] = useState(false);
     //配置编辑表单展示与否
@@ -43,7 +43,7 @@ const App = (props: CardBlockType) => {
 
     const onClickMenuItem = (key: string) => {
         if (key === '0') {
-            console.log('点击了菜单,编辑', key)
+            // console.log('点击了菜单,编辑', key)
             editTag(tag, selectGroup);
         } else if (key === '1') {//删除
             //弹出确认框

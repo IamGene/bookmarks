@@ -32,7 +32,7 @@ function App(props: TagDataParams) {
   const globalState = useSelector((state: any) => state.global);
   const { currentPage, pages } = globalState;
   const cascaderOptions = pages;
-  console.log('sssssssssss tag form data', pages);
+  // console.log('sssssssssss tag form data', pages);
 
   //要显示的选择分组
   const t = useLocale(locale);
