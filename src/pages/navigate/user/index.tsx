@@ -76,59 +76,48 @@ const defaultUserInfo = {
 };
 
 // 找出含有关键词？
-function searchData1(list, keyword) {
-  let hasResult: boolean = false;
-  const regex = new RegExp(`(${keyword})`, 'gi');
-  for (let i = 0; i < list.length; i++) {
-    const data = list[i];
-    if (data.urlList && data.urlList.length > 0) {
-      //重复
-      const urlList = data.urlList;
-      for (let k = 0; k < urlList.length; k++) {
-        const navi = urlList[k];
-        let name = navi.name;
-        let description = navi.description;
-        const parts = name.split(regex);
-        if (parts.length >= 3) {
-          hasResult = true;
-          break;
-        }
-        const parts1 = description.split(regex);
-        if (parts1.length >= 3) {
-          hasResult = true;
-          break;
-        }
-      }
-    }
-    const children = data.children;
-    if (children.length > 0) {
-      for (let j = 0; j < children.length; j++) {
-        const urlList = children[j].urlList;
-        if (urlList && urlList.length > 0) {
-          for (let k = 0; k < urlList.length; k++) {
-            const navi = urlList[k];
-            let name = navi.name;
-            let description = navi.description;
-
-            const parts = name.split(regex);
-            if (parts.length >= 3) {
-              hasResult = true;
-              break;
-            }
-            const parts1 = description.split(regex);
-            if (parts1.length >= 3) {
-              hasResult = true;
-              break;
-            }
-            //没有 不用搜索;有—>传入keyword,每个搜索
-          }
-        }
-      }
-    }
-  }
-  return hasResult;
+// 通用递归搜索：支持任意深度的 children
+function escapeRegExp(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function searchDataRecursive(list, keyword) {
+  if (!keyword || !keyword.trim()) return false;
+  const k = keyword.trim();
+  const regex = new RegExp(escapeRegExp(k), 'i');
+
+  function nodeHasMatch(node) {
+    if (!node) return false;
+    if (node.urlList && node.urlList.length > 0) {
+      for (let i = 0; i < node.urlList.length; i++) {
+        const navi = node.urlList[i] || {};
+        const name = (navi.name || '') + '';
+        const description = (navi.description || '') + '';
+        if (regex.test(name) || regex.test(description)) return true;
+      }
+    }
+    if (node.children && node.children.length > 0) {
+      for (let j = 0; j < node.children.length; j++) {
+        if (nodeHasMatch(node.children[j])) return true;
+      }
+    }
+    return false;
+  }
+
+  for (let i = 0; i < list.length; i++) {
+    if (nodeHasMatch(list[i])) return true;
+  }
+  return false;
+}
+
+// 保持原名兼容，指向递归实现
+function searchData1(list, keyword) {
+  return searchDataRecursive(list, keyword);
+}
+
+function searchData2(list, keyword) {
+  return searchDataRecursive(list, keyword);
+}
 
 
 function getIconFromKey(key) {
@@ -427,7 +416,8 @@ function UserNavigate() {
     if (!keyword || !keyword.trim()) {
       setHasResult(true);
     } else {//不为空
-      const hasResult = searchData1(list, keyword);
+      const hasResult = searchData2(list, keyword);
+      console.log('00000000000 search', keyword, hasResult);
       setHasResult(hasResult);
     }
     // setNavbarKeyWord(keyword)

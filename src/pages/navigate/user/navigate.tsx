@@ -11,54 +11,15 @@ import CardBlock1 from './card-block1';
 import CardItem from './card';
 import CardEmpty from './card-empty';
 
-import { TabPaneProps } from '@arco-design/web-react/es/Tabs';
-import { DndProvider, useDrag, useDrop } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
-import type { Identifier, XYCoord } from 'dnd-core';
 // const TabPane = Tabs.TabPane;
 // import AddCard from './card-add';
 import { WebTag } from './interface';
 import './mock';
 
-
-
-interface CardBlockType {
-  // card: QualityInspection & BasicCard;
-  treeSelected: number[];
-  loading?: boolean;
-}
-
-interface Props {
-  activeCardTab: number[];
-}
 // tab标签类型
-// const [type, setType] = useState('card-gutter');
-// const { Title } = Typography;
 const TabPane = Tabs.TabPane;
 const { Row, Col, GridItem } = Grid;
 // import { BackTop, Button, Select, Input, Typography, Space } from '@arco-design/web-react';
-const { Paragraph, Text } = Typography;
-/* const easingTypes = [
-  'linear',
-  'quadIn',
-  'quadOut',
-  'quadInOut',
-  'cubicIn',
-  'cubicOut',
-  'cubicInOut',
-  'quartIn',
-  'quartOut',
-  'quartInOut',
-  'quintIn',
-  'quintOut',
-  'quintInOut',
-  'sineIn',
-  'sineOut',
-  'sineInOut',
-  'bounceIn',
-  'bounceOut',
-  'bounceInOut',
-]; */
 
 function ListCard({ activeCardTab, display, activeGroup, setCardTabActive, keyWord, list, hasResult, loading }) {
   const t = useLocale(locale);
@@ -168,8 +129,6 @@ function ListCard({ activeCardTab, display, activeGroup, setCardTabActive, keyWo
      </div>
    ) */
 
-  const [easing, setEasing] = useState('linear');
-  const [duration, setDuration] = useState(200);
   return (
     <div>
 
@@ -202,7 +161,6 @@ function ListCard({ activeCardTab, display, activeGroup, setCardTabActive, keyWo
         }}
       >
 
-
         {list && list.length > 0 && list.map((item, index) => {
           return <CardItem key={index}
             setCardTabActive={setCardTabActive}
@@ -210,18 +168,16 @@ function ListCard({ activeCardTab, display, activeGroup, setCardTabActive, keyWo
             // index={index}
             // last={index == list.length - 1}
             // first={index == 0}
+            // activeGroup={activeGroup}
             display={display}
-            activeCardTab={activeCardTab}
+            treeSelectedNode={activeCardTab}
             keyWord={keyWord}
             hasResult={hasResult}
-            activeGroup={activeGroup}
-          // pageNo={pageNo}
           >
           </CardItem>
         })}
 
-        {/* {!hasResult && <CardEmpty search={search}></CardEmpty>} */}
-        {(!hasResult || (list && list.length === 0)) && <CardEmpty search={search}></CardEmpty>}
+        {/* {(!hasResult || (list && list.length === 0)) && <CardEmpty search={search}></CardEmpty>} */}
 
         {/* <Footer /> */}
         {/* 三 */}

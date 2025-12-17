@@ -57,12 +57,12 @@ function App(props: TagDataParams) {
   }
 
   const processSaveSubGroup = async (group) => {
-    // console.log('processSaveSubGroup', group);
+    // console.log('00000000000 processSaveSubGroup', group);
     const data = await saveGroup(group);
     Message.success('添加成功');
     // setConfirmLoading(false);
-    closeWithSuccess(true, group.pageId ? 1 : 2, data.pageId)//相当于点击取消/关闭按钮
-    // closeWithSuccess(true, 2, 0)//相当于点击取消/关闭按钮
+    // closeWithSuccess(true, group.pageId ? 2 : 1, data.pageId)//相当于点击取消/关闭按钮
+    closeWithSuccess(true, 2, data.pageId)//相当于点击取消/关闭按钮
     // setType(0);
     return true;
   }
@@ -211,15 +211,7 @@ function App(props: TagDataParams) {
             <Radio.Group onChange={onTypeChange} options={['分组', '书签页']}></Radio.Group>
           </Form.Item>
 
-          <FormItem label='名称' field='name' rules={[{ required: true }]}>
-            <Input
-              placeholder='请输入名称'
-              onFocus={handleFocus}
-              allowClear={true}
-              maxLength={20}
-              showWordLimit
-            />
-          </FormItem>
+
 
           {type == 2 && pages.length > 0 && <FormItem
             label='书签页'
@@ -264,7 +256,15 @@ function App(props: TagDataParams) {
           </FormItem>
           }
 
-
+          <FormItem label='名称' field='name' rules={[{ required: true }]}>
+            <Input
+              placeholder='请输入名称'
+              onFocus={handleFocus}
+              allowClear={true}
+              maxLength={20}
+              showWordLimit
+            />
+          </FormItem>
           {/* <FormItem label='pageId' field='pageId' hidden rules={[{ required: false }]}>
             <Input
             />

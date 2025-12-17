@@ -6,14 +6,13 @@ import { IconEyeInvisible, IconToTop, IconMore, IconPlus, IconEraser, IconToBott
 import styles from './style/index.module.less';
 import TagForm from './form/tag-form';
 import TabGroupForm from './form/tab-group-form';
-// import TabGroupForm1 from './form/tab-group-form1';
 import Add2Form from './form/add2form';
 import { removeConfirm } from './form/remove-confirm-modal';
 import { clearConfirm } from './form/clear-confirm-modal';
 import { removeGroup, saveTagGroup, moveGroupTopBottom } from '@/api/navigate';
 import { useDispatch } from 'react-redux'
-import { fetchBookmarksPageData, updateActiveGroup } from '@/store/modules/global';
-import { getBookmarkGroupById, removeGroupById, resortNodes, getBookmarksNumByGId, clearGroupBookmarksById, getThroughChild } from '@/db/bookmarksPages';
+import { fetchBookmarksPageData, updateActiveGroup, updatePageDataState } from '@/store/modules/global';
+import { getBookmarkGroupById, removeGroupById, getBookmarksGroupById, resortNodes, getBookmarksNumByGId, clearGroupBookmarksById, getThroughChild } from '@/db/bookmarksPages';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import TabsContainer from '../../../components/NestedTabs/TabsContainer';
@@ -119,138 +118,147 @@ const Highlight = (parts, keyword) => {
 };
 
 
-function searchData(inputValue, cardData) {
-    // 必须返回新数据，包括所有属性，重新构造
-    const searchResult = [];
-    const noHiddenSearchResult = [];
-    const search = (data) => {
-        const newChildren = [];
-        data.children.forEach((item) => {
-            const urlList = item.urlList;
-            if (urlList && urlList.length > 0) {
-                const urlListResult = [];
-                let notHideTabCount = 0;//排除隐藏的搜索结果后的数量
 
-                urlList.forEach((navi) => {
-                    let contains: boolean = false;
-                    let name = navi.name;
-                    let description = navi.description;
+// 递归聚合版本搜索：在保留原有 searchData 行为的同时，增加每个节点的聚合字段
+// 返回的节点包含原有的 `searchResult` 与 `noHiddenSearchResult` 字段，
+// 并额外添加 `childrenMatchCount`（直接子节点命中数）和 `totalMatchCount`（子树内总命中数）。
+function searchDataAggregated(inputValue, cardData) {
+    const regex = new RegExp(`(${inputValue})`, 'gi');
 
-                    // name或intro中包含inputValue关键字
-                    const regex = new RegExp(`(${inputValue})`, 'gi');
-                    const parts = name.split(regex);
-                    let searchName = name;
-                    if (parts.length >= 3) {
-                        contains = true;
-                        name = Highlight(parts, inputValue);
-                        // console.log("搜索结果 name ", data.name, navi.name, searchName);
-                    }
-                    const parts1 = description.split(regex);
-                    if (parts1.length >= 3) {
-                        contains = true;
-                        description = Highlight(parts1, inputValue);
-                        // console.log("搜索结果 description", data.name, navi.description, searchName);
-                    }
-
-                    if (contains) {
-                        // urlListResult.push({ ...navi, name, intro });//A情况.分组中隐藏项的背景不变色
-                        if (navi.hide || item.hide) {//该项目隐藏或所属的分组隐藏
-                            // const resultNavi = { ...navi, name: searchName, nameLength: name.length, hide: true, description }
-                            const resultNavi = { ...navi, name, nameLength: name.length, hide: true, description }
-                            searchResult.push(resultNavi);//搜索结果中隐藏项的背景变色
-                            urlListResult.push(resultNavi);//B情况.分组中隐藏项的背景变色
-                        } else {//不隐藏
-                            // const resultNavi = { ...navi, name: searchName, nameLength: name.length, description }
-                            const resultNavi = { ...navi, name, nameLength: name.length, description }
-                            searchResult.push(resultNavi);
-                            noHiddenSearchResult.push(resultNavi);
-                            urlListResult.push(resultNavi);
-                            notHideTabCount++;
-                        }
-                    }
-                });
-                newChildren.push({ ...item, urlList: urlListResult, notHideTabCount });
-            } else {
-                newChildren.push({ ...item, urlList: [], notHideTabCount: 0 });
-            }
-        });
-        return { ...data, children: newChildren, searchResult: searchResult, noHiddenSearchResult: noHiddenSearchResult };
-    };
-
-    const search1 = (data) => {
-        const navis = [];
+    function processLeaf(data) {
+        const bookmarks = [];
         const searchResult = [];
-        const noHiddenSearchResult = [];
-        data.urlList.forEach((navi) => {
-            let contains: boolean = false;
-            let name = navi.name;
-            let description = navi.description;
-            // name或intro中包含inputValue关键字
-            const regex = new RegExp(`(${inputValue})`, 'gi');
+        const filterHiddenSearchResult = [];
+        let totalMatchCount = 0;
+
+        (data.urlList).forEach((bookmark) => {
+            let contains = false;
+            const originalName = bookmark.name || '';
+            const originalDescription = bookmark.description || '';
+
+            let name = bookmark.name || '';
+            let description = bookmark.description || '';
             const parts = name.split(regex);
-            let searchName = name;
-            // 处理高亮
+            let displayName = name;
             if (parts.length >= 3) {
                 contains = true;
-                searchName = Highlight(parts, inputValue);
-                // console.log("111 搜索结果 name", data.name, navi.description, searchName);
+                displayName = Highlight(parts, inputValue);
             }
-            const parts1 = description.split(regex);
+            const parts1 = (description || '').split(regex);
             if (parts1.length >= 3) {
                 contains = true;
                 description = Highlight(parts1, inputValue);
-                // console.log("111 搜索结果 description", data.name, navi.description, searchName);
             }
 
             if (contains) {
-                if (navi.hide) {
-                    const resultNavi = { ...navi, name: searchName, nameLength: name.length, hide: true, description }
-                    searchResult.push(resultNavi)//搜索结果：包含隐藏项
-                    navis.push(resultNavi)
-                } else {
-                    const resultNavi = { ...navi, name: searchName, nameLength: name.length, description };
-                    navis.push(resultNavi)
-                    searchResult.push(resultNavi)//搜索结果：包含隐藏项
-                    noHiddenSearchResult.push(resultNavi)//搜索结果：不包含隐藏项
-                }
+                const resultBookmark = { ...bookmark, path: data.path, nameLength: (displayName || '').length, originalName, originalDescription, name: displayName, description };
+                bookmarks.push(resultBookmark);
+                searchResult.push(resultBookmark);
+                if (!bookmark.hide) filterHiddenSearchResult.push(resultBookmark);
+                totalMatchCount += 1;
             }
         });
-        return { ...data, urlList: navis, searchResult: searchResult, noHiddenSearchResult: noHiddenSearchResult };
-    };
 
-    // 没有二级
-    if (cardData.urlList && cardData.children.length === 0) {
-        return search1(cardData);
+        return {
+            ...data,
+            urlList: data.urlList,
+            // searchResult,
+            // searchList: bookmarks,
+            searchResult,
+            filterHiddenSearchResult,
+            // childrenMatchCount: 0,
+            totalMatchCount,
+        };
     }
-    return search(cardData);
+
+    function processNode(node, level = 0) {
+        // 叶子（只有 urlList）：处理搜索
+        if ((!node.children || node.children.length === 0) && node.urlList) {
+            return processLeaf(node);
+        }
+
+        // 含 children 的节点：递归处理子节点
+        if (Array.isArray(node.children) && node.children.length > 0) {
+            let childrenMatchCount = 0;
+            let totalMatchCount = 0;
+            const newChildren = node.children.map((child) => {
+                const updated = processNode(child, level + 1);
+                const childTotal = Number(updated.totalMatchCount || 0);
+                if (childTotal > 0) childrenMatchCount += 1;
+                totalMatchCount += childTotal;//汇总子分组的查询结果总数
+                return updated;
+            });
+
+            // const filteredChildren = newChildren;
+
+            // 保留原有顺序：先收集有命中的子节点，再收集无命中的子节点
+            const nonZero = newChildren.filter(c => Number(c.totalMatchCount || 0) > 0);
+            const zero = newChildren.filter(c => Number(c.totalMatchCount || 0) === 0);
+            //保持稳定性排序
+            nonZero.sort((a, b) => ((a.order ?? a.addDate ?? 0) - (b.order ?? b.addDate ?? 0)));
+
+            const searchChildren = [...nonZero, ...zero];
+
+            // 汇总子节点的 searchResult 与 filterHiddenSearchResult（基于过滤后的子节点）
+            const aggregatedSearchResult = [];
+            const aggregatedFilterHidden = [];   //过滤掉隐藏的搜索结果
+            searchChildren.forEach((c) => {
+                if (c.searchResult && c.searchResult.length) aggregatedSearchResult.push(...c.searchResult);
+                if (c.filterHiddenSearchResult && c.filterHiddenSearchResult.length) aggregatedFilterHidden.push(...c.filterHiddenSearchResult);
+            });
+
+
+            const res = {
+                ...node,
+                children: searchChildren,
+                // searchChildren: searchChildren,
+                searchResult: aggregatedSearchResult,
+                filterHiddenSearchResult: aggregatedFilterHidden,
+                totalMatchCount,
+            };
+            return res;
+        }
+
+        // 无 children 且无 urlList 的节点
+        return { ...node, searchResult: [], filterHiddenSearchResult: [], childrenMatchCount: 0, totalMatchCount: 0 };
+    }
+
+    // 入口：保留和 searchData 一致的判断逻辑
+    if (cardData.urlList && cardData.children.length === 0) {
+        return processLeaf(cardData);
+    }
+    return processNode(cardData, 0);
 }
 
 
-function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabActive, keyWord, hasResult }) {//hasResult
 
-    // if (cardData.id === 1) console.log(cardData.name + ' 渲染了');
-    // console.log(cardData.name + ' card activeCardTab', activeCardTab);
+// function renderCard({ cardData, display, activeCardTab, setCardTabActive, keyWord, hasResult }) {//hasResult
+function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, keyWord, hasResult }) {//hasResult
+
+    // if (cardData.id === 'vu2pi7002')
+    // console.log(cardData.name + ' 渲染了>>>>>>>>>>>>>>', keyWord, hasResult);
 
     const dispatch = useDispatch();
     const pageId = cardData.pageId;
 
     const [data, setData] = useState(cardData);
+    const [activeCardTab, setActiveCardTab] = useState(treeSelectedNode);
+    const [treeSelected, setTreeSelected] = useState(false);//当前card是被tree选中
     // 当前搜索结果
     const [searchResult, setSearchResult] = useState([]);
     const [noHiddenSearchResult, setNoHiddenSearchResult] = useState([]);
     const [showSearchResult, setShowSearchResult] = useState([]);
+
     // 搜索中
     const [searching, setSearching] = useState(false);
     // 当前被tree选中
-    const [treeSelected, setTreeSelected] = useState(false);
-    // 当前搜索
-    const [currentSearch, setCurrentSearch] = useState(false);
 
+    // 当前Card搜索
+    const [currentSearch, setCurrentSearch] = useState(false);
     const [searchInput, setSearchInput] = useState('');
-    const linkRef = useRef(null);
+    // const linkRef = useRef(null);
     //该Card是否展示(有搜索结果)
-    // const [show, setShow] = useState(true)
-    const [show, setShow] = useState(true);
+    const [cardShow, setCardShow] = useState(true);
     // 本Card(Group)显示/隐藏 隐藏项
     const [showItem, setShowItem] = useState(true);//默认false
 
@@ -275,7 +283,18 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
         await resortNodes(sorting);
     }
 
-
+    function buildActiveMap(path) {
+        const parts = path.split(',').map(s => s.trim());
+        const result = {};
+        // 前 n-1 个作为 standard key
+        for (let i = 0; i < parts.length - 1; i++) {
+            const key = parts.slice(0, i + 1).join('-');
+            const value = parts[i + 1];
+            result[key] = value;
+        }
+        // console.log('00000000000000 buildActiveMap result path ', path, result)
+        return result;
+    }
     const getResortData = (parentData: any, dragIndex: number, hoverIndex: number, pId: string) => {
         // 目标层直接重新排序 children
         if (!parentData) return parentData;
@@ -284,8 +303,11 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
             const newChildren = [...parentData.children];
             // 防护：确保索引在范围内
             newChildren.splice(hoverIndex, 0, ...newChildren.splice(dragIndex, 1));
-            resortOrders(newChildren);
-            return { ...parentData, children: newChildren };
+            // 为保持顺序一致性：按当前顺序为每个子项设置 order 字段（0,1,2...）
+            const updatedChildren = newChildren.map((child, idx) => ({ ...child, order: idx }));
+            // 异步持久化排序（仍然使用 resortOrders），并把带 order 的数组返回用于更新本地 state
+            resortOrders(updatedChildren);
+            return { ...parentData, children: updatedChildren };
         }
 
         // 否则递归到子节点，若某个子节点发生变化则返回新的 parent 节点
@@ -318,80 +340,167 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
 
     // 一、切换Tab标签部分#=====================================================================
     //已废弃
-    const getInitialDefaultActiveKeyFromCardData = (cardData) => {
-        // console.log(cardData.name + ' getInitialDefaultActiveKeyFromCardData')
-        let defaultActiveKey = '';
-        if (cardData.children && cardData.children.length !== 0) {
-            cardData.children.some((item) => {
-                if (!item.hide) {//非隐藏的
-                    // const currentKey = item.id + '';
-                    const currentKey = item.id;
-                    defaultActiveKey = currentKey;
-                    return true;//终止遍历
-                } else {//当前项隐藏
-                    return false;//继续遍历
-                }
-            });
-        }
-        // if (cardData.id === 27) console.log(cardData.name + 'getInitialDefaultActiveKeyFromCardData defaultActiveKey=', defaultActiveKey, typeof defaultActiveKey)
-        return defaultActiveKey;
-    }
+    /*   const getInitialDefaultActiveKeyFromCardData = (cardData) => {
+          // console.log(cardData.name + ' getInitialDefaultActiveKeyFromCardData')
+          let defaultActiveKey = '';
+          if (cardData.children && cardData.children.length !== 0) {
+              cardData.children.some((item) => {
+                  if (!item.hide) {//非隐藏的
+                      // const currentKey = item.id + '';
+                      const currentKey = item.id;
+                      defaultActiveKey = currentKey;
+                      return true;//终止遍历
+                  } else {//当前项隐藏
+                      return false;//继续遍历
+                  }
+              });
+          }
+          return defaultActiveKey;
+      } */
     // const [activeTab, setActiveTab] = useState(getInitialDefaultActiveKeyFromCardData(cardData));
 
-
+    /*  useEffect(() => {
+         // if (data.id === 'vu2pi7002') console.log(data.name + ' useEffect data', data);
+         // console.log(data.name + ' useEffect data', data);
+     }, [data]); */
 
     useEffect(() => {
-        if (!activeMap) initActiveMap(cardData.id);//初始化第一层tabs的active项
-        // if (activeTab) setActiveMap(prev => ({ ...prev, [cardData.id]: activeTab }))
-    }, [cardData]);
-    // }, []);
+        // if (data.id === 'vu2pi7002') console.log(data.name + ' useEffect treeSelectedNode', treeSelectedNode);
+        setActiveCardTab(treeSelectedNode);
+    }, [treeSelectedNode]);
 
 
-    const defaultActiveKey = useMemo(() => {
-        let defaultActiveKey = '';
-        // if (cardData.id === '')
-        // console.log('defaultActiveKey activeTab', activeTab)
-        const okActiveKeys = [];
-        const backupActiveKeys = [];
 
-        if (cardData.children && cardData.children.length !== 0) {
-            if (showItem) {//显示隐藏的分组
-                cardData.children.some((item) => {
-                    const currentKey = item.id + '';
-                    /*  if (currentKey === activeTab) {
-                         defaultActiveKey = currentKey;
-                         return true;//终止遍历
-                     } else {
-                         okActiveKeys.push(currentKey);
-                         return false;//继续遍历
-                     } */
-                });
-            } else {//不显示隐藏的分组
-                // const backupActiveKeys = [];
-                cardData.children.some((item) => {
-                    const currentKey = item.id + '';
-                    if (!item.hide) {//该项不是隐藏的
-                        /* if (currentKey === activeTab) {
-                            defaultActiveKey = currentKey;
-                            return true;//终止遍历
-                        } else {
-                            okActiveKeys.push(currentKey);
-                            return false;//继续遍历
-                        } */
-                    } else {
-                        //加入备选，以防止没有可用的
-                        backupActiveKeys.push(currentKey)
-                        return false;//隐藏的：跳过，继续遍历下一个
-                    }
-                });
-            }
+
+    // 处理空字符串搜索
+    /*  const processEmptySearch = async () => {
+         console.log(cardData.name + '000000000000000 processEmptySearch setActiveTab');
+         setSearching(false);
+         setShow(true);
+         //恢复默认activeTabKey
+         // if (cardData.id === 27) console.log(cardData.name + ' processEmptySearch setActiveTab', defaultActiveKey)
+         // setActiveMap(activeMap);
+         // console.log('processEmptySearch activeMap', activeMap);
+         setActiveMap(defaultActiveMap);
+         if (!dataUpdated) setData(cardData);//组件中数据未更新时，才更新cardData数据(未从)
+     } */
+
+
+    const processNotEmptySearch = (data, keyWord, showItem, searchTab) => {
+        setSearching(true);
+        // const result = searchData(keyWord.trim(), cardData);
+        // const result = searchDataAggregated(keyWord.trim(), cardData);
+        const result = searchDataAggregated(keyWord.trim(), data);
+        // console.log(cardData.name + "search keyword=" + keyWord + ",result=", result);
+        setData(result);
+        setSearchResult(result.searchResult); //（全部）搜索结果
+        setNoHiddenSearchResult(result.noHiddenSearchResult)//没有隐藏项的搜索结果
+        // setActiveMap(prev => ({ ...prev, [cardData.id]: searchTabKey })); //激活<搜索结果>Tab
+        if (searchTab) setActiveMap({ [cardData.id]: searchTabKey }); //激活<搜索结果>Tab
+        if (showItem) {//显示隐藏项目的搜索结果
+            return result.searchResult;
+        } else {//不显示隐藏项的搜索结果
+            return result.noHiddenSearchResult;
         }
-        const which = okActiveKeys.length > 0 ? okActiveKeys[0] : backupActiveKeys[0]
-        const activeKey = defaultActiveKey !== '' ? defaultActiveKey : which;
+    }
 
-        return activeKey;
-    }, [cardData]);//依赖项
-    // 一、切换Tab标签部分 end#=====================================================================
+    //当cardData发生变化或keyword发生变化(包括清空)时调用
+    const processSearchKeywordChange = (data: [], searchKeyword: string, currentSearch: boolean, searchTab: boolean,) => {
+        // console.log("processSearchInputChange", cardData.name, searchKeyword, showCard)
+        if (searchKeyword) {//有关键词->搜索->展示?
+            setTreeSelected(false);
+            if (hasResult) {//(全局？)有搜索结果时
+                const searchResult = processNotEmptySearch(data, searchKeyword, showItem, searchTab)//处理搜索结果
+                // console.log(cardData.name + ' ' + searchInput + ' searchResult', searchResult)
+                setShowSearchResult([...searchResult]);//展示搜索结果 默认展示所有搜索结果
+                //全局搜索时 有结果才显示
+                setCardShow(currentSearch || (!currentSearch && searchResult.length !== 0))
+            } else {//没有搜索结果时,如果当前搜索则展示Card
+                setCardShow(currentSearch);
+            }
+        } else {//处理空字符串搜索 显示(可能改变的)data的urlList数据 不显示搜索数据 也不需要处理搜索
+            setSearching(false);
+            setCardShow(true);
+        }
+    }
+
+    useEffect(() => {
+        console.log(cardData.name + ' useEffect >>>>>>>>>>>>>>>>>>>>>', cardData, activeMap)
+        //重新进行一次搜索,考虑hasResult并未更新，所以该Card仍然展示
+        setData(cardData);
+        processSearchKeywordChange(cardData, searchInput, currentSearch, false)//从data中搜索 根据当前Card展示与否
+        // setShowByDisplayAndGroupHide(cardData.hide, display);
+        if (!activeMap[cardData.id]) {
+            // initActiveMap(cardData.id);//初始化第一层tabs的activeTab{
+            initActiveMap(cardData.id);
+        }//初始化第一层tabs的active项
+        // if (activeTab) setActiveMap(prev => ({ ...prev, [cardData.id]: activeTab }))
+    }, [cardData]);//cardData发生变化，
+
+    /*  useEffect(() => {
+         console.log(data.name + ' useEffect 8888888888 >>>>>>>>>>>>>>>>>>>>>', data)
+     }, [data]);//data发生变化 */
+
+    useEffect(() => {
+        onKeywordChange(keyWord, false);
+    }, [keyWord]);//第一次渲染就会触发,全局搜索关键词
+
+
+    const onKeywordChange = (searchKeyword: string, currentSearch: boolean) => {
+        const keyword = searchKeyword.trim();
+        setSearchInput(keyword);
+        setCurrentSearch(currentSearch);
+        setActiveCardTab([]);//相当于tree选中节点失效,除非重新点击
+        //点击搜索后点击tab后应恢复到默认tabs
+        if (keyword === '') {
+            if (defaultActiveMap) setActiveMap(defaultActiveMap);
+            else initActiveMap(cardData.id);//初始化第一层tabs的activeTab
+        } else {//搜索结果tab
+            setActiveMap({ [data.id]: searchTabKey })
+        }
+        //是否展示当前Card: 非隐藏或设置显示，再根据搜索结果判断
+        // const showCard = !cardData.hide || display;
+        //处理关键词搜索
+        processSearchKeywordChange(data, keyword, currentSearch, true);
+    }
+
+    const onInputChange = (inputValue) => {
+        onKeywordChange(inputValue, true);
+        // setShowItem(true);
+    }
+
+    //////////////////////////////////////////////////////////////////////
+
+    /*     const defaultActiveKey = useMemo(() => {
+            let defaultActiveKey = '';
+            // if (cardData.id === '')
+            // console.log('defaultActiveKey activeTab', activeTab)
+            const okActiveKeys = [];
+            const backupActiveKeys = [];
+     
+            if (cardData.children && cardData.children.length !== 0) {
+                if (showItem) {//显示隐藏的分组
+                    cardData.children.some((item) => {
+                   chKeywo     const currentKey = item.id + '';
+                    });
+                } else {//不显示隐藏的分组
+                    // const backupActiveKeys = [];
+                    cardData.children.some((item) => {
+                        const currentKey = item.id + '';
+                        if (!item.hide) {//该项不是隐藏的
+                        } else {
+                            //加入备选，以防止没有可用的
+                            backupActiveKeys.push(currentKey)
+                            return false;//隐藏的：跳过，继续遍历下一个
+                        }
+                    });
+                }
+            }
+            const which = okActiveKeys.length > 0 ? okActiveKeys[0] : backupActiveKeys[0]
+            const activeKey = defaultActiveKey !== '' ? defaultActiveKey : which;
+     
+            return activeKey;
+        }, [cardData]);//依赖项 */
 
 
     // 每层 Tabs 的 active 状态映射，key 使用 currentPath（如 'id1-id2-id3'）
@@ -399,9 +508,41 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
          [cardData.id]: getInitialDefaultActiveKeyFromCardData(cardData)
      })); */
 
+    // 一、切换Tab标签部分 end#=====================================================================
+
     const [activeMap, setActiveMap] = useState<Record<string, string>>({});
 
 
+    const getActiveForPath = (path: string) => {
+        if (!path) return undefined;
+        const activeValue = activeMap[path];
+        return activeValue;
+    }
+
+    // 监听tab切换
+    const onLevel0TabChange = async (key: string) => {
+        // console.log('onTabChange', key)
+        setEnable(false);
+        setDropdownVisible(false);
+        setTimeout(() => {
+            setEnable(true);
+        }, 1000);
+
+        // if (cardData.id === 27) console.log(cardData.name + ' onTabChange  setActiveTab=', key)
+        // setActiveTab(key);
+        if (key !== searchTabKey) {
+            if (key === String(data.id)) {//没有二级
+                setCardTabActive(['' + data.id])
+            } else {
+                setCardTabActive(['' + data.id + ',' + key])
+            }
+        }
+    }
+
+    /*     useEffect(() => {
+            if (data.id === 'vu2pi7002') console.log('777777777777 useEffect activeMap ', cardData.name, activeMap)
+        }, [activeMap]);
+     */
     const setActiveMapThroughChildren = async (key: string, path: string,) => {
         const lastIndex = path.lastIndexOf('-');
         if (lastIndex > -1) {//A.点击的是：3级和以下分组
@@ -424,59 +565,105 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
         }
     }
 
-    const getActiveForPath = (path: string) => {
-        if (!path) return undefined;
-        return activeMap[path];
-    }
 
-    // 监听tab切换
-    const onLevel0TabChange = async (key: string) => {
-        // console.log('onTabChange', key)
-        setEnable(false);
-        setDropdownVisible(false);
-        setTimeout(() => {
-            setEnable(true);
-        }, 1000);
-
-        if (key === '0') {//保存顺序
-            const success = saveSort();
-            return;
-        }
-        // if (cardData.id === 27) console.log(cardData.name + ' onTabChange  setActiveTab=', key)
-        // setActiveTab(key);
-        if (key !== searchTabKey) {
-            if (key === String(data.id)) {//没有二级
-                setCardTabActive(['' + data.id])
+    function getNodeByTabForSearch(paths: string[], groupId) {
+        function getThroughFirstChild(paths: string[], group, index = 0) {
+            const nodes = group.children;
+            if (index < paths.length) {
+                const match = paths[index];
+                if (nodes && nodes.length > 0) {
+                    const childNodes = nodes.filter(node => node.id === match);
+                    return childNodes && childNodes.length > 0 ?
+                        getThroughFirstChild(paths, childNodes[0], index + 1) : group;
+                }
             } else {
-                setCardTabActive(['' + data.id + ',' + key])
+                if (nodes && nodes.length > 0) {
+                    const childNodes = nodes.filter(node => node.id === groupId);
+                    return childNodes.length > 0 ?
+                        getThroughFirstChild(paths, childNodes[0], index + 1) : group;
+                }
             }
+            return group;
         }
+        if (paths.length === 0) {//第一 ==> 二层
+            const nodes = data.children.filter(node => node.id === groupId);
+            return nodes.length > 0 ? nodes[0] : data;// 根节点
+        } else return getThroughFirstChild(paths, data, 0);
+
     }
 
-    useEffect(() => {
-        console.log('777777777777 useEffect activeMap ', cardData.name, activeMap)
-    }, [activeMap]);
+    function getLastChildForSearchResult(root) {
+        function getLastChild(parent) {
+            const children = parent.children;
+            // console.log("222222222222222222 getThroughSearchResult  data", data);
+            if (children.length !== 0) {//第一 ==> 二层
+                const nodes = children.filter(node => node.totalMatchCount > 0);
+                return nodes.length > 0 ? getLastChild(nodes[0]) : parent;// 根节点
+            }
+            return parent;
+        }
+        return getLastChild(root);
+    }
+
+    /*    function getThroughSearchResult(paths: string[], groupId) {
+           function getThroughFirstChild(paths: string[], group, index = 0) {
+               const nodes = group.children;
+               if (index < paths.length) {
+                   const match = paths[index];
+                   if (nodes && nodes.length > 0) {
+                       const childNodes = nodes.filter(node => node.id === match);
+                       return childNodes && childNodes.length > 0 ?
+                           getThroughFirstChild(paths, childNodes[0], index + 1) : group;
+                   }
+               } else {
+                   if (nodes && nodes.length > 0) {
+                       const childNodes = nodes.filter(node => node.id === groupId);
+                       return childNodes.length > 0 ?
+                           getThroughFirstChild(paths, childNodes[0], index + 1) : group;
+                   }
+               }
+               return group;
+           }
+     
+           if (paths.length === 0) {//第一 ==> 二层
+               const nodes = data.children.filter(node => node.id === groupId);
+               return nodes.length > 0 ? nodes[0] : data;// 根节点
+           } else return getThroughFirstChild(paths, data, 0);
+       } */
+
+    const setActiveMapThroughChildrenForSearch = async (key: string, path: string,) => {
+        const paths = path.split('-');
+        const key1 = paths.shift();//去掉第一个元素，得到第一层分组
+        // const lastChild = getThroughSearchResult(paths, key);
+        const tabNode = getNodeByTabForSearch(paths, key);
+        const lastChild = getLastChildForSearchResult(tabNode);
+        // console.log('000000000000000000 setActiveMapThroughChildrenForSearch  path key lastChild', path, key, lastChild);
+        setActiveMap(prev => ({ ...prev, ...buildActiveMap(lastChild.copy ? lastChild.path + ',' + lastChild.id : lastChild.path) }));
+        //如果点击的是复制分组，路径要加上自身id
+        // setActiveMap(prev => buildActiveMap(lastChild.copy ? lastChild.path + ',' + lastChild.id : lastChild.path));
+    }
+
 
     // 层级 onChange：根层沿用原有 onTabChange 逻辑，非根层仅更新 activeMap
-    const onLayerTabChange = (key: string, node: any, path?: string,) => {
+    const TabChange = (key: string, node: any, path: string,) => {
         // console.log('9999999999 getActiveForPath node', node, path, key);
-        if (key === searchTabKey) {
-            setActiveMap(prev => ({ ...prev, [cardData.id]: searchTabKey }))
-        } else {
+        if (searching) {
+            if (key === searchTabKey) {//搜索结果tab
+                setActiveMap(prev => ({ ...prev, [cardData.id]: searchTabKey }))
+            } else {
+                // console.log('9999999999-111111111 getActiveForPath node', data, path, key);
+                setActiveMapThroughChildrenForSearch(key, path);
+            }
+        }
+        else {
             setActiveMapThroughChildren(key, path);
             // setDropdownVisible(false);
             setEnable(false);
             setTimeout(() => {
                 setEnable(true);
-            }, 1500);
+            }, 2000);
         }
-        /*  if (!path || path === 'root') {
-             // 使用原始 onTabChange 保持现有行为（保存、activeCardTab 等）
-             // onLevel0TabChange(key);
-         } */
     }
-
-
 
 
     const switchShow = () => {
@@ -486,7 +673,7 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
     }
 
     const [enable, setEnable] = useState(true); // 控制所有 Dropdown 的禁用
-    const [defaultActiveMap, setDefaultActiveMap] = useState({}); // 控制所有 Dropdown 的禁用
+    const [defaultActiveMap, setDefaultActiveMap] = useState(null); // 控制所有 Dropdown 的禁用
     const [dropdownVisible, setDropdownVisible] = useState(false); // 控制所有 Dropdown 的禁用
     const anyDropdownOpenRef = useRef(false);
 
@@ -524,7 +711,7 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
                treeSelected1 = true;
                // console.log(cardData.name + '>>>>>>> useEffect cardActive', searchResult, cardActive, treeSelected1);
                //如果在全局搜索模式下当前Card被tree选中且搜索结果为空 =>临时显示全部
-   
+     
                //选中的Tab
                // if (tabActive && typeof tabActive === 'number') {
                if (tabActive) {
@@ -546,27 +733,44 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
        }, [activeCardTab]); */
 
 
-    async function setActiveMapByBookmarks(gId: string, path: string) {
+    function setActiveMapByTreeSelected() {
+        const pathLevels = activeCardTab.length;
+        const paths = activeCardTab.join(",");
+        if (searching) {
+            console.log('setActiveMapByTreeSelected searching  activeCardTab path ', activeCardTab, paths);
+            //根据paths循迹找到node节点，如果它还有子节点则自动active
+            if (pathLevels == 1) {
+                if (data.list) setActiveMap(buildActiveMap(paths + "," + data.id));//分组有书签数据
+                else setActiveMap(buildActiveMap(paths));
+            } else {
+                const groupId: string = activeCardTab[pathLevels - 1];
+                setActiveMapByBookmarksNum(groupId, paths);
+            }
+        } else {
+            if (pathLevels == 1) {
+                if (data.list) setActiveMap(buildActiveMap(paths + "," + data.id));//分组有书签数据
+                else setActiveMap(buildActiveMap(paths));
+            } else {
+                const groupId: string = activeCardTab[pathLevels - 1];
+                setActiveMapByBookmarksNum(groupId, paths);
+            }
+        }
+    }
+
+    async function setActiveMapByBookmarksNum(gId: string, path: string) {
         const bookmarksNum: number = await getBookmarksNumByGId(gId);
         const pathStr = bookmarksNum > 0 ? path + "," + gId : path;
         setActiveMap(buildActiveMap(pathStr));
     }
 
+
+
     useEffect(() => {
         const cardActive: string = activeCardTab[0];
-        const pathLevels = activeCardTab.length;
-
         // 受控模式
         if (cardActive === data.id) {//当前Card被选中了
             setTreeSelected(true);
-            const path = activeCardTab.join(",");
-            if (pathLevels == 1) {
-                if (data.list) setActiveMap(buildActiveMap(path + "," + data.id));//分组有书签数据
-                else setActiveMap(buildActiveMap(path));
-            } else {
-                const groupId: string = activeCardTab[pathLevels - 1];
-                setActiveMapByBookmarks(groupId, path);
-            }
+            setActiveMapByTreeSelected();
             // console.log(cardData.name + ' useEffect activeCardTab', activeCardTab, lastPath)
             //如果在全局搜索模式下当前Card被tree选中且搜索结果为空 =>临时显示全部
         } else {//当前Card没有被选中了
@@ -575,23 +779,6 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
         // setShowByDisplayAndAll(cardData.hide, display, treeSelected1);
     }, [activeCardTab]);
 
-
-    const setDataFromProps = () => {
-        if (searchInput !== '') {
-            processSearchKeywordChange(searchInput, true, show)//根据当前Card展示与否
-        } else {
-            setData(cardData);
-        }
-    }
-
-    useEffect(() => {
-        // console.log(cardData.name + ' useEffect display', display)
-        //重新进行一次搜索,考虑hasResult并未更新，所以该Card仍然展示
-        setDataFromProps();
-        //考虑是否在搜索中？
-        // setShowByDisplayAndGroupHide(cardData.hide, display);
-        // setShowByDisplayAndAll(cardData.hide, display, treeSelected);
-    }, [cardData]);//cardData发生变化，
 
     /* useEffect(() => {
         // console.log(cardData.name + ' useEffect display', display)
@@ -623,9 +810,6 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
     //三、切换显示/隐藏部分==================================================================================== 
     useEffect(() => {
         // if (cardData.id === 9) console.log(cardData.name + ' useEffect display1', display)
-
-        // setTreeSelected(false);
-        // console.log(cardData.name + ' useEffect display', display, searching, showSearchResult, searchResult);
         setShowItem(display);//显示该分组下的隐藏项 重新渲染
         //如果当前ActiveKey为隐藏项且当前切换为隐藏 --> 切换到第一个tab项
         if (cardData.itemHide) processShowChange(display);//Card分部分组的切换显/隐
@@ -672,14 +856,13 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
             } else { //无搜索结果：
                 // console.log(cardData.name + '--------------- searchResult= 0 ', groupHide, display, treeSelected1);
                 // toShow = display && treeSelected1;
-                // toShow = display && treeSelected1;
                 toShow = groupHide ? display && treeSelected1 : treeSelected1;
             }
         } else { //无搜索:看是否有隐藏相或展示隐藏
             toShow = !groupHide || display;
         }
         // if (cardData.id == 9) console.log(cardData.name + '>>>>>> setShowByDisplayAndAllSearchResult', display, searchResult, toShow);
-        setShow(toShow);//显示√,隐藏 
+        setCardShow(toShow);//显示√,隐藏 
     }
 
     const processShowChange = (showItem: boolean) => {
@@ -705,12 +888,12 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
             })
             if (toReplaceActive) {//需要切换
                 if (searching) {
-                    // if (cardData.id === 27) console.log(cardData.name + ' processShowChange setActiveTab=', searchTabKey)
+                    //  console.log(cardData.name + ' processShowChange setActiveTab=', searchTabKey)
                     // setActiveTab(searchTabKey);
                 }
                 else if (unHiddenGroupArr.length > 0) {
                     const replaceActiveKey = unHiddenGroupArr[0] + '';
-                    // if (cardData.id === 27) console.log(cardData.name + ' processShowChange setActiveTab=', replaceActiveKey)
+                    //  console.log(cardData.name + ' processShowChange setActiveTab=', replaceActiveKey)
                     // setActiveTab(replaceActiveKey);
                 }
             }
@@ -752,113 +935,35 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
         if (success) {
             setResort(false);
             getGroupData();
-
         }
         // return success;
     }
 
 
-    const onClickSort = (key: string, event) => {
-        if (key === '0') {//保存
-            const success = saveSort();
-        } else if (key === '1') {//取消
-            setDataFromProps();//还原顺序
-            setResort(false);
-        }
-    }
+    /*    const onClickSort = (key: string, event) => {
+           if (key === '0') {//保存
+               const success = saveSort();
+           } else if (key === '1') {//取消
+               setDataFromProps();//还原顺序
+               setResort(false);
+           }
+       } */
     //五、排序相关 end====================================================================================
 
 
     //二、关键词搜索部分====================================================================================
-    useEffect(() => {
-        // console.log(cardData.name + ' useEffect keyWord', keyWord)
-        setSearchInput(keyWord);
-        setCurrentSearch(false);
-        //是否展示当前Card: 非隐藏或设置显示，再根据搜索结果判断
-        const showCard = !cardData.hide || display;
-        //处理关键词搜索
-        processSearchKeywordChange(keyWord, false, showCard);
-    }, [keyWord]);//第一次渲染就会触发
 
 
     async function initActiveMap(pGroupId: string) {
         const lastChild = await getThroughChild(pGroupId);
         const activeMap = buildActiveMap(lastChild.path);
-        // if (pGroupId === 'qrz3nhln3') console.log('useEffect[] lastChild initActiveMap', lastChild, activeMap);
+        // if (pGroupId === 'vu2pi7002')
+        //     console.log('bbbbbbbbbbbbbbbbbbbbbbbb useEffect[] lastChild initActiveMap', lastChild, activeMap);
         setActiveMap(activeMap);
         setDefaultActiveMap(activeMap);//默认的 缓存起来
     }
 
 
-    // 处理空字符串搜索
-    const processEmptySearch = async () => {
-
-        // console.log(cardData.name + ' processEmptySearch setActiveTab', defaultActiveKey);
-        setSearching(false);
-        setShow(true);
-        //恢复默认activeTabKey
-        // if (cardData.id === 27) console.log(cardData.name + ' processEmptySearch setActiveTab', defaultActiveKey)
-        // setActiveTab(defaultActiveKey);
-        // setActiveMap(activeMap);
-        console.log('processEmptySearch activeMap', activeMap);
-        setActiveMap(defaultActiveMap);
-        setData(cardData);//展示原始的全部数据
-    }
-
-    const onInputChange = (inputValue) => {
-        // console.log('onInputChange', inputValue)
-        // processSearchKeywordChange(inputValue, true, show)//根据当前Card展示与否
-        // processSearchKeywordChange(inputValue, true, show)//根据当前Card展示与否
-        processSearchKeywordChange(inputValue, true, true)//根据当前Card展示与否
-        setSearchInput(inputValue);
-        //不再全局搜索
-        setCurrentSearch(true);
-        // setShowItem(true);
-    }
-
-    const processNotEmptySearch = (keyWord, showItem) => {
-        setSearching(true);
-        const result = searchData(keyWord.trim(), cardData);
-        setData(result);
-        console.log(cardData.name + "search keyword=" + keyWord + ",showItem=" + showItem, result.searchResult);
-        setSearchResult(result.searchResult) //（全部）搜索结果
-        setNoHiddenSearchResult(result.noHiddenSearchResult)//没有隐藏项的搜索结果
-        // setActiveTab(searchTabKey)//激活<搜索结果>Tab
-        setActiveMap(prev => ({ ...prev, [cardData.id]: searchTabKey })); //激活<搜索结果>Tab
-        if (showItem) {//显示隐藏项目的搜索结果
-            return result.searchResult;
-        } else {//不显示隐藏项的搜索结果
-            return result.noHiddenSearchResult;
-        }
-    }
-
-    const processSearchKeywordChange = (searchKeyword: string, currentSearch: boolean, showCard: boolean) => {
-        // console.log("processSearchInputChange", cardData.name, searchKeyword, showCard)
-        if (searchKeyword && searchKeyword.trim()) {//有关键词->搜索->展示?
-            setTreeSelected(false);
-            // console.log(cardData.name + " ===================search=" + searchKeyword + ",showCard", showCard)
-            if (hasResult) {//(全局？)有搜索结果时
-                const searchResult = processNotEmptySearch(searchKeyword, showItem)//处理搜索结果
-                // console.log('searchResult',)
-                // console.log(cardData.name + ' ' + searchInput + ' searchResult', searchResult)
-                setShowSearchResult([...searchResult]);//展示搜索结果 默认展示所有搜索结果
-
-                //全局搜索时 有结果才显示
-                if (showCard) setShow(currentSearch || (!currentSearch && searchResult.length !== 0))
-                else setShow(showCard);
-                // setShow(true);
-
-            }
-            else {//没有搜索结果时
-                // if (showCard) setShow(currentSearch)
-                // else setShow(showCard);
-                setShow(showCard && currentSearch);
-            }
-        } else {//处理空字符串搜索
-            processEmptySearch()
-            setShow(showCard);
-        }
-    }
     //二、关键词搜索部分end ====================================================================================
 
 
@@ -993,11 +1098,13 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
 
     const [editTag, setEditTag] = useState(null);//添加Tab
 
-    const onEditTag = (tag: WebTag, nodePath: string) => {
+    const onEditTag = (tag: WebTag, nodePath: string, searching: boolean) => {
+        // console.log('onEditTag searching', searching, tag);
         setAddTagVisible(true);
         setEditTag(tag);
-        // setTagSelectGroup(cardData.id === tag.gId ? [tag.gId] : [cardData.id, tag.gId])
-        setTagSelectGroup(nodePath.split(","))
+        if (searching) {
+            setTagSelectGroup(tag.path.split(","))
+        } else setTagSelectGroup(nodePath.split(","))
     }
 
     async function processRemoveGroup(id: number) {
@@ -1086,7 +1193,7 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
                 const response = await removeGroupById(subGroup.id);
                 if (response) {
                     getGroupData();
-                    console.log('删除成功', subGroup);
+                    // console.log('删除成功', subGroup);
                     const pId = subGroup.pId;
                     const str = subGroup.path;
                     const lastIndex = str.lastIndexOf(',');
@@ -1096,11 +1203,11 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
                         const part2 = str.substring(lastIndex + 1); // +1 是为了跳过逗号本身
 
                         if (activeMap[key] === part2) {  //如果被删除的分组为active,则切换到兄弟tab
-                            // console.log('44444444444 如果被删除的分组为active', part2);
+                            // console.log('444444444444444444444 如果被删除的分组为active', part2);
                             const lastChild = await getThroughChild(pId);
                             setActiveMap(buildActiveMap(lastChild.path));
                         } else {
-                            // console.log('44444466666666666 broGroup newActiveMap 11', activeMap);
+                            // console.log('66666666666666666666 broGroup newActiveMap 11', activeMap);
                             setActiveMap(activeMap);//点击下拉菜单之前的数据
                         }
                     }
@@ -1184,6 +1291,7 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
                     <IconMore />
                 </div> */}
             {subGroup.name}
+            {/* {subGroup.copy ? 'copy' : 'self'} */}
             {subGroup.hide ? <IconEyeInvisible></IconEyeInvisible> : ''}
 
         </Dropdown>
@@ -1192,68 +1300,77 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
     const [loading, setLoading] = useState(true);
 
     //提交成功后关闭或取消关闭Modal窗口
-    async function closeAddTagModal(success: boolean, newTag: WebTag, type: number) {
+    async function updateCardData() {
+        getBookmarksGroupById(data.id).then((resultData) => {
+            const groupData = resultData.groupData;
+            // 必须通过 dispatch 派发 thunk action
+            // dispatch(updatePageDataState(resultData.pageData));//groups变化会触发重新渲染顶层组件(已订阅)
+            if (searching) {//搜索模式
+                const result = searchDataAggregated(searchInput.trim(), groupData);
+                // console.log('close Modal searchDataAggregated searchResult', result.searchResult);
+                if (result.searchResult.length == 0) {//ok
+                    setActiveMap({ [data.id]: searchTabKey });
+                }
+                setSearchResult(result.searchResult); //（全部）搜索结果
+                setShowSearchResult(result.searchResult); //（全部）搜索结果
+                setData(result);
+            } else {
+                setData(groupData);
+            }
+        })
+    }
+
+
+    async function closeTagModal(success: boolean, newTag: WebTag, type: number) {
         setAddTagVisible(false);
         if (success) {//刷新当前页面数据
             // console.log('close Modal group', newTag);
             if (newTag) {//所在的分组，重置位置
-                if (type === 0) {//修改了分组
-                    // console.log('close Modal group', newTag);
+                if (type === 0) {//修改了分组,更新整个页面的数据
                     const group = await getBookmarkGroupById(newTag.gId);
-                    const activeMap = buildActiveMap(group.path);
-                    setActiveMap(activeMap);
-                    await getGroupData();
-                } else if (type === 1) {
-                    refreshDataByUpdateBookmark(newTag);//修改
-                } else if (type === 2) {
-                    refreshDataByAddBookmark(newTag);//新增
+                    const pId = group.path.split(',')[0];
+                    if (pId !== data.id) { //变为属于别的大分组
+                        await getGroupData();
+                    } else {//active所属新的tab分组（无论搜索中与否）
+                        const activeMap = buildActiveMap(group.path);
+                        setActiveMap(activeMap);
+                        updateCardData(); //仅重置Card(搜索)数据
+                    }
+                } else {//  if (type >= 1) 修改书签1 新增书签2 重置(搜索)数据
+                    updateCardData();
+                    // refreshDataByUpdateBookmark(newTag);//修改书签
+                    // refreshDataByAddBookmark(newTag);//新增书签
                 }
             }
         }
     }
 
 
-    function buildActiveMap(path) {
-        // console.log('buildActiveMap path', path);
-        const parts = path.split(',').map(s => s.trim());
-        const result = {};
-        // 前 n-1 个作为 standard key
-        for (let i = 0; i < parts.length - 1; i++) {
-            const key = parts.slice(0, i + 1).join('-');
-            const value = parts[i + 1];
-            result[key] = value;
-        }
-        return result;
-    }
 
     const processReload = async (group) => {
         await getGroupData();
-        // if (group && group.type == "folder") {
         if (group) {
-            // console.log('33333333  processReload', group);
-            // console.log('33333333  setActiveGroup', activeMap);
+            // console.log('3333333333333333333  processReload', group);
             dispatch(updateActiveGroup(group));
-            const activeMap = buildActiveMap(group.path);
-            setActiveMap(activeMap); //适合新增，修改Group
+            if (searching) {
+                setActiveCardTab(group.path.split(',')); //适合新增，修改Group
+            } else {
+                const activeMap = buildActiveMap(group.path);
+                setActiveMap(activeMap); //适合新增，修改Group
+            }
+            // 设置新的定时器
+            // clearTimeout(timeoutId);
+            // timeoutId = setTimeout(() => {
+            // }, 500);
         }
-        // 设置新的定时器
-        // clearTimeout(timeoutId);
-        // timeoutId = setTimeout(() => {
-        // }, 500);
     }
 
     //提交成功后关闭或取消关闭Modal窗口
     async function closeTabModal(success: boolean, group: any) {
+        // console.log('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa close Tab Modal', success, group);
         setTabForm(false);
         if (success) {//刷新当前页面数据
             processReload(group);
-            /*  if (cardData.id !== group.pId) {//pId发生了变化 设置activegroup
-                 dispatch(updateActiveGroup(group))
-             } else if (!group.hide || showItem) {//仍然在当前大分组
-                 setActiveTab(group.id + '')
-             }
-             await getGroupData();
-              */
         }
     }
 
@@ -1348,7 +1465,24 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
                     };
                     const newUrlList = [...node.urlList];
                     newUrlList[idx] = updatedBookmark;
-                    return {
+
+                    if (searching) {
+                        const idx1 = node.searchResult.findIndex((item: any) => item.id === tagId);
+                        if (idx1 !== -1) {
+                            const searchBookmark = node.searchResult[idx1];
+                            const resultList = [...node.searchResult];
+                            const updatedSearchBookmark = {
+                                ...searchBookmark,
+                                ...bookmark,
+                            };
+                            resultList[idx1] = updatedSearchBookmark;
+                            return {
+                                node: { ...node, urlList: newUrlList, searchResult: resultList },
+                                updated: true,
+                            };
+                        }
+                    }
+                    else return {
                         node: { ...node, urlList: newUrlList },
                         updated: true,
                     };
@@ -1391,21 +1525,44 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
         });
     }
 
+
     function refreshData1(tag: WebTag) {
         // 纯函数：在 node 上尝试删除 tag，返回新的 node 以及是否已删除的标记
-        function removeTagFromNode(node: any, tagId: string | number): { node: any; removed: boolean } {
+        function removeTagFromNode(node: any, tagId: string | number): { node: any; removed: boolean, empty?: boolean } {
+            // function removeTagFromNode(node: any, tagId: string | number): { node: any; removed: boolean } {
             // 如果当前节点有 urlList，优先在此层尝试删除
             if (Array.isArray(node.urlList) && node.urlList.length > 0) {
                 const idx = node.urlList.findIndex((item: any) => item.id === tagId);
-                if (idx !== -1) {
-                    const removedItem = node.urlList[idx];
-                    const newUrlList = node.urlList.filter((item: any) => item.id !== tagId);
+                if (idx !== -1) {//
+
+                    //搜索模式下,可能是复制子节点数据上移到原分组导致实际删除失败
+                    // const removedItem = node.urlList[idx];
+                    // const newUrlList = node.urlList.filter((item: any) => item.id !== tagId);
                     // 仅当被删除项不是隐藏项时，才减少 notHideTabCount
-                    const decrease = removedItem && removedItem.hide ? 0 : 1;
-                    const newNotHide = Math.max(0, (node.notHideTabCount || 0) - decrease);
+                    // const decrease = removedItem && removedItem.hide ? 0 : 1;
+                    // const newNotHide = Math.max(0, (node.notHideTabCount || 0) - decrease);
+                    const list = [...node.urlList];
+                    list.splice(idx, 1);
+                    // node.urlList = list;
+
                     // 返回新的节点并标记已删除，终止进一步递归
-                    return {
-                        node: { ...node, urlList: newUrlList, notHideTabCount: newNotHide },
+                    if (searching) {
+
+                        const idx1 = node.searchResult.findIndex((item: any) => item.id === tagId);
+                        // node.searchResult.splice(idx1, 1);//会修改原数组
+                        const list1 = [...node.searchResult];
+                        list1.splice(idx1, 1);
+
+                        return {
+                            node: { ...node, urlList: list, searchResult: list1, totalMatchCount: list1.length },
+                            removed: true,
+                            // empty: node.searchResult.length === 0//当前节点搜索结果为空
+                            empty: list1.length === 0//当前节点搜索结果为空
+                        }
+                    }
+
+                    else return {
+                        node: { ...node, urlList: list },
                         removed: true,
                     };
                 }
@@ -1416,6 +1573,9 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
                 const newChildren: any[] = [];
                 let removedFlag = false;
 
+                let emptyNode: boolean = false;
+                let removedIndex = -1;
+                let removedChildId = null;
                 for (let i = 0; i < node.children.length; i++) {
                     const child = node.children[i];
                     if (removedFlag) {
@@ -1424,33 +1584,118 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
                         continue;
                     }
                     const res = removeTagFromNode(child, tagId);
+
+                    //搜索模式下，子节点变空，不加入newChildren
                     newChildren.push(res.node);
+
+                    // 记录被删除的子节点索引与 id，供后续切换逻辑使用
                     if (res.removed) {
                         removedFlag = true;
-                        // don't break here because we still need to append the remaining original children unchanged
-                        // 但后续循环会直接 push 原 child（see branch above）
+                        removedIndex = i;
+                        removedChildId = child && child.id;
                     }
+                    emptyNode = res.empty;//子节点数据为空
                 }
 
+
+                //遍历完子节点后处理↓
                 if (removedFlag) {
-                    return { node: { ...node, children: newChildren }, removed: true };
+                    if (searching) {
+
+                        //节点的总搜索结果过滤删除项
+                        const idx1 = node.searchResult.findIndex((item: any) => item.id === tagId);
+                        if (idx1 !== -1) {
+                            const list1 = [...node.searchResult];
+                            list1.splice(idx1, 1);
+                            node.searchResult = list1;
+                        }
+
+                        if (emptyNode && node.totalMatchCount > 1) { //子tab变空-->切换到switchNode（兄弟tab）
+                            let switchNode = null; // 要切换为 activeTab 的节点
+
+                            // 从 newChildren 中筛选出除了被删除子节点外，仍有数据的兄弟分组
+                            const candidates = newChildren.filter((c, idx) => {
+                                // 排除被删除的子节点
+                                if (removedChildId != null && c && c.id === removedChildId) return false;
+                                return Number(c.totalMatchCount || 0) > 0;
+                            });
+
+                            if (candidates.length > 0) {
+                                // 若只有一个候选且该候选是复制分组(copy===true)，则优先切换到父分组(node)
+                                if (candidates.length === 1 && candidates[0].copy) {
+                                    switchNode = node;
+                                } else {
+                                    // 否则选第一个候选（保持原有顺序的稳定性）
+                                    switchNode = candidates[0];
+                                }
+                            }
+                            // console.log('000000000 要切换为 activeTab 的节点', switchNode);
+                            if (switchNode) {
+                                const path = switchNode.path || '';
+                                // 计算父层 path（去掉最后一段），作为 setActiveMapThroughChildrenForSearch 的路径参数
+                                const lastIdx = path.lastIndexOf(',');
+                                const paths = lastIdx > -1 ? path.substring(0, lastIdx) : path;
+                                setActiveMapThroughChildrenForSearch(switchNode.id, paths.replaceAll(',', '-'));
+                            }
+                        }
+                        //返回处理后的node
+                        return {
+                            node: { ...node, children: newChildren, totalMatchCount: node.totalMatchCount - 1 },//结果数-1
+                            removed: true,
+                            //搜索模式增加字段：
+                            empty: node.totalMatchCount - 1 === 0,//无数据：空,留给父节点判断是否要加入children
+                        };
+                    }
+                    else return { node: { ...node, children: newChildren }, removed: true };
                 }
             }
             // 未找到，返回原节点并标记未删除
             return { node, removed: false };
         }
 
+        //更新cardData数据
         setData(prev => {
             if (!prev) return prev;
             // 从根节点开始递归查找并删除，找到后立即停止进一步修改
-            const result = removeTagFromNode(prev, tag.id);
+            const result = removeTagFromNode(prev, tag.id);//已删除的结果和其他信息
+            if (searching && result.removed) {//已删除
+                //更新搜索结果(总)
+                const newSearchResult = result.node.searchResult.filter(item => item.id !== tag.id);
+                setShowSearchResult(newSearchResult);
+                if (newSearchResult.length === 0) {//搜索结果为空
+                    setActiveMap({ [prev.id]: searchTabKey }); //搜索结果为空，切换到搜索结果tab
+                }
+                // console.log('1111111111111111111111 result.node.empty newSearchResult result.node', result.empty, result.node);//搜索结果为空
+                return {
+                    ...result.node,
+                    searchResult: newSearchResult,
+                    totalMatchCount: result.node.totalMatchCount - 1
+                }
+            }
             return result.removed ? result.node : prev;
         });
     }
 
-
     function handleDeleteSuccess(tag: WebTag) {
-        refreshData1(tag);
+        // refreshData1(tag);//设置data数据与db保持一致
+        //当前所属分组变为空?切换到兄弟节点tab
+        //查询所在分组的urlList,若为空，则切换到搜索结果tab（根据pId）
+        getBookmarksGroupById(data.id).then((resultData) => {
+            const groupData = resultData.groupData;
+            // 必须通过 dispatch 派发 thunk action
+            // dispatch(updatePageDataState(resultData.pageData));//groups变化会触发重新渲染顶层组件(已订阅)
+            if (searching) {//搜索模式
+                const result = searchDataAggregated(searchInput.trim(), groupData);
+                if (result.searchResult.length == 0) {//ok
+                    setActiveMap({ [data.id]: searchTabKey });
+                }
+                setSearchResult(result.searchResult); //（全部）搜索结果
+                setShowSearchResult(result.searchResult); //（全部）搜索结果
+                setData(result);
+            } else {
+                setData(groupData);
+            }
+        })
     }
 
     function determinShowTabOrNot(item: any) {
@@ -1460,9 +1705,7 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
             //展示隐藏的分分组
             if (showItem) {//展示隐藏的分分组（但搜索结果urlList不能为空）
                 // console.log('>>>>>>>>>> determinShowTabOrNot', item.name, item, showItem);
-                // dis = (item.urlList && item.urlList.length > 0) || item.id == activeTab;
                 dis = item.urlList && item.urlList.length > 0;
-                // console.log(">>>>>>>>>" + item.name, dis);
             } else {//不展示隐藏的分分组
                 // console.log('<<<<<<<<<<< determinShowTabOrNot', item.name, item.hide, showItem);
                 // dis = (!item.hide && item.notHideTabCount > 0) || item.id == activeTab
@@ -1480,6 +1723,7 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
         list: Array<WebTag>,
         selectGroup: string,
         // empty: boolean,
+        searching: boolean
     ) => {
         if (!list || list.length == 0) {
             return <Empty />;
@@ -1494,6 +1738,7 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
                             <TagItem tag={item}
                                 // parentHide={groupHide}
                                 no={pageId}
+                                searching={searching}
                                 editTag={onEditTag}
                                 onDeleteSuccess={handleDeleteSuccess}
                                 loading={loading}
@@ -1521,12 +1766,26 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
             const data = node;
             if (level === 0) {//仅有一层根层
                 return (
-                    (show) &&
                     <>
                         <Card id={data.id} key={data.id}
+
                             title={
-                                <a onClick={() => onCardTitleClick(data.id)}> <span>{data.name} {data.hide ? <IconEyeInvisible></IconEyeInvisible> : ''}</span>
-                                </a>
+                                <>
+                                    {/* <span>{data.name}</span> */}
+                                    <a onClick={() => onCardTitleClick(data.id)}> <span>{data.name} {data.hide ? <IconEyeInvisible></IconEyeInvisible> : ''}</span>
+                                    </a>
+                                    {data.hide ? <IconEyeInvisible></IconEyeInvisible> : ''}
+
+                                    <ButtonGroup style={{ marginLeft: "10px" }}>
+                                        <Button onClick={(e) => addTagOrGroup(data.id)} icon={<IconPlus />} >添加</Button>
+                                        <Button onClick={editGroup1} icon={<IconEdit />} >编辑</Button>
+                                        {data.hide && <Button onClick={switchGroup1} icon={<IconEye />} >展示</Button>}
+                                        {!data.hide && <Button onClick={switchGroup1} icon={<IconEyeInvisible />} >隐藏</Button>}
+                                        <Button onClick={removeGroup1} icon={<IconDelete />} >删除</Button>
+                                        {/* {data.urlList.length > 0 && <Button onClick={clearGroup} icon={<IconEraser />} >清空</Button>} */}
+                                        {data.urlList.length > 0 && < Button onClick={(e) => openGroupAllTags(data)} icon={<IconLink />} >打开</Button>}
+                                    </ButtonGroup>
+                                </>
                             }
                             extra={
                                 <div className='card-no-child-more'>
@@ -1550,25 +1809,24 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
                             {searching ?
                                 <Tabs
                                     type="card-gutter"
-                                    // onChange={onLayerTabChange}
-                                    onChange={onLevel0TabChange}
-                                // activeTab={activeTab}
+                                    onChange={TabChange}
+                                // onChange={onLevel0TabChange}
                                 >
                                     <TabPane key={searchTabKey} title={<span style={{ color: 'red' }}>{`搜索结果(${showSearchResult.length})`}</span>}>
                                         <div className={styles.container}>
                                             <div className={styles['single-content']}>
-                                                {renderTags(showSearchResult, data.path)}
+                                                {renderTags(showSearchResult, data.path, true)}
                                             </div>
                                         </div>
                                     </TabPane>
                                 </Tabs>
                                 :
-                                <div className={styles.container}>
-                                    <div className={styles['single-content-border']}>
-                                        {/* {renderTags(false, true, data.urlList, [data.id])} */}
-                                        {renderTags(data.urlList, data.path)}
-                                    </div>
+                                // <div className={styles.container}>
+                                <div className={styles['single-content-border']}>
+                                    {renderTags(data.urlList, data.path, false)}
                                 </div>
+                                // </div>
+
                             }
                         </Card>
 
@@ -1584,19 +1842,14 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
 
             // 非根层叶子：返回 tags 容器，父层 TabPane 会放置该内容
             return (
-                <div className={styles.container}>
-                    <div className={styles['single-content-border']}>
-                        {renderTags(data.urlList, data.path)}
-                    </div>
-                </div>
+                renderTags(searching ? data.searchResult : data.urlList, data.path, false)
             );
         }
 
-        // 非叶子：使用 Card 包裹 Tabs（将 Card 放在顶部，参考 render2sCard）
+        // 非叶子：使用 Card 包裹 Tabs（将 Card 放在顶部）
         const data = node;
         return (
-            (show) &&
-                level == 0 ?
+            level == 0 ?
                 <Card id={data.id} key={data.id}
                     title={
                         <>
@@ -1610,12 +1863,23 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
                         </>
                     }
                     extra={
-                        data.itemHide && <div style={{ marginLeft: '15px', fontSize: '14px' }}>
-                            <Typography.Text style={{ color: 'var(--color-text-2)' }}>显示</Typography.Text>
-                            <Switch size='small' style={{ marginLeft: 12, marginRight: 12 }} checked={showItem} onChange={switchShow}></Switch>
-                        </div>
+                        <>
+                            {/*   data.itemHide && <div style={{ marginLeft: '15px', fontSize: '14px' }}>
+                                <Typography.Text style={{ color: 'var(--color-text-2)' }}>显示</Typography.Text>
+                                <Switch size='small' style={{ marginLeft: 12, marginRight: 12 }} checked={showItem} onChange={switchShow}></Switch>
+                            </div> */}
+
+                            <Input.Search
+                                allowClear
+                                style={{ width: '240px' }}
+                                placeholder={`在${data.name}中搜索`}
+                                onChange={onInputChange}
+                                value={searchInput}
+                            />
+                        </>
                     }
-                    style={{ width: '100%' }}
+                    style={{ width: '100%' }
+                    }
                 >
                     <TabsContainer
                         data={data}
@@ -1623,20 +1887,20 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
                         level={level}
                         RenderNode={RenderNode}
                         handleAddTab={handleAddTab}
-                        onTabChange={onLayerTabChange}
+                        onTabChange={TabChange}
                         activeTab={getActiveForPath(currentPath)}
                         onInputChange={onInputChange}
                         searchInput={searchInput}
-                        resort={resort}
-                        onClickSort={onClickSort}
                         determinShowTabOrNot={determinShowTabOrNot}
                         WrapTabNode={WrapTabNode}
                         moveTabNode={moveTabNode}
                         searching={searching}
-                        searchResult={searchResult}
-                        cardData={cardData}
+                        // searchResult={searchResult}
+                        // cardData={cardData}
+                        // currentSearch={currentSearch}
+                        // resort={resort}
+                        // onClickSort={onClickSort}
                         activeCardTab={activeCardTab}
-                        currentSearch={currentSearch}
                         tabMore={tabMore}
                         showItem={showItem}
                         searchTabKey={searchTabKey}
@@ -1651,7 +1915,7 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
                         renderSearchContent={() => (
                             <div className={styles.container}>
                                 <div className={styles['single-content']}>
-                                    {renderTags(showSearchResult, data.path)}
+                                    {renderTags(showSearchResult, data.path, true)}
                                 </div>
                             </div>
                         )}
@@ -1666,20 +1930,21 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
                     level={level}
                     RenderNode={RenderNode}
                     handleAddTab={handleAddTab}
-                    onTabChange={onLayerTabChange}
+                    onTabChange={TabChange}
                     activeTab={getActiveForPath(currentPath)}
                     onInputChange={onInputChange}
                     searchInput={searchInput}
-                    resort={resort}
-                    onClickSort={onClickSort}
+                    // globalActiveTabId={globalActiveTabId}
+                    // resort={resort}
+                    // onClickSort={onClickSort}
                     determinShowTabOrNot={determinShowTabOrNot}
                     WrapTabNode={WrapTabNode}
                     moveTabNode={moveTabNode}
                     searching={searching}
-                    searchResult={searchResult}
-                    cardData={cardData}
+                    // searchResult={searchResult}
+                    // cardData={cardData}
                     activeCardTab={activeCardTab}
-                    currentSearch={currentSearch}
+                    // currentSearch={currentSearch}
                     tabMore={tabMore}
                     showItem={showItem}
                     searchTabKey={searchTabKey}
@@ -1694,7 +1959,7 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
                     renderSearchContent={() => (
                         <div className={styles.container}>
                             <div className={styles['single-content']}>
-                                {renderTags(showSearchResult, data.path)}
+                                {renderTags(showSearchResult, data.path, true)}
                             </div>
                         </div>
                     )}
@@ -1705,9 +1970,9 @@ function renderCard({ cardData, display, activeCardTab, activeGroup, setCardTabA
     // 返回结果
     return (
         <DndProvider backend={HTML5Backend}>
-            {RenderNode(data, data.id, 0)}
+            {cardShow && RenderNode(data, data.id, 0)}
             {/* 添加或编辑标签、分组 */}
-            <TagForm isVisible={addTagVisible} selectGroup={tagSelectGroup} data={editTag} closeWithSuccess={closeAddTagModal}></TagForm>
+            <TagForm isVisible={addTagVisible} selectGroup={tagSelectGroup} data={editTag} closeWithSuccess={closeTagModal}></TagForm>
             <TabGroupForm selectGroup={selectGroup} pageId={pageId} visible={tabForm} closeWithSuccess={closeTabModal} group={tabGroup}></TabGroupForm>
         </DndProvider>
     )

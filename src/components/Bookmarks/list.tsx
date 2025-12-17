@@ -80,7 +80,7 @@ function BookmarksPages(props: BookmarksPageProps) {
   // console.log('useEffect BookmarksPages addedPageIds', addedPageIds);
   // const [newPageIds, setNewPageIds] = useState<number[]>(() => addedPageIds || []);
   // 本地是否已修改过 newPageIds（用户交互后设为 true），如果为 true 则不再由 props 覆盖
-  console.log("BookmarksPages currentPageId=", currentPageId);
+  // console.log("BookmarksPages currentPageId=", currentPageId);
 
   function onItemClick(item: BookmarksPageData, index: number) {
     props.onItemClick && props.onItemClick(item, index);

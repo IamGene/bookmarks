@@ -266,15 +266,15 @@ function App(props: GroupFormParams) {
                         rules={[
                             {
                                 type: 'array',
-                                required: true,
+                                required: false,
                                 // required: require,
                             }
                         ]}
                     >
 
-
                         <Cascader
-                            placeholder='Please select ...'
+                            // placeholder='Please select ...'
+                            placeholder={t['cardList.select.group.placeholder']}
                             options={cascaderOptions}
                             showSearch
                             // mode='multiple'

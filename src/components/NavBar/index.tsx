@@ -45,10 +45,9 @@ import useStorage from '@/utils/useStorage';
 import { generatePermission } from '@/routes';
 import { removeToken } from '@/utils1/auth';
 import { useStore } from '@/store1';
-import { } from '@/store/modules/global';
-import { getPages } from "@/db/bookmarksPages";
 import CreatePageGroup from '@/pages/navigate/user/form/add_page_group';
 import { updateUserInfo, reloadUserPages, fetchBookmarksPageData } from '@/store/modules/global';
+
 const api = import.meta.env.VITE_REACT_APP_BASE_API;
 // function Navbar({ show }: { show: boolean }, setNavBarKey) {
 function Navbar({ pageNo, pages, show, display, setNavBarKey, setAllDisplay }) {
@@ -59,7 +58,8 @@ function Navbar({ pageNo, pages, show, display, setNavBarKey, setAllDisplay }) {
   // console.log(" ===================pageNo=", pageNo);
   // const { userInfo, userLoading } = useSelector((state: GlobalState) => state);
   const globalState = useSelector((state: any) => state.global);
-  const { userInfo, userLoading } = globalState;
+  const { userInfo, userLoading, currentPage } = globalState;
+  // console.log(" ===================currentPage=", currentPage);
 
   const [_, setUserStatus] = useStorage('userStatus');
   const [role, setRole] = useStorage('userRole', 'admin');
@@ -223,10 +223,22 @@ function Navbar({ pageNo, pages, show, display, setNavBarKey, setAllDisplay }) {
           setBookmarkPages(pages);
         }
         // await dispatch(asyncUserPages(pages));
-
         // switchPageId(pageId);
       } else { //添加书签分组->刷新页面数据
-        switchPageId(pageId);
+        // switchPageId(pageId);
+        // console.log('xxxxxxxxxxxxxxxxxx', currentPageId, pageId);
+        if (currentPage.pageId === pageId) {
+          await dispatch(fetchBookmarksPageData(pageId));//获取当前书签页的分组和书签数据
+        } else {//非当前书签页
+          const idx = pages.findIndex(p => p.pageId === pageId);
+          if (idx !== -1) {
+            // 不要就地修改可能是不可扩展/冻结的对象，使用不可变方式创建新数组和对象
+            const updated = pages.map(p =>
+              p.pageId === pageId ? { ...p, new: true } : p
+            );
+            setBookmarkPages(updated);
+          }
+        }
         // switchPageId(item.pageId);//切换显示数据
       }
       // setAddedBookmarkPages([data.pageId]);
@@ -253,7 +265,6 @@ function Navbar({ pageNo, pages, show, display, setNavBarKey, setAllDisplay }) {
       return false;
     }
   }
-
 
 
   // 在组件卸载或其他合适时机清除定时器
@@ -375,7 +386,8 @@ function Navbar({ pageNo, pages, show, display, setNavBarKey, setAllDisplay }) {
           }
 
           <Settings />
-          {userInfo && (
+          {/* 头像 */}
+          {/* {userInfo && (
             <li>
               <Dropdown droplist={droplist} position="br" disabled={userLoading}>
                 <Avatar size={32} style={{ cursor: 'pointer' }}>
@@ -387,7 +399,9 @@ function Navbar({ pageNo, pages, show, display, setNavBarKey, setAllDisplay }) {
                 </Avatar>
               </Dropdown>
             </li>
-          )}
+          )} */}
+
+
         </ul>
 
       </div >

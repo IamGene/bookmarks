@@ -134,7 +134,6 @@ const initialState: GlobalState = {
   defaultPage: null,
   currentPage: null,
   pages: [],
-  pageId: null,
   activeGroup: null,
   loadedBookmarks: null
 }
@@ -193,6 +192,7 @@ const globalSlice = createSlice({
       state.defaultPage = action.payload.defaultPage;
       state.pages = action.payload.pages;
     },
+    //test..........................
     updateActiveGroup: (state, action) => {
       state.activeGroup = action.payload;
     },
@@ -244,7 +244,7 @@ const fetchBookmarksPageData = (pageId: number) => {
       const list = res;
       const hideGroup: boolean = hasHidden(list);
       const treeData = filterChildrenArrayByPath(list);
-      // console.log('999999999999 fetchTagGroupsData treeData', treeData);
+      console.log('999999999999 fetchTagGroupsData treeData', list);
       dispatch(updateTagGroups({ groups: list, hideGroup: hideGroup, currentPage: currentPage, treeData: treeData }));
       return res; // 直接返回整个响应对象
     } else {
@@ -256,6 +256,14 @@ const fetchBookmarksPageData = (pageId: number) => {
   }
 };
 
+
+const updatePageDataState = (pageData: any[]) => {
+  return async (dispatch) => {
+    const hideGroup: boolean = hasHidden(pageData || []);
+    const treeData = filterChildrenArrayByPath(pageData || []);
+    dispatch(updateTagGroups({ groups: pageData, hideGroup: hideGroup, treeData }));
+  };
+};
 
 const loadNewAddedBookmarks = (bookmarks: WebTag[]) => {
   // console.log('2222222222 loadNewAddedBookmarks action', bookmarks);
@@ -275,6 +283,6 @@ const reloadUserPages = () => {
 
 // export const { updateSettings, updateUserInfo, updateHasResult, updateTagGroups } = globalSlice.actions;
 const { updateSettings, updateUserInfo, updateHasResult, updateTagGroups, setUserPages, updateActiveGroup, setLoadBookmarks } = globalSlice.actions;
-export { updateSettings, updateUserInfo, updateHasResult, updateTagGroups, updateActiveGroup, reloadUserPages, fetchBookmarksPageData, loadNewAddedBookmarks };
+export { updateSettings, updateUserInfo, updateHasResult, updateTagGroups, updateActiveGroup, updatePageDataState, reloadUserPages, fetchBookmarksPageData, loadNewAddedBookmarks };
 export default globalSlice.reducer;
 // export { dispatchTagGroupsData };

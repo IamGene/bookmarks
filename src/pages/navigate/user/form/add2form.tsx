@@ -35,11 +35,9 @@ function App(props: TagDataParams) {
   const [confirmLoading, setConfirmLoading] = useState(false);
 
   const globalState = useSelector((state: any) => state.global);
-  // const { groups } = globalState;
   const { treeData } = globalState;
   // console.log('sssssssssss tag form data', selectGroup, groups)
   const cascaderOptions = treeData;
-  // const cascaderOptions = groups;
 
   //要显示的选择分组
   // const [optionValues, setOptionValues] = useState(selectGroup);
@@ -55,17 +53,7 @@ function App(props: TagDataParams) {
     const saveData = await submitTagData(tag)
     Message.success('Success !');
     setConfirmLoading(false);
-    // console.log('processSaveTag', group);
-    // setVisible(false);
     closeWithSuccess(true, saveData)//相当于点击取消/关闭按钮
-
-    /* if (sucess) {
-      Message.success('Success !');
-      setConfirmLoading(false);
-      // setVisible(false);
-      closeWithSuccess(true)//相当于点击取消/关闭按钮
-      // setType(0);
-    } */
   }
 
   const onOk = async () => {
@@ -358,7 +346,7 @@ function App(props: TagDataParams) {
 
   const [type, setType] = useState(0);
   const onTypeChange = (value, event) => {
-    if (value === "标签") {
+    if (value === "书签") {
       setType(1)
     } else {
       setType(2)
@@ -399,7 +387,7 @@ function App(props: TagDataParams) {
           }}
         >
           <Form.Item field='type' label='类型'>
-            <Radio.Group onChange={onTypeChange} options={['标签', '分组']}></Radio.Group>
+            <Radio.Group onChange={onTypeChange} options={['书签', '分组']}></Radio.Group>
           </Form.Item>
         </Form>
 

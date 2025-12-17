@@ -154,10 +154,12 @@ function App(props: TagDataParams) {
                     value: data ? data.pageId : null
                 },
                 name: {
-                    value: data ? data.name : ''
+                    // value: data ? data.name : ''
+                    value: data ? (data.originalName ? data.originalName : data.name) : ''
                 },
                 description: {
-                    value: data ? data.description : ''
+                    // value: data ? data.description : ''
+                    value: data ? (data.originalDescription ? data.originalDescription : data.description) : ''
                 },
                 hide: {
                     value: data ? data.hide : false
@@ -414,8 +416,8 @@ function App(props: TagDataParams) {
                             allowClear
                             value={optionValues}
                             onChange={(value, options) => {
-                                // console.log(value, options);
-                                setOptionValues(value)
+                                console.log(value, options);
+                                // setOptionValues(value)
                             }}
 
                             fieldNames={{

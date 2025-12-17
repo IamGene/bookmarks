@@ -42,10 +42,14 @@ export interface WebTag {
   description: string;
   hide: boolean;
   gId: string;
+  path?: string;//所在group的path
+
   pageId: number;
   date?: string;
   name: string;
-  url?: string;
+  url: string;
+  originalName?: string;
+  originalDescription?: string;
   //搜索关键词时name会被Element类型取代,无法获知原来的长度以tooltip展示，所以保存在这个变量里
   nameLength?: number;
   img?: string;

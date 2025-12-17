@@ -514,6 +514,42 @@ export async function exportAllPagesJson() {
     }
 }
 
+export async function getBookmarksGroupById(groupId) {
+    try {
+        const db = await getDB();
+        const group = await db.get('nodes', groupId);
+        if (!group) return null;
+
+        // 读取整页树并规范化（合并因同时包含子文件夹和书签而分裂的节点）
+        const pageId = group.pageId;
+        const pageTree = await getPageTree(pageId);
+        // const normalized = processPageTree(pageTree);
+
+        // 递归查找目标分组
+        function findNode(nodes, id) {
+            if (!Array.isArray(nodes)) return null;
+            for (let i = 0; i < nodes.length; i++) {
+                const node = nodes[i];
+                if (node.id === id) return node;
+                if (node.children) {
+                    const found = findNode(node.children, id);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+        // const result = findNode(normalized, groupId);
+        const groupData = findNode(pageTree, groupId);
+        // return result || null;
+        const data = {
+            pageData: pageTree, groupData: groupData
+        }
+        return groupData ? data : null;
+    } catch (e) {
+        console.error('getBookmarksGroupById error', e);
+        return null;
+    }
+}
 
 export async function addBookmarksPage(title) {
     try {
@@ -540,7 +576,7 @@ export async function addBookmarksPage(title) {
 export async function resortNodes(sortData: any[]) {
     try {
         const db = await getDB();
-        console.log('sortData', sortData);
+        // console.log('sortData', sortData);
         for (let i = 0; i < sortData.length; i++) {
             const sortedNode = sortData[i];
             const group = await db.get('nodes', sortedNode.id);
@@ -548,7 +584,7 @@ export async function resortNodes(sortData: any[]) {
                 ...group,
                 ...sortedNode
             }
-            console.log('sortData 1111111111', newGroup);
+            // console.log('sortData 1111111111', newGroup);
             await db.put('nodes', newGroup);
         }
         return true;
@@ -747,18 +783,25 @@ export async function getThroughChild(groupId) {
         if (nodes && nodes.length > 0) {//b.其中一个子分组
             if (nodes.length > 1) {
                 // nodes.sort((a, b) => (a.addDate ?? 0) - (b.addDate ?? 0));
-                nodes.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+                nodes.sort((a, b) => {
+                    const aValue = a.order ?? a.addDate ?? 0;
+                    const bValue = b.order ?? b.addDate ?? 0;
+                    return aValue - bValue;
+                });
             }
             const firstChildNode = nodes[0];
+            // console.log(' getThroughChild firstChildNode 333333333', firstChildNode);
             if (urls.length > 0 && group.order1 < firstChildNode.order) {//优先选择排序在前面的
-                return { ...group, path: group.path + ',' + group.id };
-            }//本身有书签数据，但排序不在最前，则返回本身
+                return { ...group, path: group.path + ',' + group.id };//本身有书签数据，但排序不在最前，则返回本身
+            }
             return getLastChild(firstChildNode, db);
         } else {//c.其他情况，返回本身，结束了
             return group;
         }
     }
     const db = await getDB();
+
+
     const group = await db.get('nodes', groupId);
     return getLastChild(group, db); // 根节点
 }
@@ -889,8 +932,8 @@ export async function getPageTree(pageId) {
     function buildTree(parentId, parentPath) {
         return nodes
             .filter(node => node.pId === parentId)
-            // .sort((a, b) => isRoot ? (a.addDate ?? 0) - (b.addDate ?? 0) : (b.addDate ?? 0) - (a.addDate ?? 0))
-            .sort((a, b) => !parentId ? ((b.addDate ?? 0) - (a.addDate ?? 0)) : ((a.order ?? 0) - (b.order ?? 0)))
+            .sort((a, b) => !parentId ? ((b.addDate ?? 0) - (a.addDate ?? 0)) : ((a.order ?? a.addDate ?? 0) - (b.order ?? b.addDate ?? 0)))
+
             .map(node => {
                 const currentPath = parentPath ? parentPath + ',' + node.id : node.id;
                 const children = buildTree(node.id, currentPath);
@@ -904,11 +947,12 @@ export async function getPageTree(pageId) {
                         ...node,
                         children: [],
                         copy: true,
+                        order: node.order1 ? node.order1 : 0,
                         list: false,
                         urlList: urlList,
                     };
                     if (node.order1) {
-                        const idx = Math.max(0, Math.floor(Number(node.order1)));
+                        const idx = Math.max(0, Math.floor(node.order1));
                         const newChildren = [...children];
                         // 若索引超出范围，则追加到末尾；否则在指定位置插入
                         const insertIndex = Math.min(idx, newChildren.length);
@@ -944,7 +988,8 @@ export function processPageTree(originalTree) {
         }
         for (let i = 0; i < nodes.length; i++) {
             const parentNode = nodes[i];
-            if (parentNode.type === 'folder' && Array.isArray(parentNode.children) && parentNode.children.length > 0) {
+            // if (parentNode.type === 'folder' && Array.isArray(parentNode.children) && parentNode.children.length > 0) {
+            if (Array.isArray(parentNode.children) && parentNode.children.length > 0) {
                 // 查找并处理特殊子节点
                 const specialChildIndex = parentNode.children.findIndex(child => child.path === parentNode.path);
                 if (specialChildIndex !== -1) {

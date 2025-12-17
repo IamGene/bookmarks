@@ -77,11 +77,37 @@ function App({ data, setTreeSelected, treeSelectedKeys, inputValue, setTreeInput
         setExpand(!expand)
     }
 
+    /*  useEffect(() => {
+     // let filteredData = filterChildrenArrayByPath(data);
+     // setTreeData(filteredData);
+     if (!inputValue || !inputValue.trim()) {
+         setTempExpand(false);
+         setTreeData(data);
+     } else {
+         let searchData1 = searchData(inputValue, data);
+         setTreeData(searchData1);
+         console.log('inputValue useEffect', inputValue, data, searchData1);
+         if (searchData1.length) {
+             setTempExpand(true);
+         }
+     }
+ }, [inputValue]);
+*/
+
+    //切换隐藏/显示
+    /*  useEffect(() => {
+         //过滤隐藏的
+         if (display) {
+             setTreeData(data)
+         } else {
+             setTreeData(filterTreeData1)
+         }
+     }, [display]); */
+
     const onInputChange = (inputValue) => {
         setTreeInputValue(inputValue)
     }
     const [selectedKeys, setSelectedKeys] = useState([]);
-
 
     function getExpandedKeys(parts) {
         // console.log('buildActiveMap path', path);
@@ -107,9 +133,8 @@ function App({ data, setTreeSelected, treeSelectedKeys, inputValue, setTreeInput
     };
 
 
-
     const onTreeSelect = (selectedKeys, extra) => {
-        console.log('==========selectedKeys', selectedKeys, extra)
+        // console.log('==========selectedKeys', selectedKeys, extra)
         //回传当前选中项到父组件传递到兄弟组件展示对应的Card和Tab
         setTreeSelected(selectedKeys);
         //高亮选中的key
@@ -120,29 +145,16 @@ function App({ data, setTreeSelected, treeSelectedKeys, inputValue, setTreeInput
             // setExpandedKeys(selectedKeys);
             const selectedKey: string = selectedKeys[0];
             const stringArray = selectedKey.split(',');
-            // const activeCardTab: number[] = stringArray.map(Number);
-            const keys = stringArray.map(String);
-            // console.log('=========onTreeSelect keys isNotLeaf', keys);
+            // const keys = stringArray.map(String);
             // setExpandedKeys(selectedKeys.join(","));
-            // console.log(' ========= getExpandedKeys', getExpandedKeys(selectedKeys));
-
-            // 测试
-            // const sourceStr: string = 'vu2pi7002,j6wzf38ph,voqqcfkih,1g0wet3v0';
-
-            // if (keys.length > 1) {
             const output: string[] = processString(selectedKey);
-            // console.log(output);
-            console.log('=========onTreeSelect keys output', output);
+            // console.log('=========onTreeSelect keys output', output);
             // 将 output 中的元素追加到现有 expandedKeys 中，去重保留已有顺序
             setExpandedKeys(prev => {
-                const prevArr = Array.isArray(prev) ? prev : [];
-                const merged = Array.from(new Set([...prevArr, ...output]));
+                // const prevArr = Array.isArray(prev) ? prev : [];
+                const merged = Array.from(new Set([...prev, ...output]));
                 return merged;
             });
-            // setExpandedKeys(keys);
-            /*  } else {
-                 setExpandedKeys(selectedKeys);
-             } */
         }
     }
 
@@ -171,32 +183,7 @@ function App({ data, setTreeSelected, treeSelectedKeys, inputValue, setTreeInput
         }
     }, [data]);
 
-    /*  useEffect(() => {
-         // let filteredData = filterChildrenArrayByPath(data);
-         // setTreeData(filteredData);
-         if (!inputValue || !inputValue.trim()) {
-             setTempExpand(false);
-             setTreeData(data);
-         } else {
-             let searchData1 = searchData(inputValue, data);
-             setTreeData(searchData1);
-             console.log('inputValue useEffect', inputValue, data, searchData1);
-             if (searchData1.length) {
-                 setTempExpand(true);
-             }
-         }
-     }, [inputValue]);
-  */
 
-    //切换隐藏/显示
-    /*  useEffect(() => {
-         //过滤隐藏的
-         if (display) {
-             setTreeData(data)
-         } else {
-             setTreeData(filterTreeData1)
-         }
-     }, [display]); */
 
     useEffect(() => {
         // 选中节点
@@ -219,10 +206,10 @@ function App({ data, setTreeSelected, treeSelectedKeys, inputValue, setTreeInput
                 showLine={checked}
                 selectedKeys={selectedKeys}
                 onSelect={onTreeSelect}
-
+                // expandedKeys={expandedKeys}
                 fieldNames={{
-                    // key: 'path',
-                    key: 'id',
+                    key: 'path',
+                    // key: 'id',
                     title: 'name',
                 }}
 
@@ -248,8 +235,8 @@ function App({ data, setTreeSelected, treeSelectedKeys, inputValue, setTreeInput
                             </AnchorLink>
                         );
                     }
-                    // return <AnchorLink hash={false} href={`#${hrefId}`} onClick={(event) => scrollToAnchor(event, `${hrefId}`)} title={name} />;
-                    return <AnchorLink hash={false} href={`#${hrefId}`} onClick={(event) => scrollToAnchor(event, `${path}`)} title={name} />;
+                    // return <AnchorLink hash={false} href={`#${hrefId}`} onClick={(event) => scrollToAnchor(event, `${path}`)} title={name} />;
+                    return <AnchorLink href={`#${hrefId}`} onClick={(event) => scrollToAnchor(event, `${path}`)} title={name} />;
                 }}
             >
                 <Anchor animation affix={false} hash={false} lineless></Anchor>
