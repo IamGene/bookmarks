@@ -34,6 +34,7 @@ import getUrlParams from '@/utils/getUrlParams';
 import { RootState } from '@/store';
 import { updateUserInfo } from '@/store/modules/global';
 import { generatePermission } from '@/routes';
+import { naviData } from './naviData';
 import Navi from './navigate';
 import styles from '@/style/layout.module.less';
 // import './index.css'
@@ -378,7 +379,9 @@ function Navigate() {
 
   useEffect(() => {
     // getData();
-    getNaviData();
+    // getNaviData();
+    setList(naviData);//Card
+    setData(naviData);//Menu
     // setDefaultUserInfo()
   }, []);
 

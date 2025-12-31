@@ -212,24 +212,26 @@ export async function savePageBookmarks(pageData) {
         const db = await getDB();
         const { pageId, title, createdAt, root, type } = pageData;
         await db.put('pages', { pageId, title, createdAt, updatedAt: createdAt, type });
-        async function saveNode(node, parentId, order) {
+        async function saveNode(node, parentId, parentPath, order) {
             const nodeId = uuid();
             // console.log('node.addDate', node.addDate);
+            const nodePath = parentPath ? `${parentPath},${nodeId}` : `${nodeId}`
             await db.put('nodes', {
                 id: nodeId,
                 pageId,
-                type: node.type,
                 name: node.name,
                 order,
-                title: node.title,
-                url: node.url || null,
-                hide: false,
-                path: parentId ? `${parentId},${nodeId}` : `${nodeId}`,
                 pId: parentId,
                 addDate: node.addDate,
-                last_modified: node.last_modified,
-                description: node.description,
-                icon: node.icon,
+                lastModified: node.last_modified,
+                // hide: false,
+                // type: node.type,
+                // description: node.description,
+                // icon: node.icon,
+                // title: node.title,
+                // url: node.url || null,
+                // path: parentId ? `${parentId},${nodeId}` : `${nodeId}`,
+                path: nodePath,
             });
             // 顺序保存 urlList
             if (Array.isArray(node.urlList)) {
@@ -240,12 +242,12 @@ export async function savePageBookmarks(pageData) {
                         id: uuid(),
                         pageId,
                         gId: nodeId,
-                        type: url.type,
+                        // type: url.type,
+                        // title: url.title,
+                        // hide: url.hide,
                         name: url.name,
+                        description: url.description,//和name相同
                         url: url.url,
-                        title: url.title,
-                        description: url.description,
-                        hide: url.hide,
                         icon: url.icon,
                         addDate: url.addDate,
                         date: date
@@ -255,13 +257,13 @@ export async function savePageBookmarks(pageData) {
             // 顺序保存 children
             if (Array.isArray(node.children)) {
                 for (let i = 0; i < node.children.length; i++) {
-                    await saveNode(node.children[i], nodeId, i);
+                    await saveNode(node.children[i], nodeId, nodePath, i);
                 }
             }
         }
         // root 顺序保存
         for (let i = 0; i < root.length; i++) {
-            await saveNode(root[i], null, i);
+            await saveNode(root[i], null, null, i);
         }
         return true;
     } catch (e) {
@@ -988,6 +990,7 @@ export function processPageTree(originalTree) {
         }
         for (let i = 0; i < nodes.length; i++) {
             const parentNode = nodes[i];
+            parentNode.type = 'folder';
             // if (parentNode.type === 'folder' && Array.isArray(parentNode.children) && parentNode.children.length > 0) {
             if (Array.isArray(parentNode.children) && parentNode.children.length > 0) {
                 // 查找并处理特殊子节点
@@ -1079,7 +1082,10 @@ export async function removeGroupById(groupId) {
  */
 export async function generateBookmarkHTML(pageId: number): Promise<string> {
     const originalPageTree = await getPageTree(pageId);
+    // console.log('generateBookmarkHTML originalPageTree ', originalPageTree);
     const pageTree = processPageTree(originalPageTree);
+    // console.log('generateBookmarkHTML pageTree ', pageTree);
+
     const topLevelBookmarkBarNames = ['书签栏', '收藏夹栏', '书签工具栏'];//顶层书签栏
     const topLevelOtherBookmarkBarNames = ['移动设备和其他书签', '移动和其他收藏夹', '其他书签'];//移动设备和其他书签栏
 
@@ -1122,7 +1128,7 @@ export async function generateBookmarkHTML(pageId: number): Promise<string> {
             }
 
 
-            if (node.type === 'folder') {
+            if (node.type === 'folder') {//处理文件夹
                 htmlStr += `${'  '.repeat(level)}<DT><H3>${node.name || node.title}</H3>\n`;
                 htmlStr += `${'  '.repeat(level)}<DL><p>\n`;
 
@@ -1136,7 +1142,7 @@ export async function generateBookmarkHTML(pageId: number): Promise<string> {
                 }
 
                 htmlStr += `${'  '.repeat(level)}</DL><p>\n`;
-            } else {
+            } else {//处理书签
                 const addDate = Math.floor((node.addDate || Date.now()) / 1000);
                 const lastVisit = Math.floor((node.last_modified || node.addDate || Date.now()) / 1000);
                 htmlStr += `${'  '.repeat(level)}<DT><A HREF="${node.url}" addDate="${addDate}" LAST_VISIT="${lastVisit}" ICON="${node.icon || ''}">${node.name || node.title}</A>\n`;

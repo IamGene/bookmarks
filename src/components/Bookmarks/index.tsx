@@ -280,7 +280,6 @@ function DropContent({ pages, currentPage, pagesChange, activeRename, activeKey 
 }
 
 
-// function BookmarkPageBox({ children, pages, currentPage, newBookmarkPages, setCurrentPage }) {
 function BookmarkPageBox({ children, pages, currentPage, setCurrentPage }) {
   // 提供一个ref给DropContent
   const [popupVisible, setPopupVisible] = React.useState(false);

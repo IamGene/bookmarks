@@ -120,7 +120,7 @@ function Imports(props: BookmarksPageProps) {
 
             const now = new Date();
             const pad = (n: number) => n < 10 ? '0' + n : n;
-            const dateStr = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
+            // const dateStr = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
             // const cTitleBase = `${browserName}书签-${dateStr}`;
 
             // 检查已有title前缀

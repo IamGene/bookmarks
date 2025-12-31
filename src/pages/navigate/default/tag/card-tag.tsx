@@ -16,8 +16,8 @@ const App = (props) => {
             data-toggle="tooltip" data-placement="bottom" title="">
             <div className="xe-comment-entry">
                 <a className="xe-user-img">
-                    <img src={`${api}${tag.icon}`}
-                        // <img src={`${tag.icon}`}
+                    {/* <img src={`${api}${tag.icon}`} */}
+                    <img src={`${tag.icon}`}
                         className="lozad img-circle"
                         width="40"></img>
                 </a>
