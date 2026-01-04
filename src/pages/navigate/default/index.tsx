@@ -35,7 +35,8 @@ import { RootState } from '@/store';
 import { updateUserInfo } from '@/store/modules/global';
 import { generatePermission } from '@/routes';
 import { naviData } from './naviData';
-import Navi from './navigate';
+// import Navi from './navigate';
+import Sections from './sections';
 import styles from '@/style/layout.module.less';
 // import './index.css'
 
@@ -73,57 +74,6 @@ const defaultUserInfo = {
   permissions: generatePermission(userRole),
 };
 
-// 找出含有关键词？
-function searchData1(list, keyword) {
-  let hasResult: boolean = false;
-  const regex = new RegExp(`(${keyword})`, 'gi');
-  for (let i = 0; i < list.length; i++) {
-    const data = list[i];
-    if (data.naviList.length > 0) {
-      //重复
-      const naviList = data.naviList;
-      for (let k = 0; k < naviList.length; k++) {
-        const navi = naviList[k];
-        let name = navi.name;
-        let description = navi.description;
-        const parts = name.split(regex);
-        if (parts.length >= 3) {
-          hasResult = true;
-          break;
-        }
-        const parts1 = description.split(regex);
-        if (parts1.length >= 3) {
-          hasResult = true;
-          break;
-        }
-      }
-    }
-    const children = data.children;
-    if (children.length > 0) {
-      for (let j = 0; j < children.length; j++) {
-        const naviList = children[j].naviList;
-        for (let k = 0; k < naviList.length; k++) {
-          const navi = naviList[k];
-          let name = navi.name;
-          let description = navi.description;
-
-          const parts = name.split(regex);
-          if (parts.length >= 3) {
-            hasResult = true;
-            break;
-          }
-          const parts1 = description.split(regex);
-          if (parts1.length >= 3) {
-            hasResult = true;
-            break;
-          }
-          //没有 不用搜索;有—>传入keyword,每个搜索
-        }
-      }
-    }
-  }
-  return hasResult;
-}
 
 function getIconFromKey(key) {
   switch (key) {
@@ -220,9 +170,8 @@ function Navigate() {
     []
   );
 
-  const [data, setData] = useState(
-    []
-  );
+  const [data, setData] = useState([]);
+  // const [tempExpand, setTempExpand] = useState(false);
 
   const defaultSelectedKeys = [currentComponent || defaultRoute];
   const paths = (currentComponent || defaultRoute).split('/');
@@ -289,13 +238,53 @@ function Navigate() {
   const getTreeSelect = (selected) => {
     const value = selected[0];
     const stringArray: string[] = value.split(',');
-    const activeCardTab: number[] = stringArray.map(Number);
+    const activeCardTab: string[] = stringArray.map(String);
     setTreeSelected(activeCardTab);
   }
 
   // 接收Tree传过来的关键词过滤后的数据
   const getTreeSearchData = (treeData) => {
     setData(treeData);
+  }
+
+
+  // 找出含有关键词？
+  // 通用递归搜索：支持任意深度的 children
+  function escapeRegExp(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function searchDataRecursive(list, keyword) {
+    if (!keyword || !keyword.trim()) return false;
+    const k = keyword.trim();
+    const regex = new RegExp(escapeRegExp(k), 'i');
+
+    function nodeHasMatch(node) {
+      if (!node) return false;
+      if (node.urlList && node.urlList.length > 0) {
+        for (let i = 0; i < node.urlList.length; i++) {
+          const navi = node.urlList[i] || {};
+          const name = (navi.name || '') + '';
+          const description = (navi.description || '') + '';
+          if (regex.test(name) || regex.test(description)) return true;
+        }
+      }
+      if (node.children && node.children.length > 0) {
+        for (let j = 0; j < node.children.length; j++) {
+          if (nodeHasMatch(node.children[j])) return true;
+        }
+      }
+      return false;
+    }
+
+    for (let i = 0; i < list.length; i++) {
+      if (nodeHasMatch(list[i])) return true;
+    }
+    return false;
+  }
+
+  function searchData2(list, keyword) {
+    return searchDataRecursive(list, keyword);
   }
 
   // 接收Tree传过来的关键词
@@ -326,15 +315,29 @@ function Navigate() {
   // let hasResult = true;
   // 接收NavBar传过来的搜索关键词
   const [navbarKeyWord, setNavbarKeyWord] = useState('');
+  /*   const getNavBarKey = (keyword) => {
+      setNavbarKeyWord(keyword)
+      console.log('qqqqqqqqqqqqqqqq', keyword);
+      // 关键词过滤
+      if (!keyword || !keyword.trim()) {
+        setHasResult(true)
+      } else {//不为空
+        const hasResult = searchData1(list, keyword);
+        setHasResult(hasResult)
+      }
+    } */
+
   const getNavBarKey = (keyword) => {
-    setNavbarKeyWord(keyword)
+    setNavbarKeyWord(keyword);
     // 关键词过滤
     if (!keyword || !keyword.trim()) {
-      setHasResult(true)
+      setHasResult(true);
     } else {//不为空
-      const hasResult = searchData1(list, keyword);
-      setHasResult(hasResult)
+      const hasResult = searchData2(list, keyword);
+      // console.log('00000000000 search', keyword, hasResult);
+      setHasResult(hasResult);
     }
+    // setNavbarKeyWord(keyword)
   }
 
   const api = import.meta.env.VITE_REACT_APP_BASE_API;
@@ -487,7 +490,8 @@ function Navigate() {
         })}
       >
         {/* <Navbar show={showNavbar} setNavBarKey={getNavBarKey} /> */}
-        <Navbar show={showNavbar} pageNo={null} pages={[]} display={null} setNavBarKey={getNavBarKey} setAllDisplay={null} />
+        <Navbar show={showNavbar} pageType={'navigates'} display={null} setNavBarKey={getNavBarKey} setAllDisplay={null} />
+        {/* <Navbar show={showNavbar} pageNo={currentPage} pages={bookmarkPages} display={hideGroup ? hiddenGroup : null} setNavBarKey={getNavBarKey} setAllDisplay={getAllDisplay} /> */}
       </div>
       {userLoading ? (
         <Spin className={styles['spin']} />
@@ -523,7 +527,21 @@ function Navigate() {
                   {renderRoutes(locale)(data, 1)}
                 </Menu>
                   :
-                  <Tree setTreeSelected={getTreeSelect} treeSelectedKeys={treeSelectedKeys} data={data} inputValue={treeInputValue} setTreeInputValue={getTreeInputValue}></Tree>
+                  /*  <Tree setTreeSelected={getTreeSelect}
+                     treeSelectedKeys={treeSelectedKeys}
+                     data={data}
+                     inputValue={treeInputValue}
+                     setTreeInputValue={getTreeInputValue}>
+                   </Tree> */
+
+                  <Tree setTreeSelected={getTreeSelect}
+                    treeSelectedKeys={treeSelectedKeys}
+                    // data={data}
+                    // data={treeDatas}
+                    data={data}
+                    inputValue={treeInputValue}
+                    setTreeInputValue={getTreeInputValue}>
+                  </Tree>
                 }
               </div>
               <div className={styles['collapse-btn']} onClick={toggleCollapse}>
@@ -546,7 +564,9 @@ function Navigate() {
               )}
               <Content>
                 {/* Card-Tab列表 */}
-                <Navi activeCardTab={treeSelected} keyWord={navbarKeyWord} setCardTabActive={getCardTabActive} list={list} hasResult={hasResult} loading={loading}></Navi>
+                {/* <Sections activeCardTab={treeSelected} keyWord={navbarKeyWord} setCardTabActive={getCardTabActive} list={list} hasResult={hasResult} loading={loading}></Sections> */}
+                {/* <Sections activeCardTab={treeSelected} display={true} keyWord={navbarKeyWord} activeGroup={getCardTabActive} setCardTabActive={getCardTabActive} hasResult={hasResult} list={list} loading={loading}></Sections> */}
+                <Sections activeCardTab={treeSelected} display={true} keyWord={navbarKeyWord} setCardTabActive={getCardTabActive} hasResult={hasResult} list={list} loading={loading}></Sections>
               </Content>
             </div>
             {showFooter && <Footer />}

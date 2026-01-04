@@ -203,9 +203,17 @@ function BookmarksPages(props: BookmarksPageProps) {
     // onSwitchPage(item);
     // testUpdate();
     // const path = await getNodePath({ id: '3ve0wr3tn', pId: 'voqqcfkih' })
-    // console.log("getNodePath path", path);
-
-
+    /* console.log("href", window.location.href);
+      const href = window.location.href;
+     const lastIndex = href.lastIndexOf('/');
+     if (lastIndex > -1) {//A.点击的是：3级和以下分组
+       const last = href.substring(lastIndex + 1).trim();
+       console.log("href last", last);
+     } */
+    //else {} //是首页
+    if (window.location.href.indexOf('/bookmarks') === -1) {
+      window.location.href = '/bookmarks';
+    }
     /*  if (isContained(item.pageId)) {
        // 点击切换到刚添加的书签页，取消红点：使用函数式更新以避免闭包取到过期状态
        setNewPageIds(prev => prev.filter(id => id !== item.pageId));

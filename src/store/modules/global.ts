@@ -133,7 +133,7 @@ const initialState: GlobalState = {
   hiddenGroup: false,//有隐藏分组
   defaultPage: null,
   currentPage: null,
-  pages: [],
+  pages: null,
   activeGroup: null,
   loadedBookmarks: null
 }
@@ -188,9 +188,24 @@ const globalSlice = createSlice({
       state.currentPage = action.payload.currentPage;
     },
     setUserPages: (state, action) => {
-      // console.log('1111111111 setUserPages', action.payload);
       state.defaultPage = action.payload.defaultPage;
       state.pages = action.payload.pages;
+      // 兼容性处理：如果 payload 中没有 defaultPage，则从 pages 中自动选取
+      /* const pagesPayload = action.payload.pages || [];
+      state.pages = pagesPayload;
+      if (action.payload.defaultPage !== undefined && action.payload.defaultPage !== null) {
+        state.defaultPage = action.payload.defaultPage;
+      } else {
+        const defaultPageObj = Array.isArray(pagesPayload) && pagesPayload.length > 0
+          ? pagesPayload.find(p => p.default === true)
+          : null;
+        state.defaultPage = defaultPageObj ? defaultPageObj.pageId : (pagesPayload[0]?.pageId ?? null);
+      }
+      // 同时设置 currentPage 为默认页对象（如果存在）
+      if (state.defaultPage) {
+        const current = Array.isArray(pagesPayload) ? pagesPayload.find(p => p.pageId === state.defaultPage) : null;
+        state.currentPage = current || state.currentPage;
+      } */
     },
     //test..........................
     updateActiveGroup: (state, action) => {

@@ -1,5 +1,6 @@
 import { Modal, Button, Form, Input, Radio, Select, Message } from '@arco-design/web-react';
 import { useRef, useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 // import { Form, Input, Message, Radio, Button, Select } from '@arco-design/web-react';
 import { exportPageJson, getPageBookmarks, generateBookmarkHTML } from '@/db/bookmarksPages';
 import { BookmarksPageData } from './list';
@@ -21,6 +22,9 @@ function ExportModal({ page, visible, onClose }: ExportModalProps) {
     const pageId = page?.pageId;
     const pageName = page?.title;
 
+    const globalState = useSelector((state: any) => state.global);
+    const { groups } = globalState;
+
     useEffect(() => {
         // 当 pageName 或 pageId 变化时，重置表单的 fileName 字段,如果page为空，则不设置
         if (visible) {
@@ -39,7 +43,8 @@ function ExportModal({ page, visible, onClose }: ExportModalProps) {
             const res = await form.validate();
             setConfirmLoading(true);
             if (res.fileType === 'JSON') {
-                await exportJsonPage(res.fileName);
+                // await exportJsonPage(res.fileName);
+                await exportPageGroupsJson('groups');
             } else {
                 await exportHtmlPage(res.fileName);
             }
@@ -90,6 +95,26 @@ function ExportModal({ page, visible, onClose }: ExportModalProps) {
         if (res && res.pages) {
             // 将 JSON 对象转换为格式化的字符串
             const jsonString = JSON.stringify(res, null, 2);
+            // 创建一个 Blob 对象
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            // 创建一个指向该 Blob 的 URL
+            const url = URL.createObjectURL(blob);
+            // 创建一个临时的 a 标签用于下载
+            const a = document.createElement('a');
+            a.href = url;
+            // a.download = `${res.pages[0].title}.json`; // 设置下载的文件名
+            a.download = `${filename}.json`; // 设置下载的文件名
+            a.click(); // 触发下载
+            // 释放 URL 对象
+            URL.revokeObjectURL(url);
+        }
+    }
+
+    async function exportPageGroupsJson(filename: string) {
+        // 导出书签页
+        if (groups) {
+            // 将 JSON 对象转换为格式化的字符串
+            const jsonString = JSON.stringify(groups, null, 2);
             // 创建一个 Blob 对象
             const blob = new Blob([jsonString], { type: 'application/json' });
             // 创建一个指向该 Blob 的 URL

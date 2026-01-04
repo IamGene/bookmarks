@@ -9,7 +9,9 @@ import locale from './locale';
 import styles from './style/index.module.less';
 import CardBlock1 from './card-block1';
 import CardItem from './card';
-import CardEmpty from './card-empty';
+// import CardEmpty from './card-empty';
+import EmptyCard from '@/components/EmptyCard/index';
+// import CardEmpty from './;
 
 // const TabPane = Tabs.TabPane;
 // import AddCard from './card-add';
@@ -21,11 +23,10 @@ const TabPane = Tabs.TabPane;
 const { Row, Col, GridItem } = Grid;
 // import { BackTop, Button, Select, Input, Typography, Space } from '@arco-design/web-react';
 
-function ListCard({ activeCardTab, display, activeGroup, setCardTabActive, keyWord, list, hasResult, loading }) {
+function ListCard({ activeCardTab, display, setCardTabActive, keyWord, list, hasResult, loading }) {
   const t = useLocale(locale);
 
-
-
+  // console.log('zzzzzzzzzzz has result', hasResult);
 
   // const { activeCardTab, display, activeGroup, setCardTabActive, keyWord, list, hasResult, loading } = props;
   let search: boolean = keyWord && keyWord.length > 0;
@@ -178,6 +179,7 @@ function ListCard({ activeCardTab, display, activeGroup, setCardTabActive, keyWo
         })}
 
         {/* {(!hasResult || (list && list.length === 0)) && <CardEmpty search={search}></CardEmpty>} */}
+        {(!hasResult || (list && list.length === 0)) && <EmptyCard search={search}></EmptyCard>}
 
         {/* <Footer /> */}
         {/* 三 */}

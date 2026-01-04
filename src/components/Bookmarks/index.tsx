@@ -212,7 +212,7 @@ function DropContent({ pages, currentPage, pagesChange, activeRename, activeKey 
              </Button>
            } */
           extra={
-            pages.length > 0 &&
+            pages && pages.length > 0 &&
             <Button type="text" icon={<IconDownload />} onClick={() => exportAll()}>
               {/* {t['message.empty']} */}
               {'导出全部'}
@@ -227,7 +227,7 @@ function DropContent({ pages, currentPage, pagesChange, activeRename, activeKey 
               <span>
                 {pageTab.titleIcon}
                 {pageTab.title}
-                {pages.length ? `(${pages.length})` : ''}
+                {pages && pages.length ? `(${pages.length})` : ''}
                 {/* {`(${sourceData.length})`} */}
               </span>
             }
@@ -283,7 +283,7 @@ function DropContent({ pages, currentPage, pagesChange, activeRename, activeKey 
 function BookmarkPageBox({ children, pages, currentPage, setCurrentPage }) {
   // 提供一个ref给DropContent
   const [popupVisible, setPopupVisible] = React.useState(false);
-  // console.log('222222222 BookmarkPageBox', pages, popupVisible);
+  // console.log('222222222 BookmarkPageBox', pages, currentPage);
   const [data, setData] = useState<BookmarksPagesType>(pages);
   const dispatch = useDispatch();
   const [activeKey, setActiveKey] = useState<string>('pages');
@@ -317,10 +317,12 @@ function BookmarkPageBox({ children, pages, currentPage, setCurrentPage }) {
 
   useEffect(() => {
     setData(pages);
-    const idx = pages.findIndex(p => p.new);//新的
-    if (idx !== -1) {
-      setPopupVisible(true);//展开
-      setTimeout(() => setActiveKey("pages"), 0);
+    if (pages && pages.length > 0) {
+      const idx = pages.findIndex(p => p.new);//新的
+      if (idx !== -1) {
+        setPopupVisible(true);//展开
+        setTimeout(() => setActiveKey("pages"), 0);
+      }
     }
   }, [pages]);
 

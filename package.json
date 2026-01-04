@@ -2,7 +2,7 @@
   "homepage": "https://imgene.github.io/bookmarks",
   "name": "bookmarks",
   "version": "1.0.0",
-  "description": "Arco Design Pro",
+  "description": "Bookmarks Pro",
   "scripts": {
     "start": "vite",
     "dev": "vite",

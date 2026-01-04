@@ -15,6 +15,7 @@ import {
   IconLanguage,
   IconNotification,
   IconSunFill,
+  IconHome,
   IconMoonFill,
   IconEyeInvisible,
   IconEye,
@@ -46,28 +47,60 @@ import { generatePermission } from '@/routes';
 import { removeToken } from '@/utils1/auth';
 import { useStore } from '@/store1';
 import CreatePageGroup from '@/pages/navigate/user/form/add_page_group';
-import { updateUserInfo, reloadUserPages, fetchBookmarksPageData } from '@/store/modules/global';
-
+import { reloadUserPages, fetchBookmarksPageData } from '@/store/modules/global';
 const api = import.meta.env.VITE_REACT_APP_BASE_API;
 // function Navbar({ show }: { show: boolean }, setNavBarKey) {
-function Navbar({ pageNo, pages, show, display, setNavBarKey, setAllDisplay }) {
+// function Navbar({ pageNo, pageType, show, display, setNavBarKey, setAllDisplay }) {
+function Navbar({ pageType, show, display, setNavBarKey, setAllDisplay }) {
 
   const t = useLocale();
   const dispatch = useDispatch();
-
-  // console.log(" ===================pageNo=", pageNo);
-  // const { userInfo, userLoading } = useSelector((state: GlobalState) => state);
+  // const [bookmarkPages, setBookmarkPages] = useState(pages);
+  const [bookmarkPages, setBookmarkPages] = useState([]);
   const globalState = useSelector((state: any) => state.global);
-  const { userInfo, userLoading, currentPage } = globalState;
+  const { userInfo, userLoading, pages, currentPage } = globalState;
+
+  const [currentPageId, setCurrentPageId] = useState(null);//pageNo
+  function setCurrentPage(pageId) {
+    setCurrentPageId(pageId);
+  }
+
+  // console.log('------------->pageNo', pageNo);
+  const setDefaultPageBookmarksData = async (pages) => {
+    if (pages && pages.length > 0 && pageType === 'bookmarks') {//只有用户存在标签数据才能查询
+      const defaultPage = pages.find(page => page.default === true);
+      const pageId = defaultPage ? defaultPage.pageId : pages[0].pageId;//获取默认展示的书签页
+      setCurrentPage(pageId);
+      const data: any = await dispatch(fetchBookmarksPageData(pageId));//获取当前书签页的分组和书签数据
+      // setList(data);//Card 全部的
+      // setHideGroup(hiddenGroup)//这个不能变->NavBar展示开关
+      // setLoading(false);
+    }
+    //没有缓存到localStorage中
+    // if (!pages) { console.log('------------->pages 未加载', pages);
+    /*  const pages1: any = await dispatch(reloadUserPages());//加载所有书签页->Redux
+     setBookmarkPages(pages1);
+    */
+
+    /*  } else {//
+       console.log('-------------<<< 已加载 pages', pages);
+     } */
+
+  };
+
+  // const { userInfo, userLoading } = useSelector((state: GlobalState) => state);
+
+
   // console.log(" ===================currentPage=", currentPage);
+  // 
 
   const [_, setUserStatus] = useStorage('userStatus');
   const [role, setRole] = useStorage('userRole', 'admin');
-  const [currentPageId, setCurrentPageId] = useState(pageNo);
+
 
   const { setLang, lang, theme, setTheme } = useContext(GlobalContext);
   // const [createType, setCreateType] = useState("page");
-  const [bookmarkPages, setBookmarkPages] = useState(pages);
+
   const { userStore } = useStore();
 
   // const [tagsShow, setTagsShow] = useState('hide')
@@ -80,17 +113,17 @@ function Navbar({ pageNo, pages, show, display, setNavBarKey, setAllDisplay }) {
     window.location.href = '/login';
   }
 
-  useEffect(() => {
-    setCurrentPageId(pageNo);
-  }, [pageNo]);
+  /*   useEffect(() => {
+      setCurrentPageId(pageNo);
+    }, [pageNo]); */
 
   useEffect(() => {
     setBookmarkPages(pages);
+    console.log(" ===================pages=", pages);
+    setDefaultPageBookmarksData(pages);
   }, [pages]);
 
-  function setCurrentPage(pageId) {
-    setCurrentPageId(pageId);
-  }
+
 
   // 监听搜索框输入变化
   const onInputChange = (key: string) => {
@@ -100,6 +133,27 @@ function Navbar({ pageNo, pages, show, display, setNavBarKey, setAllDisplay }) {
 
   const onCreateNew = () => {
     setCreateNewForm(true);
+  }
+
+  const onClickHome = () => {
+
+    // setCreateNewForm(true);
+    /*  if (window.location.href.indexOf('/index') !== -1) {
+       // window.location.href = '/index';
+     }
+  */
+    const href = window.location.href;
+    // console.log('------------------->home', href);
+    const lastIndex = href.lastIndexOf('/');
+    if (lastIndex > -1) {//A.点击的是：3级和以下分组
+      const last = href.substring(lastIndex + 1).trim();
+      // console.log("href last", last);
+      if (last.length > 0 && last !== 'index') {
+        window.location.href = '/index';
+      } else {
+        Message.info('您已经在导航页了哦!');
+      }
+    }
   }
 
   // 监听显示/隐藏切换
@@ -269,9 +323,9 @@ function Navbar({ pageNo, pages, show, display, setNavBarKey, setAllDisplay }) {
 
   // 在组件卸载或其他合适时机清除定时器
   useEffect(() => {
-    return () => {
+    /* return () => {
       clearTimeout(timeoutId);
-    };
+    }; */
   }, []);
 
 
@@ -294,6 +348,27 @@ function Navbar({ pageNo, pages, show, display, setNavBarKey, setAllDisplay }) {
               onChange={onInputChange}
             />
           </li>
+
+
+          <li>
+            <Tooltip
+              content={t['bookmarks.page.group.create']}
+            >
+              <IconButton
+                icon={<IconHome />}
+                onClick={onClickHome}
+              />
+            </Tooltip>
+          </li>
+
+          {/* {pageNo && <li> */}
+          <li>
+            <Bookmarks pages={bookmarkPages} currentPage={currentPageId} setCurrentPage={setCurrentPage}>
+              <IconButton icon={<IconNav />} />
+            </Bookmarks>
+          </li>
+
+
           <li>
             <Select
               triggerElement={<IconButton icon={<IconLanguage />} />}
@@ -316,13 +391,6 @@ function Navbar({ pageNo, pages, show, display, setNavBarKey, setAllDisplay }) {
             />
           </li>
 
-          {/* {pageNo && <li> */}
-          <li>
-            {/* <Bookmarks pages={pages} currentPage={pageNo} newBookmarkPages={addedBookmarkPages} setCurrentPage={setCurrentPage}> */}
-            <Bookmarks pages={bookmarkPages} currentPage={pageNo} setCurrentPage={setCurrentPage}>
-              <IconButton icon={<IconNav />} />
-            </Bookmarks>
-          </li>
 
 
           <li>

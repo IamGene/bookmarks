@@ -213,7 +213,7 @@ function App(props: TagDataParams) {
 
 
 
-          {type == 2 && pages.length > 0 && <FormItem
+          {type == 2 && pages && pages.length > 0 && <FormItem
             label='书签页'
             // field='group'
             field='pageId'

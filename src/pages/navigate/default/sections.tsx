@@ -1,45 +1,38 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { Tabs, BackTop, Card, Input, Empty, Typography, Link, Grid, Button, Select, Space } from '@arco-design/web-react';
-import { IconCaretUp } from '@arco-design/web-react/icon';
+// import { IconCaretUp } from '@arco-design/web-react/icon';
 import useLocale from '@/utils/useLocale';
 //注意顺序在前以免样式被覆盖
 // import './index.css'
 import locale from './locale';
 import styles from './style/index.module.less';
 import CardBlock1 from './card-block1';
-import TagItem from './tag/card-tag';
 import CardItem from './card';
-import CardEmpty from './card-empty';
-import { TagCard } from './interface';
+// import CardEmpty from './card-empty';
+// import EmptyCard from '@/components/EmptyCard/index';
+import EmptyCard from '@/components/EmptyCard/index';
+// const TabPane = Tabs.TabPane;
+// import AddCard from './card-add';
+import { WebTag } from './interface';
 import './mock';
 
-interface CardBlockType {
-  // card: QualityInspection & BasicCard;
-  treeSelected: number[];
-  loading?: boolean;
-}
-
-interface Props {
-  activeCardTab: number[];
-}
 // tab标签类型
-// const [type, setType] = useState('card-gutter');
 const TabPane = Tabs.TabPane;
-const { Title } = Typography;
 const { Row, Col, GridItem } = Grid;
-
-
 // import { BackTop, Button, Select, Input, Typography, Space } from '@arco-design/web-react';
-// const { Paragraph, Text } = Typography;
 
-function ListCard({ activeCardTab, setCardTabActive, keyWord, list, hasResult, loading }) {
+function ListCard({ activeCardTab, display, setCardTabActive, keyWord, list, hasResult, loading }) {
   const t = useLocale(locale);
+
+  // console.log('zzzzzzzzzzzzzzzzzz has activeCardTab', activeCardTab);
+  // const { activeCardTab, display, activeGroup, setCardTabActive, keyWord, list, hasResult, loading } = props;
+  let search: boolean = keyWord && keyWord.length > 0;
 
   const [activeKey, setActiveKey] = useState('tags');
 
   const getMockCardList = (
-    list: Array<TagCard>
+    list: Array<WebTag>
   ) => {
     return (
       <Row gutter={24} className={styles['card-content']}>
@@ -55,7 +48,7 @@ function ListCard({ activeCardTab, setCardTabActive, keyWord, list, hasResult, l
 
   const renderMockCard = (data, index) => {
     const onTabChange = (key: string) => {
-      console.log('activeKey', key)
+      // console.log('activeKey', key)
       setActiveKey(activeKey)
     }
 
@@ -93,17 +86,35 @@ function ListCard({ activeCardTab, setCardTabActive, keyWord, list, hasResult, l
     )
   }
 
-  const getCardItems = (list) => {
-    const result = [];
+  /*  const getCardItems = (list) => {
+ 
+     const result = [];
+ 
+     list.map((item, index) => {
+       //显示(不隐藏) 
+       // let eachDisplay = display && hasResult;
+       result.push(<CardItem key={index}
+         setCardTabActive={setCardTabActive}
+         cardData={item}
+         index={index}
+         last={index == list.length - 1}
+         first={index == 0}
+         // display={display}
+         display={display}
+         activeCardTab={activeCardTab}
+         keyWord={keyWord}
+         hasResult={hasResult}
+         activeGroup={activeGroup}
+       // pageNo={pageNo}
+       >
+       </CardItem>)
+     })
+     return result;
+   } 
+  
+   const result = getCardItems(list);
+   */
 
-    // list.map((item, index) => {
-    list.map((item, index) => {
-      result.push(<CardItem setCardTabActive={setCardTabActive} cardData={item} index={index} activeCardTab={activeCardTab} keyWord={keyWord} hasResult={hasResult}></CardItem>)
-    })
-    return result;
-  }
-
-  const result = getCardItems(list);
 
   /*  return (
      <div>
@@ -117,8 +128,6 @@ function ListCard({ activeCardTab, setCardTabActive, keyWord, list, hasResult, l
      </div>
    ) */
 
-  const [easing, setEasing] = useState('linear');
-  const [duration, setDuration] = useState(200);
   return (
     <div>
 
@@ -147,15 +156,28 @@ function ListCard({ activeCardTab, setCardTabActive, keyWord, list, hasResult, l
         style={{
           // 二
           // height: 820,//860?
-          overflow: 'auto',
+          // overflow: 'auto',
         }}
       >
 
-        {list.map((item, index) => {
-          return <CardItem key={index} setCardTabActive={setCardTabActive} cardData={item} index={index} activeCardTab={activeCardTab} keyWord={keyWord} hasResult={hasResult}></CardItem>
+        {list && list.length > 0 && list.map((item, index) => {
+          return <CardItem key={index}
+            setCardTabActive={setCardTabActive}
+            cardData={item}
+            // index={index}
+            // last={index == list.length - 1}
+            // first={index == 0}
+            // activeGroup={activeGroup}
+            display={display}
+            treeSelectedNode={activeCardTab}
+            keyWord={keyWord}
+            hasResult={hasResult}
+          >
+          </CardItem>
         })}
 
-        {!hasResult && <CardEmpty></CardEmpty>}
+        {/* {(!hasResult || (list && list.length === 0)) && <EmptyCard search={search}></EmptyCard>} */}
+        {!hasResult && search && <EmptyCard search={search}></EmptyCard>}
 
         {/* <Footer /> */}
         {/* 三 */}
@@ -167,8 +189,6 @@ function ListCard({ activeCardTab, setCardTabActive, keyWord, list, hasResult, l
         }} /> */}
 
       </div>
-
-
     </div>
   );
 

@@ -236,7 +236,7 @@ function searchDataAggregated(inputValue, cardData) {
 function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, keyWord, hasResult }) {//hasResult
 
     // if (cardData.id === 'vu2pi7002')
-    // console.log(cardData.name + ' 渲染了>>>>>>>>>>>>>>', keyWord, hasResult);
+    // console.log(cardData.name + ' 渲染了>>>>>>>>>>>>>>', keyWord, treeSelectedNode);
 
     const dispatch = useDispatch();
     const pageId = cardData.pageId;
@@ -365,7 +365,8 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
      }, [data]); */
 
     useEffect(() => {
-        // if (data.id === 'vu2pi7002') console.log(data.name + ' useEffect treeSelectedNode', treeSelectedNode);
+        // if (data.id === 'vu2pi7002') 
+        // console.log(data.name + ' useEffect treeSelectedNode', treeSelectedNode);
         setActiveCardTab(treeSelectedNode);
     }, [treeSelectedNode]);
 

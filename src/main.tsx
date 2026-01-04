@@ -18,9 +18,12 @@ import useStorage from './utils/useStorage';
 import { getCollectPageGroups, saveBookmarkToDB, saveBookmarksToDB, getBookmarkById, getPages } from './db/bookmarksPages';
 // import { useDispatch, useSelector } from 'react-redux'
 // import { RootState } from '@/store';
-import { fetchBookmarksPageData, loadNewAddedBookmarks } from '@/store/modules/global'; // 确保路径正确
+import { fetchBookmarksPageData, loadNewAddedBookmarks, reloadUserPages } from '@/store/modules/global'; // 确保路径正确
 import './mock';
 import store from './store';
+
+// 在应用启动时预加载用户的 pages（从 IndexedDB）到 Redux，避免组件初次渲染时为 null
+
 
 // import PageLayout from './layout';
 // import checkLogin from './utils/checkLogin';
@@ -101,6 +104,10 @@ function Index() {
 
   // 将 message 监听器提升到根组件
   useEffect(() => {
+
+    //加载用户书签页数据到redux
+    store.dispatch(reloadUserPages() as any).catch(() => { });
+
     const handleMessage = async (event) => {
       // 1. 安全检查：可以根据需要添加来源验证
       if (event.origin !== window.location.origin) return;

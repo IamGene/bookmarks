@@ -334,11 +334,8 @@ function UserNavigate() {
   // 接收Tree传过来的选中项
   const getTreeSelect = (selected) => {
     const value = selected[0];
-
     const stringArray: string[] = value.split(',');
-    // const activeCardTab: number[] = stringArray.map(Number);
     const activeCardTab: string[] = stringArray.map(String);
-    // console.log('==========user navigate getTreeSelect', selected, activeCardTab);
     setTreeSelected(activeCardTab);
   }
 
@@ -417,7 +414,7 @@ function UserNavigate() {
       setHasResult(true);
     } else {//不为空
       const hasResult = searchData2(list, keyword);
-      console.log('00000000000 search', keyword, hasResult);
+      // console.log('00000000000 search', keyword, hasResult);
       setHasResult(hasResult);
     }
     // setNavbarKeyWord(keyword)
@@ -471,24 +468,24 @@ function UserNavigate() {
    }; */
 
 
-  const fetchDefaultPageBookmarksData = async () => {
-    //没有缓存到localStorage中
-    const pages: any = await dispatch(reloadUserPages());//加载所有书签页->Redux
-    setBookmarkPages(pages);
-    if (pages.length > 0) {//只有用户存在标签数据才能查询
-      const defaultPage = pages.find(page => page.default === true);
-      const pageId = defaultPage ? defaultPage.pageId : pages[0].pageId;//获取默认展示的书签页
-      setCurrentPage(pageId);
-      const data: any = await dispatch(fetchBookmarksPageData(pageId));//获取当前书签页的分组和书签数据
-      setList(data);//Card 全部的
-      setHideGroup(hiddenGroup)//这个不能变->NavBar展示开关
-      setLoading(false);
-    }
-  };
+  /*   const fetchDefaultPageBookmarksData = async () => {
+      //没有缓存到localStorage中
+      const pages: any = await dispatch(reloadUserPages());//加载所有书签页->Redux
+      setBookmarkPages(pages);
+      if (pages.length > 0) {//只有用户存在标签数据才能查询
+        const defaultPage = pages.find(page => page.default === true);
+        const pageId = defaultPage ? defaultPage.pageId : pages[0].pageId;//获取默认展示的书签页
+        setCurrentPage(pageId);
+        const data: any = await dispatch(fetchBookmarksPageData(pageId));//获取当前书签页的分组和书签数据
+        setList(data);//Card 全部的
+        setHideGroup(hiddenGroup)//这个不能变->NavBar展示开关
+        setLoading(false);
+      }
+    }; */
 
 
   useEffect(() => {
-    fetchDefaultPageBookmarksData();
+    // fetchDefaultPageBookmarksData();
   }, []);//仅在初次加载组件时候执行(pageId未设置到redux状态)
 
   useEffect(() => {
@@ -640,7 +637,9 @@ function UserNavigate() {
       >
 
         {/* num={groups.length} */}
-        <Navbar show={showNavbar} pageNo={currentPage} pages={bookmarkPages} display={hideGroup ? hiddenGroup : null} setNavBarKey={getNavBarKey} setAllDisplay={getAllDisplay} />
+        {/* pageNo={currentPage} */}
+        <Navbar show={showNavbar} pageType={'bookmarks'} display={hideGroup ? hiddenGroup : null} setNavBarKey={getNavBarKey} setAllDisplay={getAllDisplay} />
+
       </div>
       {userLoading ? (
         <Spin className={styles['spin']} />
@@ -706,7 +705,7 @@ function UserNavigate() {
               )}
               <Content>
                 {/* Card-Tab列表 hasResult={hasResult}  */}
-                <Navi activeCardTab={treeSelected} display={display} keyWord={navbarKeyWord} activeGroup={activeGroup} setCardTabActive={getCardTabActive} hasResult={hasResult} list={list} loading={loading}></Navi>
+                <Navi activeCardTab={treeSelected} display={display} keyWord={navbarKeyWord} setCardTabActive={getCardTabActive} hasResult={hasResult} list={list} loading={loading}></Navi>
               </Content>
             </div>
             {showFooter && <Footer />}
