@@ -203,7 +203,7 @@ function BookmarksPages(props: BookmarksPageProps) {
     // onSwitchPage(item);
     // testUpdate();
     // const path = await getNodePath({ id: '3ve0wr3tn', pId: 'voqqcfkih' })
-    /* console.log("href", window.location.href);
+    /*
       const href = window.location.href;
      const lastIndex = href.lastIndexOf('/');
      if (lastIndex > -1) {//A.点击的是：3级和以下分组
@@ -211,6 +211,7 @@ function BookmarksPages(props: BookmarksPageProps) {
        console.log("href last", last);
      } */
     //else {} //是首页
+    console.log("---------->href", window.location.href);
     if (window.location.href.indexOf('/bookmarks') === -1) {
       window.location.href = '/bookmarks';
     }

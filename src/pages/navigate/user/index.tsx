@@ -531,6 +531,19 @@ function UserNavigate() {
     setFilterFromAll(filteredData);
   }, [filteredData]);//
 
+
+  function scrollToAnchor(event, path) {
+    // console.log('scrollToAnchor', path);
+    const pathArr: string[] = path.split(",");
+    event.preventDefault(); // 阻止默认的锚点跳转
+    const targetElement = document.getElementById(pathArr[0]);
+    if (targetElement) {
+      targetElement.scrollIntoView({
+        behavior: 'smooth' // 可选：平滑滚动
+      });
+    }
+  }
+
   /*   useEffect(() => {
       console.log('搜索词或显示隐藏变化')
     }, [display, treeInputValue]); */
@@ -548,21 +561,29 @@ function UserNavigate() {
         //二级目录没有图标
         const iconDom = route.pId ? '' : getIconFromKey(route.id);
         // const pid = route.pid;
-        const hrefId = route.pId ? route.pId : route.id;
-        const titleDom = (
-          <>
-            {/* {iconDom} {locale[route.name] || route.name} */}
-            {<AnchorLink href={`#${hrefId}`}
-              title={
-                <> {iconDom} {route.name}</>
-                // route.pid ?
-                //   <> <a href="javascript:void(0)" ref={linkRef} onClick={() => onMenuClick(route.id, route.pid)}> {iconDom}<span>{route.name}</span></a></>
-                //   : <> {iconDom} {route.name}</>
-              }>
-            </AnchorLink>}
-          </>
-        );
+        // onClick = {(event) => scrollToAnchor(event, {`${hrefId}`})
 
+
+        {/* {iconDom} {locale[route.name] || route.name} */ }
+        const hrefId = route.pId ? route.pId : route.id;
+        /*  const titleDom = (
+           <>
+             {<AnchorLink href={`#${hrefId}`}
+               title={
+                 <> {iconDom} {route.name}</>
+                 // route.pid ?
+                 //   <> <a href="javascript:void(0)" ref={linkRef} onClick={() => onMenuClick(route.id, route.pid)}> {iconDom}<span>{route.name}</span></a></>
+                 //   : <> {iconDom} {route.name}</>
+               }
+             >
+             </AnchorLink>}
+           </>
+         ); */
+
+        const titleDom = (
+          // {iconDom} {locale[route.name] || route.name}
+          <AnchorLink title={<> {iconDom} {route.name}</>} onClick={(event) => scrollToAnchor(event, `${hrefId}`)} />
+        )
         // 根据key,设置面包屑导航到routeMap
         /*  routeMap.current.set(
            `/${route.key}`,

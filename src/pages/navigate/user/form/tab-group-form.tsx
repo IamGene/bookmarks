@@ -110,7 +110,6 @@ function App(props: GroupFormParams) {
 
     useEffect(() => {
         if (selectGroup) {
-
             form.setFields({
                 pId: {
                     value: selectGroup

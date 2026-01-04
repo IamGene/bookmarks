@@ -217,7 +217,7 @@ function App({ data, setTreeSelected, treeSelectedKeys, inputValue, setTreeInput
                     if (inputValue) {
                         const index = name.toLowerCase().indexOf(inputValue.toLowerCase());
                         if (index === -1) {
-                            return <AnchorLink href={`#${hrefId}`} title={name} onClick={(event) => scrollToAnchor(event, `${path}`)} />;;
+                            return <AnchorLink href={`#${hrefId}`} title={name} onClick={(event) => scrollToAnchor(event, `${path}`)} />;
                         }
 
                         const prefix = name.substr(0, index);
