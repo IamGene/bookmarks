@@ -76,7 +76,7 @@ function BookmarksPages(props: BookmarksPageProps) {
   const t = useLocale();
   const { data, currentPageId, onRemovePage, onRenamePage } = props;
 
-  const history = useHistory();
+
 
   const [currentPage, setCurrentPage] = useState(currentPageId);
   const [localPages, setLocalPages] = useState(props.data);
@@ -215,6 +215,7 @@ function BookmarksPages(props: BookmarksPageProps) {
      } */
     //else {} //是首页
     console.log("---------->href", window.location.href);
+    const history = useHistory();
     if (window.location.href.indexOf('/bookmarks') === -1) {
       // window.location.href = '/bookmarks';
       console.log("---------->history.replace('/bookmarks')");
