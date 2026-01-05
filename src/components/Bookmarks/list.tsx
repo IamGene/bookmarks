@@ -16,6 +16,7 @@ import { useFetchPageData } from '@/hooks/fetchPageData';
 import RenamePageForm from '@/pages/navigate/user/form/rename_page_form';
 import { setDefaultPage, getPages, exportPageJson, getNodePath, testUpdate } from '@/db/bookmarksPages';
 import ExportModal from './exportModal';
+import { useHistory } from 'react-router-dom';
 import { set } from 'mobx';
 // import { useSelector, useDispatch } from 'react-redux';
 
@@ -74,6 +75,8 @@ interface BookmarksPageProps {
 function BookmarksPages(props: BookmarksPageProps) {
   const t = useLocale();
   const { data, currentPageId, onRemovePage, onRenamePage } = props;
+
+  const history = useHistory();
 
   const [currentPage, setCurrentPage] = useState(currentPageId);
   const [localPages, setLocalPages] = useState(props.data);
@@ -213,7 +216,8 @@ function BookmarksPages(props: BookmarksPageProps) {
     //else {} //是首页
     console.log("---------->href", window.location.href);
     if (window.location.href.indexOf('/bookmarks') === -1) {
-      window.location.href = '/bookmarks';
+      // window.location.href = '/bookmarks';
+      history.replace('/bookmarks');//
     }
     /*  if (isContained(item.pageId)) {
        // 点击切换到刚添加的书签页，取消红点：使用函数式更新以避免闭包取到过期状态

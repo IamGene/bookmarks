@@ -25,19 +25,21 @@ function App(props: GroupFormParams) {
     const { closeWithSuccess, pageId, visible, selectGroup, group } = props;
 
     // console.log('tab form group', group);
-    // console.log('form selectGroup', selectGroup);
+
     // const [visible, setVisible] = React.useState(false);
     // const formRef = useRef<FormInstance>();
     const [confirmLoading, setConfirmLoading] = useState(false);
 
     const globalState = useSelector((state: any) => state.global);
+    const treeData = globalState.treeData;
+    const [optionValues, setOptionValues] = useState(selectGroup);
     // const cascaderOptions = globalState.treeData;
     // console.log('tab form selectGroup group', selectGroup, group);
     // console.log('tab form cascaderOptions cascaderOptions', cascaderOptions);
     //要显示的选择分组
-    const [optionValues, setOptionValues] = useState(selectGroup);
-    const [cascaderOptions, setCascaderOptions] = useState(globalState.treeData);
 
+    const [cascaderOptions, setCascaderOptions] = useState(treeData);
+    // console.log('----------------form selectGroup cascaderOptions', selectGroup, cascaderOptions);
     const t = useLocale(locale);
 
     const processSaveSubGroup = async (data) => {
@@ -109,15 +111,19 @@ function App(props: GroupFormParams) {
     }, []);
 
     useEffect(() => {
-        if (selectGroup) {
-            form.setFields({
-                pId: {
-                    value: selectGroup
-                },
-            });
-        }
+        // if (selectGroup) {
+        form.setFields({
+            pId: {
+                value: selectGroup
+            },
+        });
+        setOptionValues(selectGroup);
+        // }
     }, [selectGroup]);
 
+    useEffect(() => {
+        setCascaderOptions(treeData);
+    }, [treeData]);
 
     function setDisabledNodes(nodes, selectNode) {
         function setDisabledForGroupChldren(nodes, selectNode) {

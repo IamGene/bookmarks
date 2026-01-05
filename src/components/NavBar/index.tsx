@@ -49,6 +49,7 @@ import { useStore } from '@/store1';
 import CreatePageGroup from '@/pages/navigate/user/form/add_page_group';
 import { reloadUserPages, fetchBookmarksPageData } from '@/store/modules/global';
 const api = import.meta.env.VITE_REACT_APP_BASE_API;
+import { useHistory } from 'react-router-dom';
 // function Navbar({ show }: { show: boolean }, setNavBarKey) {
 // function Navbar({ pageNo, pageType, show, display, setNavBarKey, setAllDisplay }) {
 function Navbar({ pageType, show, display, setNavBarKey, setAllDisplay }) {
@@ -59,7 +60,7 @@ function Navbar({ pageType, show, display, setNavBarKey, setAllDisplay }) {
   const [bookmarkPages, setBookmarkPages] = useState([]);
   const globalState = useSelector((state: any) => state.global);
   const { userInfo, userLoading, pages, currentPage } = globalState;
-
+  const history = useHistory();
   const [currentPageId, setCurrentPageId] = useState(null);//pageNo
   function setCurrentPage(pageId) {
     setCurrentPageId(pageId);
@@ -110,7 +111,8 @@ function Navbar({ pageType, show, display, setNavBarKey, setAllDisplay }) {
     setUserStatus('logout');
     removeToken()
     const res = await userStore.LogOut();
-    window.location.href = '/login';
+    // window.location.href = '/login';
+    history.replace('/login');//navigate
   }
 
   /*   useEffect(() => {
@@ -119,7 +121,7 @@ function Navbar({ pageType, show, display, setNavBarKey, setAllDisplay }) {
 
   useEffect(() => {
     setBookmarkPages(pages);
-    console.log(" ===================pages=", pages);
+    // console.log(" ===================pages=", pages);
     setDefaultPageBookmarksData(pages);
   }, [pages]);
 
@@ -138,10 +140,6 @@ function Navbar({ pageType, show, display, setNavBarKey, setAllDisplay }) {
   const onClickHome = () => {
 
     // setCreateNewForm(true);
-    /*  if (window.location.href.indexOf('/index') !== -1) {
-       // window.location.href = '/index';
-     }
-  */
     const href = window.location.href;
     // console.log('------------------->home', href);
     const lastIndex = href.lastIndexOf('/');
@@ -149,7 +147,7 @@ function Navbar({ pageType, show, display, setNavBarKey, setAllDisplay }) {
       const last = href.substring(lastIndex + 1).trim();
       // console.log("href last", last);
       if (last.length > 0 && last !== 'index') {
-        window.location.href = '/index';
+        history.replace('/index');//navigate
       } else {
         Message.info('您已经在导航页了哦!');
       }

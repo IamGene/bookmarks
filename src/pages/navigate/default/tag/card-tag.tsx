@@ -23,12 +23,12 @@ interface CardBlockType {
     selectGroup: string;
     searching: boolean;
     editTag: Function;
-    onDeleteSuccess?: (WebTag) => void;
+    // onDeleteSuccess?: (WebTag) => void;
     // tag={item} parentHide={parentHide} 
 }
 
 const App = (props: CardBlockType) => {
-    const { tag, no, searching, editTag, selectGroup, onDeleteSuccess } = props
+    const { tag, no, searching, editTag, selectGroup } = props
 
     const [visible, setVisible] = useState(false);
     //配置编辑表单展示与否

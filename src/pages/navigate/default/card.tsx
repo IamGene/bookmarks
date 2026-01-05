@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import TagItem from './tag/card-tag';
 import { WebTag } from './interface';
 import { Tabs, Card, Switch, Empty, Input, Dropdown, Menu, Typography, Message, Grid, Form, Button, Space } from '@arco-design/web-react';
-import { IconEyeInvisible, IconToTop, IconMore, IconPlus, IconEraser, IconToBottom, IconLink, IconDelete, IconEdit, IconEye, IconCheck } from '@arco-design/web-react/icon';
+import { IconEyeInvisible } from '@arco-design/web-react/icon';
 import styles from './style/index.module.less';
 // import TagForm from './form/tag-form';
 // import TabGroupForm from './form/tab-group-form';
@@ -11,8 +11,7 @@ import styles from './style/index.module.less';
 // import { clearConfirm } from './form/clear-confirm-modal';
 import { removeGroup, saveTagGroup, moveGroupTopBottom } from '@/api/navigate';
 import { useDispatch } from 'react-redux'
-import { fetchBookmarksPageData, updateActiveGroup, updatePageDataState } from '@/store/modules/global';
-import { getBookmarkGroupById, getBookmarksGroupById, resortNodes, getBookmarksNumByGId } from '@/db/bookmarksPages';
+import { fetchBookmarksPageData, updateActiveGroup } from '@/store/modules/global';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import TabsContainer from '../../../components/NestedTabs/TabsContainer0';
@@ -274,14 +273,6 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
           }
       } */
 
-    const resortOrders = async (nodes: any[]) => {
-        const sorting = [];
-        for (let i = 0; i < nodes.length; i++) {
-            const node = nodes[i];
-            sorting[i] = node.copy ? { id: node.id, order1: i } : { id: node.id, order: i };
-        }
-        await resortNodes(sorting);
-    }
 
     function buildActiveMap(path) {
         const parts = path.split(',').map(s => s.trim());
@@ -762,11 +753,11 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
     }
 
     async function setActiveMapByBookmarksNum(gId: string, path: string) {
-        const bookmarksNum: number = await getBookmarksNumByGId(gId);
-        const pathStr = bookmarksNum > 0 ? path + "," + gId : path;
+        // const bookmarksNum: number = await getBookmarksNumByGId(gId);
+        // const pathStr = bookmarksNum > 0 ? path + "," + gId : path;
+        const pathStr = path + "," + gId;
         setActiveMap(buildActiveMap(pathStr));
     }
-
 
 
     useEffect(() => {
@@ -774,6 +765,7 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
         // 受控模式
         if (cardActive === data.id) {//当前Card被选中了
             setTreeSelected(true);
+            console.log('ggggggggggggggggggggg setTreeSelected', cardActive);
             setActiveMapByTreeSelected();
             // console.log(cardData.name + ' useEffect activeCardTab', activeCardTab, lastPath)
             //如果在全局搜索模式下当前Card被tree选中且搜索结果为空 =>临时显示全部
@@ -1238,50 +1230,6 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
     const [loading, setLoading] = useState(true);
 
     //提交成功后关闭或取消关闭Modal窗口
-    async function updateCardData() {
-        getBookmarksGroupById(data.id).then((resultData) => {
-            const groupData = resultData.groupData;
-            // 必须通过 dispatch 派发 thunk action
-            // dispatch(updatePageDataState(resultData.pageData));//groups变化会触发重新渲染顶层组件(已订阅)
-            if (searching) {//搜索模式
-                const result = searchDataAggregated(searchInput.trim(), groupData);
-                // console.log('close Modal searchDataAggregated searchResult', result.searchResult);
-                if (result.searchResult.length == 0) {//ok
-                    setActiveMap({ [data.id]: searchTabKey });
-                }
-                setSearchResult(result.searchResult); //（全部）搜索结果
-                setShowSearchResult(result.searchResult); //（全部）搜索结果
-                setData(result);
-            } else {
-                setData(groupData);
-            }
-        })
-    }
-
-
-    async function closeTagModal(success: boolean, newTag: WebTag, type: number) {
-        setAddTagVisible(false);
-        if (success) {//刷新当前页面数据
-            // console.log('close Modal group', newTag);
-            if (newTag) {//所在的分组，重置位置
-                if (type === 0) {//修改了分组,更新整个页面的数据
-                    const group = await getBookmarkGroupById(newTag.gId);
-                    const pId = group.path.split(',')[0];
-                    if (pId !== data.id) { //变为属于别的大分组
-                        await getGroupData();
-                    } else {//active所属新的tab分组（无论搜索中与否）
-                        const activeMap = buildActiveMap(group.path);
-                        setActiveMap(activeMap);
-                        updateCardData(); //仅重置Card(搜索)数据
-                    }
-                } else {//  if (type >= 1) 修改书签1 新增书签2 重置(搜索)数据
-                    updateCardData();
-                    // refreshDataByUpdateBookmark(newTag);//修改书签
-                    // refreshDataByAddBookmark(newTag);//新增书签
-                }
-            }
-        }
-    }
 
 
 
@@ -1614,27 +1562,6 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
         });
     }
 
-    function handleDeleteSuccess(tag: WebTag) {
-        // refreshData1(tag);//设置data数据与db保持一致
-        //当前所属分组变为空?切换到兄弟节点tab
-        //查询所在分组的urlList,若为空，则切换到搜索结果tab（根据pId）
-        getBookmarksGroupById(data.id).then((resultData) => {
-            const groupData = resultData.groupData;
-            // 必须通过 dispatch 派发 thunk action
-            // dispatch(updatePageDataState(resultData.pageData));//groups变化会触发重新渲染顶层组件(已订阅)
-            if (searching) {//搜索模式
-                const result = searchDataAggregated(searchInput.trim(), groupData);
-                if (result.searchResult.length == 0) {//ok
-                    setActiveMap({ [data.id]: searchTabKey });
-                }
-                setSearchResult(result.searchResult); //（全部）搜索结果
-                setShowSearchResult(result.searchResult); //（全部）搜索结果
-                setData(result);
-            } else {
-                setData(groupData);
-            }
-        })
-    }
 
     function determinShowTabOrNot(item: any) {
         let dis: boolean = false;
@@ -1678,7 +1605,7 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
                                 no={pageId}
                                 searching={searching}
                                 editTag={onEditTag}
-                                onDeleteSuccess={handleDeleteSuccess}
+                                // onDeleteSuccess={handleDeleteSuccess}
                                 loading={loading}
                                 selectGroup={selectGroup}
                             />
