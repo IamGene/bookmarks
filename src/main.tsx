@@ -252,13 +252,11 @@ function Index() {
               {/* <Route path="/navigate" exact component={DefaultNavigate} /> */}
               {/* 用户书签 */}
               {/* <Route path="/indexedDB" exact component={IndexedDB1} /> */}
-              <Route path="/bookmarks" exact component={UserNavigate} />
+              <Route path="/bookmarks" component={UserNavigate} />
 
               {/*  <Route path="/navigate" >
                 <Redirect to={`/navigate/default`} />
               </Route> */}
-              {/* <Route path="/navigate/default" component={DefaultNavigate} /> */}
-              {/* <Route path="/" component={PageLayout} /> */}
               {/* <Route path="/" component={DefaultNavigate} /> */}
               <Route path="/" component={DefaultNavigate} />
             </Switch>
