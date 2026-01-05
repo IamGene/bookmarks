@@ -17,7 +17,6 @@ import RenamePageForm from '@/pages/navigate/user/form/rename_page_form';
 import { setDefaultPage, getPages, exportPageJson, getNodePath, testUpdate } from '@/db/bookmarksPages';
 import ExportModal from './exportModal';
 import { useHistory } from 'react-router-dom';
-import { set } from 'mobx';
 // import { useSelector, useDispatch } from 'react-redux';
 
 export interface MessageItemData {
@@ -217,7 +216,7 @@ function BookmarksPages(props: BookmarksPageProps) {
     // console.log("---------->href", window.location.href);
 
     if (window.location.href.indexOf('/bookmarks') === -1) {
-      // window.location.href = '/bookmarks';
+      console.log("---------->history.replace('/bookmarks');");
       history.replace('/bookmarks');
     }
     /*  if (isContained(item.pageId)) {

@@ -8,7 +8,7 @@ import enUS from '@arco-design/web-react/es/locale/en-US';
 import { BrowserRouter, Redirect, Switch, Route } from 'react-router-dom';
 // import { HashRouter as Router, Redirect, Switch, Route } from 'react-router-dom';
 // import Navigate from './navigate';
-import UserNavigate from './pages/navigate/user';
+import UserBookmarks from './pages/navigate/user';
 import IndexedDB1 from './db/BookmarkRestore.jsx';
 import DefaultNavigate from './pages/navigate/default';
 import { GlobalContext } from './context';
@@ -246,11 +246,9 @@ function Index() {
             <Switch>
               <Route path="/login" exact component={Login} />
               {/* 以下2个直接匹配，不能交给/PageLayout，因为布局不一样 */}
-
               {/* 导航主页 */}
               <Route path="/index" exact component={DefaultNavigate} />
-              <Route path="/bookmarks" exact component={UserNavigate} />
-
+              <Route path="/bookmarks" exact component={UserBookmarks} />
               <Route path="/" component={DefaultNavigate} />
             </Switch>
           </GlobalContext.Provider>
