@@ -244,20 +244,13 @@ function Index() {
         <Provider store={store}>
           <GlobalContext.Provider value={contextValue}>
             <Switch>
-              <Route path="/login" component={Login} />
+              <Route path="/login" exact component={Login} />
               {/* 以下2个直接匹配，不能交给/PageLayout，因为布局不一样 */}
 
               {/* 导航主页 */}
-              <Route path="/index" component={DefaultNavigate} />
-              {/* <Route path="/navigate" exact component={DefaultNavigate} /> */}
-              {/* 用户书签 */}
-              {/* <Route path="/indexedDB" exact component={IndexedDB1} /> */}
-              <Route path="/bookmarks" component={UserNavigate} />
+              <Route path="/index" exact component={DefaultNavigate} />
+              <Route path="/bookmarks" exact component={UserNavigate} />
 
-              {/*  <Route path="/navigate" >
-                <Redirect to={`/navigate/default`} />
-              </Route> */}
-              {/* <Route path="/" component={DefaultNavigate} /> */}
               <Route path="/" component={DefaultNavigate} />
             </Switch>
           </GlobalContext.Provider>
@@ -265,8 +258,15 @@ function Index() {
       </ConfigProvider>
     </BrowserRouter>
     // </Router >
+
+
+
   );
 }
+
+{/*  <Route path="/navigate" >
+                <Redirect to={`/navigate/default`} />
+              </Route> */}
 
 // ReactDOM.render(<Index />, document.getElementById('root'));
 //react 18的写法

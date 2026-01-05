@@ -217,6 +217,7 @@ function BookmarksPages(props: BookmarksPageProps) {
     console.log("---------->href", window.location.href);
     if (window.location.href.indexOf('/bookmarks') === -1) {
       // window.location.href = '/bookmarks';
+      console.log("---------->history.replace('/bookmarks')");
       history.replace('/bookmarks');//
     }
     /*  if (isContained(item.pageId)) {
