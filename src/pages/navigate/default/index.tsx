@@ -21,6 +21,7 @@ import { getNaviate } from '@/api/navigate';
 import { useDispatch, useSelector } from 'react-redux'
 import cache from '@/plugins/cache';
 import axios from 'axios';
+import BackToTop from '../common/back-to-top';
 //注意顺序在前以免样式被覆盖 add
 import './index.css'
 // 导航组件
@@ -570,6 +571,8 @@ function Navigate() {
               </Content>
             </div>
             {showFooter && <Footer />}
+
+            <BackToTop></BackToTop>
           </Layout>
         </Layout>
       )

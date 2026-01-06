@@ -138,20 +138,19 @@ function Navbar({ pageType, show, display, setNavBarKey, setAllDisplay }) {
   }
 
   const onClickHome = () => {
-
-    // setCreateNewForm(true);
     const href = window.location.href;
-    // console.log('------------------->home', href);
     const lastIndex = href.lastIndexOf('/');
-    if (lastIndex > -1) {//A.点击的是：3级和以下分组
+    if (lastIndex > -1) {
       const last = href.substring(lastIndex + 1).trim();
       // console.log("href last", last);
       if (last.length > 0 && last !== 'index') {
-        history.replace('/index');//navigate
+        history.replace('/index');
       } else {
-        Message.info('您已经在导航页了哦!');
+        // Message.info('您已经在导航页了哦!');
+        Message.info(t['bookmarks.page.home.tips']);
       }
     }
+    //其他情况：首页，无路径名
   }
 
   // 监听显示/隐藏切换
@@ -350,7 +349,7 @@ function Navbar({ pageType, show, display, setNavBarKey, setAllDisplay }) {
 
           <li>
             <Tooltip
-              content={t['bookmarks.page.group.create']}
+              content={t['bookmarks.page.home']}
             >
               <IconButton
                 icon={<IconHome />}
