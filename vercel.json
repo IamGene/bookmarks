@@ -1,8 +1,8 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }
-
-
-//“不管用户访问什么路径，都把这个请求重写到 /，交给前端 React 来处理路由。”
