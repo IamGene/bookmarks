@@ -12,10 +12,9 @@ export default defineConfig(({ mode }) => {
 
   return {
 
-    // base: mode === 'development' || process.env.VERCEL ? '/' : '/bookmarks/',
+    base: mode === 'development' || process.env.VERCEL ? '/' : '/bookmarks/',
     // 本地构建github pages build,有/boookmarks路径
-
-    base: '/',  // 开发模式/本地构建extension/vercel：无/boookmarks路径
+    // base: '/',  // 开发模式/本地构建extension/vercel：无/boookmarks路径
     resolve: {
       alias: [{ find: '@', replacement: '/src' }],
     },
