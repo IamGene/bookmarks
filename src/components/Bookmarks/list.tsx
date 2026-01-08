@@ -217,7 +217,12 @@ function BookmarksPages(props: BookmarksPageProps) {
     console.log("---------->pathname", window.location.pathname);
     // console.log("---------->href index", window.location.href.indexOf('/bookmarks'));
     // console.log("==============>history.replace('/bookmarks');");
-    if (window.location.pathname.indexOf('/bookmarks') === -1) {
+    let pathname = window.location.pathname;
+    if (pathname.startsWith('/bookmarksPro')) {//github pages
+      pathname = pathname.replace('/bookmarksPro', '');
+    }
+    if (pathname.indexOf('/bookmarks') === -1) {
+      // if (window.location.pathname.indexOf('/bookmarks') === -1) {
       // console.log("---------->history.replace('/bookmarks');");
       history.replace('/bookmarks');
     }

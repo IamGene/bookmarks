@@ -65,6 +65,18 @@ package.json，scripts增加：
   },
 ```
 
+vite.config.ts
+```
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  base: '/bookmarksPro/', // ⭐ 必须、且结尾要有 /
+  plugins: [react()],
+})
+
+```
+
 ### 发布命令
 ```
 npm run deploy
