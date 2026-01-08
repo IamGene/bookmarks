@@ -49,10 +49,29 @@ vercel.json **必须**：
 
 
 ## Github Pages 部署
-- github账号：695378805@qq.com,IamGene
+
+### 要点
+- github账号：695378805@qq.com,IamGene（同源码仓库账号）
 - 访问链接：https://iamgene.github.io/bookmarksPro
+- 与源码不属于同一个仓库，分支：gh-pages，
+- 访问权限：Public
+
+### 配置
+package.json，scripts增加：
+```
+"scripts": {
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist -r git@github.com:IamGene/bookmarksPro.git"
+  },
+```
+
+### 发布命令
+```
+npm run deploy
+```
+
 ### 404报错
-可能是缓存问题，清空浏览器缓存，重新刷新试试
+  首次部署出现404报错，可能是缓存问题，清空浏览器缓存，重新刷新试试
 
 ## 插件的混淆打包
 

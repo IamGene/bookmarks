@@ -1,6 +1,6 @@
 {
   "homepage": "https://IamGene.github.io/bookmarksPro",
-  "name": "bookmarksPro",
+  "name": "bookmarks-pro",
   "version": "1.0.0",
   "description": "Bookmarks Pro",
   "scripts": {
@@ -14,7 +14,7 @@
     "pre-commit": "pretty-quick --staged && npm run eslint && npm run stylelint",
     "prepare": "husky install && husky add .husky/pre-commit 'npm run pre-commit'",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist -r git@github.com:IamGene/bookmarksPro.git"
   },
   "dependencies": {
     "@antv/data-set": "^0.11.8",
