@@ -134,7 +134,7 @@ const i18n = {
     'message.seeMore': '查看更多',
     'message.empty': '清空',
     'bookmarks.import': '导入',
-    'bookmarks.page.home': '导航主页',
+    'bookmarks.page.home': '导航主页1',
     'bookmarks.page.home.tips': '您已经在主页了哦!',
     'message.empty.tips': '暂无内容',
     'message.lang.tips': '语言切换至 ',

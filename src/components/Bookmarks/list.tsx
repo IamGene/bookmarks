@@ -213,8 +213,8 @@ function BookmarksPages(props: BookmarksPageProps) {
        console.log("href last", last);
      } */
     //else {} //是首页
-    // console.log("---------->href", window.location.href);
-    // console.log("---------->pathname", window.location.pathname);
+    console.log("---------->href", window.location.href);
+    console.log("---------->pathname", window.location.pathname);
     // console.log("---------->href index", window.location.href.indexOf('/bookmarks'));
     // console.log("==============>history.replace('/bookmarks');");
     if (window.location.pathname.indexOf('/bookmarks') === -1) {
