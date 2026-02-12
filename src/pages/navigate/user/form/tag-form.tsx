@@ -34,10 +34,10 @@ function App(props: TagDataParams) {
     // const formRef = useRef<FormInstance>();
 
     const globalState = useSelector((state: any) => state.global);
-    const { treeData } = globalState;
+    const { treeData, tagsMap } = globalState;
     const cascaderOptions = treeData;
-
-    // console.log('44444444 tag form data selectGroup', selectGroup);
+    const keys = Object.keys(tagsMap);
+    // console.log('44444444 tag form data', data);
     //要显示的已选择分组
     const [optionValues, setOptionValues] = useState(selectGroup);
 
@@ -52,8 +52,7 @@ function App(props: TagDataParams) {
         const newTag = await addBookmark(tag);
         Message.success('Success !');
         // setConfirmLoading(false);
-        // closeWithSuccess(true, newTag, true);//相当于点击取消/关闭按钮 true:新增；false:更新
-        closeWithSuccess(true, newTag, 2);//相当于点击取消/关闭按钮 true:新增；false:更新
+        closeWithSuccess(true, newTag, data, 2);//相当于点击取消/关闭按钮 true:新增；false:更新
     }
 
     const processUpdateSaveTag = async (tag: WebTag) => {
@@ -62,14 +61,13 @@ function App(props: TagDataParams) {
         // const group = await saveTagData(tag)
         Message.success('Success !');
         // setConfirmLoading(false);
-
-        // console.log('processUpdateSaveTag', data.gId, newTag.gId, newTag)
+        // console.log('processUpdateSaveTag', tag);
         // setVisible(false);
         if (newTag) {
             if (data.gId !== newTag.gId) {
-                closeWithSuccess(true, newTag, 0);
+                closeWithSuccess(true, newTag, data, 0);
             } else {
-                closeWithSuccess(true, newTag, 1);
+                closeWithSuccess(true, newTag, data, 1);
             }
         }
         //相当于点击取消/关闭按钮
@@ -157,8 +155,10 @@ function App(props: TagDataParams) {
                     // value: data ? data.name : ''
                     value: data ? (data.originalName ? data.originalName : data.name) : ''
                 },
+                tags: {
+                    value: data ? data.tags : []
+                },
                 description: {
-                    // value: data ? data.description : ''
                     value: data ? (data.originalDescription ? data.originalDescription : data.description) : ''
                 },
                 hide: {
@@ -463,6 +463,21 @@ function App(props: TagDataParams) {
                         />
                     </FormItem>
 
+                    <FormItem
+                        label='标签'
+                        required={false}
+                        field='tags'
+                        rules={[{ type: 'array', minLength: 0 }]}
+                    >
+                        <Select
+                            mode='multiple'
+                            allowCreate
+                            placeholder='请选择或输入标签'
+                            options={keys}
+                        // options={[]}
+                        />
+                    </FormItem>
+
                     {/* 隐藏项 */}
                     <FormItem label='id' field='id' hidden rules={[{ required: false }]}>
                         <Input
@@ -470,6 +485,8 @@ function App(props: TagDataParams) {
                             allowClear={true}
                         />
                     </FormItem>
+
+
                     <FormItem label='pageId' field='pageId' hidden rules={[{ required: false }]}>
                         <Input
                             // onFocus={handleFocus}
@@ -540,17 +557,16 @@ function App(props: TagDataParams) {
                         />
                     </Form.Item>
 
-                    <FormItem
+                    {/*  <FormItem
                         label='隐藏'
                         field='hide'
                         initialValue={false}
                         triggerPropName='checked'
-                    // rules={[{ type: 'boolean', true: true }]}
                     >
                         <Switch
                             defaultChecked={false}
                             checked={false} />
-                    </FormItem>
+                    </FormItem> */}
 
                     <FormItem label='描述' field='description' >
                         <TextArea

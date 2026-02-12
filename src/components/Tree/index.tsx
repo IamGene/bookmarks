@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Tree, Switch, Input, Typography, Anchor } from '@arco-design/web-react';
-import { set } from 'mobx';
+import { Tree, Switch, Input, Typography, Anchor, Select, Message, Space } from '@arco-design/web-react';
+import { RootState } from '@/store';
+import { useSelector } from 'react-redux';
+
 const AnchorLink = Anchor.Link;
 const TreeNode = Tree.Node;
 
+
+const Option = Select.Option;
+const options = ['按分组', '按时间'];
 function searchData(inputValue, treeData) {
     const loop = (data) => {
         const result = [];
@@ -52,16 +57,18 @@ function filterChildrenByPath(data) {
 
 
 
-
 // 示例用法
 // const filteredArray = filterChildrenArrayByPath(jsonArray);
 // function App({ data, setTreeSelected, treeSelectedKeys, treeInputValue, setTreeInputValue, setTreeSearchData }) {
-function App({ data, setTreeSelected, treeSelectedKeys, inputValue, setTreeInputValue }) {
+function App({ data, setTreeSelected, setTreeType, treeSelectedKeys, inputValue, setTreeInputValue }) {
     //所有树数据
     const [treeData, setTreeData] = useState(data);
+    const globalState = useSelector((state: any) => state.global);
+    const { dateGroups, groups1 } = globalState;
+    // console.log('7777777777777777 Tree组件 ', groups1);
+
     //搜索输入内容
-    // const [inputValue, setInputValue] = useState('');
-    // const [inputValue, setInputValue] = useState(treeInputValue);
+    const [groupType, setGroupType] = useState('按分组');
 
     const [checked, setChecked] = useState(true);
     const [expand, setExpand] = useState(false);
@@ -174,7 +181,6 @@ function App({ data, setTreeSelected, treeSelectedKeys, inputValue, setTreeInput
     useEffect(() => {
         // console.log('>>>>>>>>>>>>>>>>> treeData useEffect', data);
         // let filteredData = filterChildrenArrayByPath(data);
-        // console.log('>>>>>>>>>>>>>>>>> treeData useEffect filterChildrenArrayByPath', filteredData);
         setTreeData(data);
         if (!inputValue || !inputValue.trim()) {
             setTempExpand(false);
@@ -182,7 +188,6 @@ function App({ data, setTreeSelected, treeSelectedKeys, inputValue, setTreeInput
             setTempExpand(true);
         }
     }, [data]);
-
 
     useEffect(() => {
         // 选中节点
@@ -244,11 +249,62 @@ function App({ data, setTreeSelected, treeSelectedKeys, inputValue, setTreeInput
         );
     }
 
+
+
+    function onTypeSelectChange(value) {
+        /* Message.info({
+            content: `You select ${value}.`,
+            showIcon: true,
+        }); */
+        setTreeType(value);
+        setGroupType(value);
+        if (value === '按分组') {
+            setTreeData(data);
+        } else {
+            setTreeData(dateGroups);
+        }
+    }
+
+    //入口
     function scrollToAnchor(event, path) {
-        // console.log('scrollToAnchor', path);
+        if (groupType === '按分组') {
+            scrollToAnchor1(event, path);
+        } else {
+            scrollToAnchor2(event, path);
+        }
+    }
+
+    //按分组
+    function scrollToAnchor1(event, path) {
         const pathArr: string[] = path.split(",");
         event.preventDefault(); // 阻止默认的锚点跳转
         const targetElement = document.getElementById(pathArr[0]);
+        if (targetElement) {
+            targetElement.scrollIntoView({
+                behavior: 'smooth' // 可选：平滑滚动
+            });
+        }
+    }
+
+
+    function scrollToAnchor2(event, path) {
+        event.preventDefault(); // 阻止默认的锚点跳转
+        // 若 path 看起来是年份（长度不超过4且为数字），则尝试从 treeData 中找到该年分组
+        let targetId = path;
+        try {
+            if (path && String(path).length <= 4 && /^\d{1,4}$/.test(String(path))) {
+                const yearKey = String(path);
+                const yearNode = Array.isArray(treeData) ? treeData.find(n => String(n.id) === yearKey) : null;
+                if (yearNode) {
+                    // 优先使用子项的 path，其次 id
+                    const firstChild = yearNode.children[0];
+                    targetId = firstChild.path || firstChild.id || firstChild.date || targetId;
+                }
+            }
+        } catch (e) {
+            // ignore
+        }
+        const targetElement = document.getElementById(targetId);
         if (targetElement) {
             targetElement.scrollIntoView({
                 behavior: 'smooth' // 可选：平滑滚动
@@ -321,11 +377,24 @@ function App({ data, setTreeSelected, treeSelectedKeys, inputValue, setTreeInput
                 <Typography.Text>显示连接线</Typography.Text>
                 <Switch size='small' style={{ marginLeft: 12 }} checked={checked} onChange={setChecked}></Switch>
             </div> */}
-            <div style={{ marginLeft: '15px', fontSize: '14px' }}>
+            <div style={{ margin: '2px 0 2px 10px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Typography.Text style={{ color: 'var(--color-text-2)' }}>收起</Typography.Text>
-                <Switch size='small' style={{ marginLeft: 12, marginRight: 12 }} checked={expand} onChange={switchExpand}></Switch>
+                <Switch size='small' checked={expand} onChange={switchExpand}></Switch>
                 <Typography.Text style={{ color: 'var(--color-text-2)' }}>展开</Typography.Text>
+                <Select
+                    defaultValue={options[0]}
+                    style={{ width: 90 }}
+                    size="small"
+                    onChange={(value) => onTypeSelectChange(value)}
+                >
+                    {options.map((option) => (
+                        <Option key={option} value={option}>
+                            {option}
+                        </Option>
+                    ))}
+                </Select>
             </div>
+
 
             {/* 输入搜索框 */}
             <Input.Search

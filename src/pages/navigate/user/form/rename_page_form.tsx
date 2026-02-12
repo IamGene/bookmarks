@@ -157,7 +157,7 @@ function App(props: GroupFormParams) {
                 style={{ cursor: 'move' }}
                 // title='Modal Title'
                 // title={t['cardList.add.website.tag']}
-                title={t['cardList.edit.bookmark.group']}
+                title={t['cardList.rename.bookmark.page']}
                 visible={visible}
                 // visible={true}
                 onOk={onOk}

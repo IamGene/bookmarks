@@ -512,17 +512,16 @@ function App(props: TagDataParams) {
               />
             </Form.Item>
 
-            <FormItem
+            {/*   <FormItem
               label='隐藏'
               field='hide'
               initialValue={false}
               triggerPropName='checked'
-            // rules={[{ type: 'boolean', true: true }]}
             >
               <Switch
                 defaultChecked={false}
                 checked={false} />
-            </FormItem>
+            </FormItem> */}
 
             <FormItem label='描述' field='description' >
               {/*  <Input

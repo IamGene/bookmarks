@@ -5,7 +5,7 @@ import { Modal, Input, Cascader, Switch, Form, Message } from '@arco-design/web-
 import useLocale from '@/utils/useLocale';
 import locale from '../locale';
 import { GroupNode } from '@/store/modules/global';
-import { updateBookmarkById, updateGroupById, saveGroup } from '@/db/bookmarksPages';
+import { getPageTreeGroups, updateGroupById, saveGroup } from '@/db/bookmarksPages';
 import { saveTagGroup } from '@/api/navigate';
 import { useSelector } from 'react-redux';
 const FormItem = Form.Item;
@@ -32,13 +32,16 @@ function App(props: GroupFormParams) {
 
     const globalState = useSelector((state: any) => state.global);
     const treeData = globalState.treeData;
+    const pages = globalState.pages;
     const [optionValues, setOptionValues] = useState(selectGroup);
+    const [optionValues1, setOptionValues1] = useState(pageId);
     // const cascaderOptions = globalState.treeData;
-    // console.log('tab form selectGroup group', selectGroup, group);
+    // console.log('tab form selectGroup pages', pages, group, selectGroup);
     // console.log('tab form cascaderOptions cascaderOptions', cascaderOptions);
     //要显示的选择分组
 
     const [cascaderOptions, setCascaderOptions] = useState(treeData);
+    const [cascaderOptions1, setCascaderOptions1] = useState(pages);
     // console.log('----------------form selectGroup cascaderOptions', selectGroup, cascaderOptions);
     const t = useLocale(locale);
 
@@ -51,13 +54,27 @@ function App(props: GroupFormParams) {
             Message.success('修改成功');
         } else {
             groupData = await saveGroup(data);
+            closeWithSuccess(true, groupData)//相当于点击取消/关闭按钮
             Message.success('添加成功');
         }
         setConfirmLoading(false);
+        closeWithSuccess(true, data)//相当于点击取消/关闭按钮
         // 修改：pid发生变化： 锚点pid ， pid不发生变化：Tab0
         // 新增：无pid, 锚点id； 有pid，Tab
-        closeWithSuccess(true, groupData)//相当于点击取消/关闭按钮
+        // console.log('----------groupData', groupData);
+        // closeWithSuccess(true, groupData)//相当于点击取消/关闭按钮
         return true;
+    }
+
+    async function onPageIdChange(pageIds) {
+        const pageId = pageIds[0];
+        const res = await getPageTreeGroups(pageId);
+        setCascaderOptions(res);
+        form.setFields({
+            pId: {//如果属于当前书签页则恢复选中当前分组
+                value: group.pageId === pageId ? selectGroup : null
+            },
+        });
     }
 
     const onOk = async () => {
@@ -68,11 +85,14 @@ function App(props: GroupFormParams) {
             if (name.length > 20) {
                 res.name = name.substring(0, 20);;
             }
+            if (res.pId === undefined) res.pId = null;
             // res.gid = res.group[res.group.length - 1];//取数组的最后一个为分组id
-            // res.sort = sort;
             // if (res.pid && res.pid !== null) res.pid = res.pid[0];
             if (res.pId && res.pId.length > 0 && typeof res.pId !== 'string') {//数组
                 res.pId = res.pId[res.pId.length - 1];//取数组的最后一个为分组id    
+            }
+            if (res.pageId && res.pageId.length > 0) {//数组
+                res.pageId = res.pageId[0];//取数组的最后一个为分组id    
             }
             // console.log('group', res);
             processSaveSubGroup(res);
@@ -97,14 +117,12 @@ function App(props: GroupFormParams) {
             name: {
                 // value: group.name
                 value: group ? group.name : ''
-                // value: '分组s'
             },
             hide: {
                 value: group ? group.hide : false
             },
             pageId: {
-                // value: group ? group.pageId : pageId
-                value: pageId
+                value: group ? group.pageId : pageId
             }
         });
         // selectGroup && setOptionValues(selectGroup);
@@ -124,6 +142,11 @@ function App(props: GroupFormParams) {
     useEffect(() => {
         setCascaderOptions(treeData);
     }, [treeData]);
+
+
+    /*  useEffect(() => {
+         setOptionValues1(pageId);
+     }, [pageId]); */
 
     function setDisabledNodes(nodes, selectNode) {
         function setDisabledForGroupChldren(nodes, selectNode) {
@@ -155,10 +178,15 @@ function App(props: GroupFormParams) {
                 },
                 id: {
                     value: group.id
-                }
+                },
+                pageId: {
+                    value: group.pageId
+                },
+                // if(group) setOptionValues1(group.pageId);
             });
         }
     }, [group]);
+
 
     const [form] = Form.useForm();
     const formItemLayout = {
@@ -266,6 +294,39 @@ function App(props: GroupFormParams) {
                 >
 
                     <FormItem
+                        label='书签页'
+                        field='pageId'
+                        rules={[
+                            {
+                                required: true,
+                            }
+                        ]}
+                    >
+                        <Cascader
+                            // placeholder='Please select ...'
+                            placeholder={t['cardList.select.group.placeholder']}
+                            options={cascaderOptions1}
+                            showSearch
+                            // mode='multiple'
+                            changeOnSelect  //选择即改变
+                            allowClear
+                            value={optionValues1}
+                            /*  onChange={(value, options) => {
+                                 // console.log(value, options);
+                                 onPageIdChange(value);
+                             }} */
+                            onChange={(value, options) => {
+                                onPageIdChange(value);
+                            }}
+                            fieldNames={{
+                                // children: 'child',
+                                label: 'title',
+                                value: 'pageId',
+                            }}
+                        />
+                    </FormItem>
+
+                    <FormItem
                         label='上级'
                         field='pId'
                         rules={[
@@ -321,7 +382,7 @@ function App(props: GroupFormParams) {
                         <Input />
                     </FormItem>
 
-                    <FormItem
+                    {/*  <FormItem
                         label='隐藏'
                         field='hide'
                         initialValue={false}
@@ -330,7 +391,7 @@ function App(props: GroupFormParams) {
                         <Switch
                             defaultChecked={false}
                             checked={false} />
-                    </FormItem>
+                    </FormItem> */}
                 </Form>
             </Modal>
         </div >

@@ -5,11 +5,11 @@ import { Provider } from 'react-redux';
 import { ConfigProvider } from '@arco-design/web-react';
 import zhCN from '@arco-design/web-react/es/locale/zh-CN';
 import enUS from '@arco-design/web-react/es/locale/en-US';
-import { BrowserRouter, Redirect, Switch, Route } from 'react-router-dom';
+import { BrowserRouter, HashRouter, Redirect, Switch, Route } from 'react-router-dom';
+import { } from 'react-router-dom';
 // import { HashRouter as Router, Redirect, Switch, Route } from 'react-router-dom';
 // import Navigate from './navigate';
 import UserBookmarks from './pages/navigate/user';
-import IndexedDB1 from './db/BookmarkRestore.jsx';
 import DefaultNavigate from './pages/navigate/default';
 import { GlobalContext } from './context';
 import Login from './pages/login';
@@ -18,7 +18,7 @@ import useStorage from './utils/useStorage';
 import { getCollectPageGroups, saveBookmarkToDB, saveBookmarksToDB, getBookmarkById, getPages } from './db/bookmarksPages';
 // import { useDispatch, useSelector } from 'react-redux'
 // import { RootState } from '@/store';
-import { fetchBookmarksPageData, loadNewAddedBookmarks, reloadUserPages } from '@/store/modules/global'; // 确保路径正确
+import { fetchBookmarksPageData, loadNewAddedBookmarks, reloadUserPages, loadSearchHistory } from '@/store/modules/global'; // 确保路径正确
 import './mock';
 import store from './store';
 
@@ -107,6 +107,7 @@ function Index() {
 
     //加载用户书签页数据到redux
     store.dispatch(reloadUserPages() as any).catch(() => { });
+    store.dispatch(loadSearchHistory() as any).catch(() => { });
 
     const handleMessage = async (event) => {
       // 1. 安全检查：可以根据需要添加来源验证
@@ -226,6 +227,7 @@ function Index() {
 
   return (
     // <Router>
+    // <HashRouter>
     <BrowserRouter>
       <ConfigProvider
         locale={getArcoLocale()}
@@ -255,6 +257,7 @@ function Index() {
         </Provider>
       </ConfigProvider>
     </BrowserRouter>
+    // </HashRouter>
     // </Router >
 
 

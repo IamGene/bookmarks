@@ -1,10 +1,10 @@
 import './bootstrap.min.css'
 import './index.css'
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     IconMore, IconEdit
 } from '@arco-design/web-react/icon';
-import { Tooltip, Dropdown, Menu, Popover } from '@arco-design/web-react';
+import { Tooltip, Tag, Dropdown, Menu, Popover } from '@arco-design/web-react';
 import { removeConfirm } from '../form/remove-confirm-modal';
 import { WebTag } from '../interface';
 import { useDispatch } from 'react-redux'
@@ -228,6 +228,7 @@ const App = (props: CardBlockType) => {
                         <Tooltip position='top' trigger='hover' content={<div style={{}}>
                             {tag.name}
                             {tag.date && <br />}
+
                             {/* {tag.date && tag.date} */}
                             {<span style={{ color: 'var(--color-primary-light-4)' }}>
                                 {/* {<span style={{ color: '#5156be' }}> */}
@@ -260,6 +261,32 @@ const App = (props: CardBlockType) => {
                             </p>
                         </Tooltip>
 
+
+                    </div>
+
+                    <div className="tag-list" >
+                        {tag.tags && tag.tags.map((item) => {
+                            return (
+                                <Tag
+                                    size="small"
+                                    key={item}
+                                    style={{
+                                        // margin: '16px 16px 16px 0',
+                                        marginRight: '5px',
+                                        flex: '0 0 auto',
+                                        maxWidth: '160px',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                        display: 'inline-block',
+                                    }}
+                                // color={item.color}
+                                // onClose={() => onTagClose(item)}
+                                >
+                                    {item}
+                                </Tag>
+                            );
+                        })}
                     </div>
                 </div>
 

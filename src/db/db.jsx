@@ -1,7 +1,8 @@
 import { openDB } from 'idb';
 
 export async function getDB() {
-  return await openDB('BookmarksDB', 1, {
+  // IndexedDB 版本号从 1 改为 2，以触发 upgrade 并创建 history 对象存储。
+  return await openDB('BookmarksDB', 2, {
     upgrade(db) {
       if (!db.objectStoreNames.contains('pages')) {
         db.createObjectStore('pages', { keyPath: 'pageId' });
@@ -16,6 +17,9 @@ export async function getDB() {
         const store = db.createObjectStore('urls', { keyPath: 'id' });
         store.createIndex('pageId', 'pageId');
         store.createIndex('gId', 'gId');
+      }
+      if (!db.objectStoreNames.contains('history')) {
+        db.createObjectStore('history', { keyPath: 'word' });
       }
     }
   });

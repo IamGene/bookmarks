@@ -19,6 +19,12 @@
     padding: 7px 0;
 }
 
+.tag-list {
+    position: absolute;
+    left: 12px;
+    bottom: -2px;
+}
+
 .label {
     position: relative;
 }

@@ -36,7 +36,6 @@ import { RootState } from '@/store';
 import { updateUserInfo } from '@/store/modules/global';
 import { generatePermission } from '@/routes';
 import { naviData } from './naviData';
-// import Navi from './navigate';
 import Sections from './sections';
 import styles from '@/style/layout.module.less';
 // import './index.css'
@@ -369,6 +368,8 @@ function Navigate() {
     }
   }
 
+
+
   // 获取数据
   const getData = () => {
     axios
@@ -491,7 +492,7 @@ function Navigate() {
         })}
       >
         {/* <Navbar show={showNavbar} setNavBarKey={getNavBarKey} /> */}
-        <Navbar show={showNavbar} pageType={'navigates'} display={null} setNavBarKey={getNavBarKey} setAllDisplay={null} />
+        <Navbar show={showNavbar} pageType={'navigates'} filterDataByTags={null} pageId={null} display={null} setNavBarKey={getNavBarKey} setAllDisplay={null} />
         {/* <Navbar show={showNavbar} pageNo={currentPage} pages={bookmarkPages} display={hideGroup ? hiddenGroup : null} setNavBarKey={getNavBarKey} setAllDisplay={getAllDisplay} /> */}
       </div>
       {userLoading ? (

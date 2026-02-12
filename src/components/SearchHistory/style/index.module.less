@@ -1,0 +1,109 @@
+@import '@arco-themes/react-arco-pro/variables.less';
+
+.history-box {
+  // width: 400px;
+  width: 420px;
+  max-height: 800px;
+  background-color: var(--color-bg-popup);
+  border: 1px solid var(--color-border-2);
+  box-shadow: @shadow2-down;
+  border-radius: @border-radius-medium;
+
+  position: fixed;
+  top: 6%;
+  left: 62%;
+  transform: translate;
+
+  :global(.arco-tabs-header-nav) {
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--color-border-2);
+  }
+
+  :global(.arco-list-item-meta) {
+    align-items: flex-start;
+  }
+
+  :global(.arco-list-item-meta-content) {
+    width: 100%;
+  }
+
+  :global(.arco-tabs-content) {
+    padding-top: 0;
+  }
+}
+
+/* ===== tag list ===== */
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* .tag-item {
+  position: relative;
+  padding: 6px 22px 6px 10px;
+  background-color: #f5f5f5;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  transition: color 0.2s ease, background-color 0.2s ease;
+} */
+
+
+.tag-item {
+  position: relative;
+  /* 关键：让内容上下居中 */
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px 6px 10px; //上右下左
+  font-size: 14px;
+  line-height: 1;
+  background-color: #f5f5f5;
+  border-radius: 5px;
+  color: #333;
+  cursor: pointer;
+
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.tag-item:hover {
+  color: #1677ff;
+  background-color: #e6f4ff;
+}
+
+.tag-text {
+  white-space: nowrap;
+}
+
+.tag-close {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+
+  border-radius: 50%;
+  background-color: #999;
+  color: #fff;
+
+  width: 12px;
+  height: 12px;
+  // width: 16px;
+  // height: 16px;
+  line-height: 12px;
+  // line-height: 16px;
+  font-size: 10px;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.tag-item:hover .tag-close {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.tag-close:hover {
+  background-color: #ff4d4f;
+}

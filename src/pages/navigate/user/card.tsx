@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import TagItem from './tag/card-tag';
 import { WebTag } from './interface';
-import { Tabs, Card, Switch, Empty, Input, Dropdown, Menu, Typography, Message, Grid, Form, Button, Space } from '@arco-design/web-react';
+import { Tabs, Card, Switch, Empty, Input, Tag, Dropdown, Menu, Typography, Message, Grid, Form, Button, Space } from '@arco-design/web-react';
 import { IconEyeInvisible, IconToTop, IconMore, IconPlus, IconEraser, IconToBottom, IconLink, IconDelete, IconEdit, IconEye, IconCheck } from '@arco-design/web-react/icon';
 import styles from './style/index.module.less';
 import TagForm from './form/tag-form';
@@ -11,7 +11,7 @@ import { removeConfirm } from './form/remove-confirm-modal';
 import { clearConfirm } from './form/clear-confirm-modal';
 import { removeGroup, saveTagGroup, moveGroupTopBottom } from '@/api/navigate';
 import { useDispatch } from 'react-redux'
-import { fetchBookmarksPageData, updateActiveGroup, updatePageDataState } from '@/store/modules/global';
+import { fetchBookmarksPageData, updateActiveGroup, updatePageBookmarkTags, updateSearchState, updatePageDataState } from '@/store/modules/global';
 import { getBookmarkGroupById, removeGroupById, getBookmarksGroupById, resortNodes, getBookmarksNumByGId, clearGroupBookmarksById, getThroughChild } from '@/db/bookmarksPages';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -131,7 +131,7 @@ function searchDataAggregated(inputValue, cardData) {
         const filterHiddenSearchResult = [];
         let totalMatchCount = 0;
 
-        (data.urlList).forEach((bookmark) => {
+        (data.bookmarks).forEach((bookmark) => {
             let contains = false;
             const originalName = bookmark.name || '';
             const originalDescription = bookmark.description || '';
@@ -161,9 +161,7 @@ function searchDataAggregated(inputValue, cardData) {
 
         return {
             ...data,
-            urlList: data.urlList,
-            // searchResult,
-            // searchList: bookmarks,
+            bookmarks: data.bookmarks,
             searchResult,
             filterHiddenSearchResult,
             // childrenMatchCount: 0,
@@ -173,7 +171,7 @@ function searchDataAggregated(inputValue, cardData) {
 
     function processNode(node, level = 0) {
         // 叶子（只有 urlList）：处理搜索
-        if ((!node.children || node.children.length === 0) && node.urlList) {
+        if ((!node.children || node.children.length === 0) && node.bookmarks) {
             return processLeaf(node);
         }
 
@@ -224,7 +222,7 @@ function searchDataAggregated(inputValue, cardData) {
     }
 
     // 入口：保留和 searchData 一致的判断逻辑
-    if (cardData.urlList && cardData.children.length === 0) {
+    if (cardData.bookmarks && cardData.children.length === 0) {
         return processLeaf(cardData);
     }
     return processNode(cardData, 0);
@@ -233,10 +231,37 @@ function searchDataAggregated(inputValue, cardData) {
 
 
 // function renderCard({ cardData, display, activeCardTab, setCardTabActive, keyWord, hasResult }) {//hasResult
-function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, keyWord, hasResult }) {//hasResult
+function renderCard({ cardData, display, tags, treeSelectedNode, setCardTabActive, keyWord, hasResult }) {//hasResult
+
+    // 抽离的子组件：显示选中的 tags
+    const SelectedTags = ({ tags }: { tags: Array<any> }) => {
+        if (!tags || tags.length === 0) return null;
+        return (
+            <>
+                {tags.map((item) => (
+                    <Tag
+                        key={item.key}
+                        style={{
+                            marginRight: '16px',
+                            marginTop: '5px',
+                            flex: '0 0 auto',
+                            maxWidth: '160px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            display: 'inline-block',
+                        }}
+                        color={item.color}
+                    >
+                        {item.key}
+                    </Tag>
+                ))}
+            </>
+        );
+    };
 
     // if (cardData.id === 'vu2pi7002')
-    // console.log(cardData.name + ' 渲染了>>>>>>>>>>>>>>', keyWord, treeSelectedNode);
+    // console.log(cardData.name + ' 渲染了>>>>>>>>>>>>>>', keyWord, cardData);
 
     const dispatch = useDispatch();
     const pageId = cardData.pageId;
@@ -292,7 +317,6 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
             const value = parts[i + 1];
             result[key] = value;
         }
-        // console.log('00000000000000 buildActiveMap result path ', path, result)
         return result;
     }
     const getResortData = (parentData: any, dragIndex: number, hoverIndex: number, pId: string) => {
@@ -371,8 +395,6 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
     }, [treeSelectedNode]);
 
 
-
-
     // 处理空字符串搜索
     /*  const processEmptySearch = async () => {
          console.log(cardData.name + '000000000000000 processEmptySearch setActiveTab');
@@ -392,7 +414,12 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
         // const result = searchData(keyWord.trim(), cardData);
         // const result = searchDataAggregated(keyWord.trim(), cardData);
         const result = searchDataAggregated(keyWord.trim(), data);
-        // console.log(cardData.name + "search keyword=" + keyWord + ",result=", result);
+
+        if (result.totalMatchCount > 0) {
+            console.log(cardData.name + "search keyword=" + keyWord + ",result=", result.searchResult, result.totalMatchCount);
+            dispatch(updateSearchState({ searchResultNum: result.totalMatchCount }));
+        }
+
         setData(result);
         setSearchResult(result.searchResult); //（全部）搜索结果
         setNoHiddenSearchResult(result.noHiddenSearchResult)//没有隐藏项的搜索结果
@@ -426,21 +453,22 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
     }
 
     useEffect(() => {
-        console.log(cardData.name + ' useEffect >>>>>>>>>>>>>>>>>>>>>', cardData, activeMap)
+        // console.log(cardData.name + ' useEffect >>>>>>>>>>>>>>>>>>>>>', cardData, tags);
         //重新进行一次搜索,考虑hasResult并未更新，所以该Card仍然展示
         setData(cardData);
-        processSearchKeywordChange(cardData, searchInput, currentSearch, false)//从data中搜索 根据当前Card展示与否
+        //当非标签筛选时，进行搜索
+        if (!cardData.tags) processSearchKeywordChange(cardData, searchInput, currentSearch, false)//从data中搜索 根据当前Card展示与否
         // setShowByDisplayAndGroupHide(cardData.hide, display);
-        if (!activeMap[cardData.id]) {
-            // initActiveMap(cardData.id);//初始化第一层tabs的activeTab{
-            initActiveMap(cardData.id);
-        }//初始化第一层tabs的active项
+        setSelectedTags(cardData.tags);
+        // console.log('!!!!!!!!!!!! activeMap', activeMap);
+        /*  if (!activeMap[cardData.id]) {
+             // initActiveMap(cardData.id);//初始化第一层tabs的activeTab{
+             initActiveMap(cardData.id);
+         }//初始化第一层tabs的active项 */
+
         // if (activeTab) setActiveMap(prev => ({ ...prev, [cardData.id]: activeTab }))
     }, [cardData]);//cardData发生变化，
 
-    /*  useEffect(() => {
-         console.log(data.name + ' useEffect 8888888888 >>>>>>>>>>>>>>>>>>>>>', data)
-     }, [data]);//data发生变化 */
 
     useEffect(() => {
         onKeywordChange(keyWord, false);
@@ -448,14 +476,17 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
 
 
     const onKeywordChange = (searchKeyword: string, currentSearch: boolean) => {
-        const keyword = searchKeyword.trim();
+        const keyword = searchKeyword ? searchKeyword.trim() : '';
         setSearchInput(keyword);
         setCurrentSearch(currentSearch);
         setActiveCardTab([]);//相当于tree选中节点失效,除非重新点击
         //点击搜索后点击tab后应恢复到默认tabs
         if (keyword === '') {
             if (defaultActiveMap) setActiveMap(defaultActiveMap);
-            else initActiveMap(cardData.id);//初始化第一层tabs的activeTab
+            else {
+                if (!activeMap || activeMap[cardData.id] == searchTabKey)
+                    initActiveMap(cardData.id);//初始化第一层tabs的activeTab
+            }
         } else {//搜索结果tab
             setActiveMap({ [data.id]: searchTabKey })
         }
@@ -513,7 +544,6 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
 
     const [activeMap, setActiveMap] = useState<Record<string, string>>({});
 
-
     const getActiveForPath = (path: string) => {
         if (!path) return undefined;
         const activeValue = activeMap[path];
@@ -550,17 +580,16 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
             const last = path.substring(lastIndex + 1).trim();
             if (last === key) { //是复制分组，本身无子分组
                 const result = buildActiveMap(path.replaceAll('-', ',') + ',' + key);
-                // console.log('66666666666666 setActiveMapThroughChildren  last === key 是复制分组 ', key, path, result);
                 setActiveMap(result);
             } else {
-                const lastChild = await getThroughChild(key);
+                const lastChild = await getThroughChild(key, path + ',' + key);
                 setActiveMap(buildActiveMap(lastChild.path));
             }
         } else {//B.点击的是：2级分组
             if (path === key) { //切换到复制分组，本身无子分组
                 setActiveMap(buildActiveMap(path + ',' + key));
             } else { //非复制分组，可能有子分组
-                const lastChild = await getThroughChild(key);
+                const lastChild = await getThroughChild(key, path + ',' + key);
                 setActiveMap(buildActiveMap(lastChild.path));
             }
         }
@@ -764,8 +793,6 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
         setActiveMap(buildActiveMap(pathStr));
     }
 
-
-
     useEffect(() => {
         const cardActive: string = activeCardTab[0];
         // 受控模式
@@ -956,14 +983,14 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
 
 
     async function initActiveMap(pGroupId: string) {
-        const lastChild = await getThroughChild(pGroupId);
+        const lastChild = await getThroughChild(pGroupId, "");
         const activeMap = buildActiveMap(lastChild.path);
-        // if (pGroupId === 'vu2pi7002')
-        //     console.log('bbbbbbbbbbbbbbbbbbbbbbbb useEffect[] lastChild initActiveMap', lastChild, activeMap);
+        /*  if (pGroupId === 'vu2pi7002') {
+             console.log('bbbbbbbbbbbbbbbbbbbbbbbb useEffect[] initActiveMap', activeMap);
+         } */
         setActiveMap(activeMap);
         setDefaultActiveMap(activeMap);//默认的 缓存起来
     }
-
 
     //二、关键词搜索部分end ====================================================================================
 
@@ -973,7 +1000,7 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
     const [tabForm, setTabForm] = useState(false);//添加Tab
     const [selectGroup, setSelectGroup] = useState(null);//添加Tab
     // const [requirePid, setRequirePid] = useState(true);//添加Tab
-
+    const [selectedTags, setSelectedTags] = useState<any[]>(cardData.tags);
     //添加2级分组Tab
     /* const handleAddTab = () => {
         // console.log('添加2级分组Tab handleAddTab');
@@ -986,7 +1013,7 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
 
     const handleAddTab = (group) => {
         setTabForm(true);
-        setTabGroup({ pId: group.id });
+        setTabGroup({ pId: group.id, pageId: group.pageId });
         const pathArr: string[] = group.path.split(",");
         setSelectGroup(pathArr);
         // console.log('添加分组Tab handleAddTab', group, pathArr);
@@ -994,9 +1021,11 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
     };
 
     //test
-    const editGroup1 = () => {
+    const editGroup1 = (node) => {
+        // console.log('----------group1', node);
         setTabForm(true)
-        setTabGroup(cardData);
+        // setTabGroup(cardData);
+        setTabGroup(node);
         setSelectGroup(null);
     }
     const switchGroup1 = () => {
@@ -1072,7 +1101,7 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
     //打开全部标签
     const openGroupAllTags = (group) => {
         // console.log('打开全部标签', group)
-        openUrls(group.urlList);
+        openUrls(group.bookmarks);
     }
 
     const addGroup1Tag = () => {
@@ -1108,20 +1137,6 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
         } else setTagSelectGroup(nodePath.split(","))
     }
 
-    async function processRemoveGroup(id: number) {
-        try {
-            const response = await removeGroup(id);
-            if (response.code === 200) {
-                // Message.success('删除成功');
-                getGroupData();
-                return true;
-            } else {
-                return false;
-            }
-        } catch (error) {
-            return false;
-        }
-    }
 
     async function processRemoveGroup1(id: string) {
         try {
@@ -1171,7 +1186,7 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
     // const [visible, setVisible] = useState(false);
     const tabMore = (subGroup) => {
         // 创建自定义事件并分发
-        const json = JSON.stringify({ id: subGroup.id, name: subGroup.name, hide: subGroup.hide, path: subGroup.path, pId: subGroup.pId });
+        const json = JSON.stringify({ id: subGroup.id, name: subGroup.name, pageId: subGroup.pageId, hide: subGroup.hide, path: subGroup.path, pId: subGroup.pId });
 
         /*  const processRemoveGroup = async () => {
             try {
@@ -1205,7 +1220,7 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
 
                         if (activeMap[key] === part2) {  //如果被删除的分组为active,则切换到兄弟tab
                             // console.log('444444444444444444444 如果被删除的分组为active', part2);
-                            const lastChild = await getThroughChild(pId);
+                            const lastChild = await getThroughChild(pId, part2);
                             setActiveMap(buildActiveMap(lastChild.path));
                         } else {
                             // console.log('66666666666666666666 broGroup newActiveMap 11', activeMap);
@@ -1253,7 +1268,8 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
                     let tags = [];
                     data.children.some((item) => {
                         if (item.id === subGroup.id) {//非隐藏的
-                            tags = item.urlList;
+                            // tags = item.bookmarks;
+                            tags = item.bookmarks;
                             return true;//终止遍历
                         } else {//当前项隐藏
                             return false;//继续遍历
@@ -1277,7 +1293,7 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
                             <Menu.Item key={'0-' + json} >添加</Menu.Item>
                             <Menu.Item key={'1-' + json} >编辑</Menu.Item>
                             <Menu.Item key={'2-' + json} >删除</Menu.Item>
-                            {subGroup.urlList && subGroup.urlList.length > 0 && <Menu.Item key={'3-' + json} >打开</Menu.Item>}
+                            {subGroup.bookmarks && subGroup.bookmarks.length > 0 && <Menu.Item key={'3-' + json} >打开</Menu.Item>}
                         </>
                     }
 
@@ -1322,7 +1338,7 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
     }
 
 
-    async function closeTagModal(success: boolean, newTag: WebTag, type: number) {
+    async function closeTagModal(success: boolean, newTag: WebTag, oldTag: WebTag, type: number) {
         setAddTagVisible(false);
         if (success) {//刷新当前页面数据
             // console.log('close Modal group', newTag);
@@ -1339,25 +1355,70 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
                     }
                 } else {//  if (type >= 1) 修改书签1 新增书签2 重置(搜索)数据
                     updateCardData();
-                    // refreshDataByUpdateBookmark(newTag);//修改书签
                     // refreshDataByAddBookmark(newTag);//新增书签
                 }
             }
+
+
+            // 根据 newTag 与 oldTag 的 tags 字段计算 tagsUpdate 并更新全局 tagsMap
+            const computeTagsUpdate = (newTagObj, oldTagObj) => {
+                const updates = [];
+                const newTags = Array.isArray(newTagObj && newTagObj.tags) ? newTagObj.tags.map(t => String(t).trim()).filter(Boolean) : [];
+                const oldTags = Array.isArray(oldTagObj && oldTagObj.tags) ? oldTagObj.tags.map(t => String(t).trim()).filter(Boolean) : [];
+
+                // 如果是新增（oldTag 为空或 oldTag.tags 为空）且 newTags 非空：全部视为新增（add: true）
+                if ((!oldTagObj || oldTags.length === 0) && newTags.length > 0) {
+                    for (const t of newTags) updates.push({ tag: t, add: true, id: newTagObj && newTagObj.id ? newTagObj.id : null });
+                    return updates;
+                }
+
+                // 否则比较差异：newTags 中相对于 oldTags 新增的 -> add: true
+                // oldTags 中相对于 newTags 减少的 -> add: false
+                const newSet = new Set(newTags);
+                const oldSet = new Set(oldTags);
+
+                for (const t of newSet) {//新增的标签
+                    if (!oldSet.has(t)) updates.push({ tag: t, add: true, id: newTagObj && newTagObj.id ? newTagObj.id : null });
+                }
+                for (const t of oldSet) {//删除的标签
+                    if (!newSet.has(t)) updates.push({ tag: t, add: false, id: oldTagObj && oldTagObj.id ? oldTagObj.id : null });
+                }
+
+                return updates;
+            };
+
+            const tagsUpdate = computeTagsUpdate(newTag, oldTag);
+            if (tagsUpdate && tagsUpdate.length > 0) {
+                dispatch(updatePageBookmarkTags(tagsUpdate));
+            }
+            // console.log('close Modal newTag', newTag, oldTag);
         }
     }
-
 
 
     const processReload = async (group) => {
         await getGroupData();
         if (group) {
             // console.log('3333333333333333333  processReload', group);
-            dispatch(updateActiveGroup(group));
-            if (searching) {
-                setActiveCardTab(group.path.split(',')); //适合新增，修改Group
+            if (group.pageId === pageId) {
+                dispatch(updateActiveGroup(group));
+                if (searching) {//搜索中
+                    setActiveCardTab(group.path.split(',')); //适合新增，修改Group
+                } else {
+                    const activeMap = buildActiveMap(group.path);
+                    setActiveMap(activeMap); //适合新增，修改Group
+                }
             } else {
-                const activeMap = buildActiveMap(group.path);
-                setActiveMap(activeMap); //适合新增，修改Group
+                if (group.id === tabGroup.id && tabGroup.pId) { //父分组，重新设置activeTab
+                    getBookmarkGroupById(tabGroup.pId).then((pGroup) => {
+                        getThroughChild(pGroup.id, pGroup.path).then((lastChild) => {
+                            // console.log('3333333333333333333  lastChild', lastChild);
+                            const activeMap = buildActiveMap(lastChild.path);
+                            setActiveMap(activeMap);
+                        })
+                        // dispatch(updatePageDataState(resultData.pageData));//groups变化会触发重新渲染顶层组件(已订阅)
+                    })
+                }
             }
             // 设置新的定时器
             // clearTimeout(timeoutId);
@@ -1368,7 +1429,7 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
 
     //提交成功后关闭或取消关闭Modal窗口
     async function closeTabModal(success: boolean, group: any) {
-        // console.log('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa close Tab Modal', success, group);
+
         setTabForm(false);
         if (success) {//刷新当前页面数据
             processReload(group);
@@ -1544,7 +1605,6 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
                     // const newNotHide = Math.max(0, (node.notHideTabCount || 0) - decrease);
                     const list = [...node.urlList];
                     list.splice(idx, 1);
-                    // node.urlList = list;
 
                     // 返回新的节点并标记已删除，终止进一步递归
                     if (searching) {
@@ -1681,6 +1741,8 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
         // refreshData1(tag);//设置data数据与db保持一致
         //当前所属分组变为空?切换到兄弟节点tab
         //查询所在分组的urlList,若为空，则切换到搜索结果tab（根据pId）
+        // console.log('aaaaaaaaaaaaaaaaaaaa', tag);
+
         getBookmarksGroupById(data.id).then((resultData) => {
             const groupData = resultData.groupData;
             // 必须通过 dispatch 派发 thunk action
@@ -1697,6 +1759,13 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
                 setData(groupData);
             }
         })
+
+        // 如果是新增（oldTag 为空或 oldTag.tags 为空）且 newTags 非空：全部视为新增（add: true）
+        if (tag.tags && tag.tags.length > 0) {
+            const updates = [];
+            for (const t of tag.tags) updates.push({ tag: t, add: false, id: tag.id });
+            dispatch(updatePageBookmarkTags(updates));
+        }
     }
 
     function determinShowTabOrNot(item: any) {
@@ -1706,7 +1775,7 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
             //展示隐藏的分分组
             if (showItem) {//展示隐藏的分分组（但搜索结果urlList不能为空）
                 // console.log('>>>>>>>>>> determinShowTabOrNot', item.name, item, showItem);
-                dis = item.urlList && item.urlList.length > 0;
+                dis = item.bookmarks && item.bookmarks.length > 0;
             } else {//不展示隐藏的分分组
                 // console.log('<<<<<<<<<<< determinShowTabOrNot', item.name, item.hide, showItem);
                 // dis = (!item.hide && item.notHideTabCount > 0) || item.id == activeTab
@@ -1779,12 +1848,12 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
 
                                     <ButtonGroup style={{ marginLeft: "10px" }}>
                                         <Button onClick={(e) => addTagOrGroup(data.id)} icon={<IconPlus />} >添加</Button>
-                                        <Button onClick={editGroup1} icon={<IconEdit />} >编辑</Button>
+                                        <Button onClick={() => editGroup1(data)} icon={<IconEdit />} >编辑</Button>
                                         {data.hide && <Button onClick={switchGroup1} icon={<IconEye />} >展示</Button>}
-                                        {!data.hide && <Button onClick={switchGroup1} icon={<IconEyeInvisible />} >隐藏</Button>}
+                                        {/* {!data.hide && <Button onClick={switchGroup1} icon={<IconEyeInvisible />} >隐藏</Button>} */}
                                         <Button onClick={removeGroup1} icon={<IconDelete />} >删除</Button>
                                         {/* {data.urlList.length > 0 && <Button onClick={clearGroup} icon={<IconEraser />} >清空</Button>} */}
-                                        {data.urlList.length > 0 && < Button onClick={(e) => openGroupAllTags(data)} icon={<IconLink />} >打开</Button>}
+                                        {data.bookmarks.length > 0 && < Button onClick={(e) => openGroupAllTags(data)} icon={<IconLink />} >打开</Button>}
                                     </ButtonGroup>
                                 </>
                             }
@@ -1794,6 +1863,9 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
                                         <Typography.Text style={{ color: 'var(--color-text-2)' }}>显示</Typography.Text>
                                         <Switch size='small' style={{ marginLeft: 12, marginRight: 12 }} checked={showItem} onChange={switchShow}></Switch>
                                     </label>}
+
+
+                                    <SelectedTags tags={selectedTags} />
 
                                     <Input.Search
                                         allowClear
@@ -1824,7 +1896,7 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
                                 :
                                 // <div className={styles.container}>
                                 <div className={styles['single-content-border']}>
-                                    {renderTags(data.urlList, data.path, false)}
+                                    {renderTags(data.bookmarks, data.path, false)}
                                 </div>
                                 // </div>
 
@@ -1843,7 +1915,7 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
 
             // 非根层叶子：返回 tags 容器，父层 TabPane 会放置该内容
             return (
-                renderTags(searching ? data.searchResult : data.urlList, data.path, false)
+                renderTags(searching ? data.searchResult : data.bookmarks, data.path, false)
             );
         }
 
@@ -1857,8 +1929,9 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
                             <span>{data.name}</span>
                             {data.hide ? <IconEyeInvisible></IconEyeInvisible> : ''}
                             <ButtonGroup style={{ marginLeft: "10px" }}>
-                                <Button onClick={editGroup1} icon={<IconEdit />} >编辑</Button>
-                                {<Button onClick={switchGroup1} icon={data.hide ? <IconEye /> : <IconEyeInvisible />}>{data.hide ? '展示' : '隐藏'}</Button>}
+                                {/* <Button onClick={editGroup1} icon={<IconEdit />} >编辑</Button> */}
+                                <Button onClick={() => editGroup1(data)} icon={<IconEdit />} >编辑</Button>
+                                {/* {<Button onClick={switchGroup1} icon={data.hide ? <IconEye /> : <IconEyeInvisible />}>{data.hide ? '展示' : '隐藏'}</Button>} */}
                                 <Button onClick={removeGroup1} icon={<IconDelete />} >删除</Button>
                             </ButtonGroup>
                         </>
@@ -1869,6 +1942,8 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
                                 <Typography.Text style={{ color: 'var(--color-text-2)' }}>显示</Typography.Text>
                                 <Switch size='small' style={{ marginLeft: 12, marginRight: 12 }} checked={showItem} onChange={switchShow}></Switch>
                             </div> */}
+
+                            <SelectedTags tags={selectedTags} />
 
                             <Input.Search
                                 allowClear
@@ -1977,7 +2052,6 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
             <TabGroupForm selectGroup={selectGroup} pageId={pageId} visible={tabForm} closeWithSuccess={closeTabModal} group={tabGroup}></TabGroupForm>
         </DndProvider>
     )
-
 }
 
 export default renderCard

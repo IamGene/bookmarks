@@ -1,11 +1,17 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState, useRef } from 'react';
 import {
   Tooltip,
   Input,
   Avatar,
   Select,
   Dropdown,
+  Tag,
+  Trigger,
+  Tabs,
+  Spin,
   Menu,
+  List,
+  AutoComplete,
   Divider,
   Message,
   Upload,
@@ -16,6 +22,8 @@ import {
   IconNotification,
   IconSunFill,
   IconHome,
+  IconTags,
+  IconDelete,
   IconMoonFill,
   IconEyeInvisible,
   IconEye,
@@ -38,6 +46,9 @@ import useLocale from '@/utils/useLocale';
 import Logo from '@/assets/logo.svg';
 import MessageBox from '@/components/MessageBox';
 import Bookmarks from '@/components/Bookmarks';
+import SearchHistory from '@/components/SearchHistory';
+import Tags from '@/components/Tags';
+import { TagContext } from '@/components/Tags/context';
 import IconButton from './IconButton';
 import Settings from '../Settings';
 import styles from './style/index.module.less';
@@ -48,25 +59,27 @@ import { removeToken } from '@/utils1/auth';
 import { useStore } from '@/store1';
 import CreatePageGroup from '@/pages/navigate/user/form/add_page_group';
 import { reloadUserPages, fetchBookmarksPageData } from '@/store/modules/global';
-const api = import.meta.env.VITE_REACT_APP_BASE_API;
+// const api = import.meta.env.VITE_REACT_APP_BASE_API;
 import { useHistory } from 'react-router-dom';
-// function Navbar({ show }: { show: boolean }, setNavBarKey) {
-// function Navbar({ pageNo, pageType, show, display, setNavBarKey, setAllDisplay }) {
-function Navbar({ pageType, show, display, setNavBarKey, setAllDisplay }) {
+
+function Navbar({ pageType, pageId, filterDataByTags, show, display, setNavBarKey, setAllDisplay }) {
 
   const t = useLocale();
   const dispatch = useDispatch();
   // const [bookmarkPages, setBookmarkPages] = useState(pages);
   const [bookmarkPages, setBookmarkPages] = useState([]);
   const globalState = useSelector((state: any) => state.global);
-  const { userInfo, userLoading, pages, currentPage } = globalState;
+  const { userInfo, userLoading, pages, tagsMap, currentPage } = globalState;
   const history = useHistory();
   const [currentPageId, setCurrentPageId] = useState(null);//pageNo
+  const [keyword, setKeyword] = useState(null);
+  const [searchKeyword, setSearchKeyword] = useState(undefined);
   function setCurrentPage(pageId) {
     setCurrentPageId(pageId);
+    // setSelectedTags([]);
   }
 
-  // console.log('------------->pageNo', pageNo);
+
   const setDefaultPageBookmarksData = async (pages) => {
     if (pages && pages.length > 0 && pageType === 'bookmarks') {//只有用户存在标签数据才能查询
       const defaultPage = pages.find(page => page.default === true);
@@ -91,25 +104,19 @@ function Navbar({ pageType, show, display, setNavBarKey, setAllDisplay }) {
 
   // const { userInfo, userLoading } = useSelector((state: GlobalState) => state);
 
-
   // console.log(" ===================currentPage=", currentPage);
-  // 
 
   const [_, setUserStatus] = useStorage('userStatus');
   const [role, setRole] = useStorage('userRole', 'admin');
 
-
   const { setLang, lang, theme, setTheme } = useContext(GlobalContext);
   // const [createType, setCreateType] = useState("page");
-
   const { userStore } = useStore();
-
-  // const [tagsShow, setTagsShow] = useState('hide')
   const [tagsShow, setTagsShow] = useState(false)//一开始是隐藏的
 
   async function logout() {
     setUserStatus('logout');
-    removeToken()
+    removeToken();
     const res = await userStore.LogOut();
     // window.location.href = '/login';
     history.replace('/login');//navigate
@@ -121,16 +128,37 @@ function Navbar({ pageType, show, display, setNavBarKey, setAllDisplay }) {
 
   useEffect(() => {
     setBookmarkPages(pages);
-    // console.log(" ===================pages=", pages);
     setDefaultPageBookmarksData(pages);
   }, [pages]);
 
 
-
   // 监听搜索框输入变化
   const onInputChange = (key: string) => {
-    setNavBarKey(key)
+    // setNavBarKey(key);//搜索跟随输入
+    setKeyword(key);//本地状态更新
+    if (!key || key.trim().length === 0) {//清空搜索->重置数据
+      setNavBarKey(key);//搜索跟随输入
+      // setSearchKeyword(null);
+    }
   }
+  const onClickHistory = (word: string) => {
+    // setNavBarKey(key);//搜索跟随输入
+    // setKeyword(word);//本地状态更新
+    setKeyword(word);//本地状态更新
+    setNavBarKey(word);//搜索跟随输入
+    setSearchKeyword(word);//传递给搜索历史子组件
+    // console.log('点击搜索历史记录项：', word);
+  }
+
+
+  // 监听回车键
+  const onEnterPress = (e) => {
+    setNavBarKey(keyword);//回车搜索
+    setSearchKeyword(keyword);//传递给搜索历史子组件
+    // dispatch(addSearchHistory(keyword));//获取当前书签页的分组和书签数据
+    // console.log('onEnterPress key=', key);
+  }
+
   const [createNewForm, setCreateNewForm] = useState(false);//添加Tab
 
   const onCreateNew = () => {
@@ -143,8 +171,8 @@ function Navbar({ pageType, show, display, setNavBarKey, setAllDisplay }) {
     if (lastIndex > -1) {
       const last = href.substring(lastIndex + 1).trim();
       // console.log("href last", last);
-      if (last.length > 0 && last !== 'index') {
-        history.replace('/index');
+      if (last.length > 0) {
+        history.replace('');
       } else {
         // Message.info('您已经在导航页了哦!');
         Message.info(t['bookmarks.page.home.tips']);
@@ -248,12 +276,10 @@ function Navbar({ pageType, show, display, setNavBarKey, setAllDisplay }) {
   );
 
 
-  const [addedBookmarkPages, setAddedBookmarkPages] = useState([]);
-
   useEffect(() => {
-  }, [addedBookmarkPages]);
+    setSelectedTags([]);
+  }, [currentPageId]);
 
-  const switchPageId = useFetchPageData();
 
   //提交成功后关闭或取消关闭Modal窗口
   const closeAddModal = async (success: boolean, type: number, pageId: number) => {
@@ -317,13 +343,75 @@ function Navbar({ pageType, show, display, setNavBarKey, setAllDisplay }) {
     }
   }
 
+  // 使用共享的 TagContext（不要在组件内重新创建）
+  const [unselectedTag, setUnselectedTag] = useState<any>(null);
+  function onTagClose(item) {
+    // const key = item && item.key ? item.key : (typeof item === 'string' ? item : null);
+    setUnselectedTag(item.key);
+    setSelectedTags(prev => {
+      const list = Array.isArray(prev) ? prev : [];
+      return list.filter(x => !(x && x.key === item.key));
+    });
+  }
 
-  // 在组件卸载或其他合适时机清除定时器
+  const [selectedTags, setSelectedTags] = useState<any[]>([]);
+  const tagsContainerRef = useRef<HTMLDivElement | null>(null);
+
+  function onTagSwitch(value: { key: string; index: number; color: string; selected: boolean }) {
+    // Normalize and validate incoming value
+    // console.log('sssssssssssssssssss onTagSwitch value=', value, selectedTags);
+    const key = value && typeof value.key === 'string' ? value.key : null;
+    const color = value && value.color ? value.color : undefined;
+    const index = typeof value.index === 'number' ? value.index : -1;
+    const selected = !!value && !!value.selected;
+    if (!key) {
+      // invalid key, ignore
+      return;
+    }
+
+    setSelectedTags(prev => {
+      // Ensure prev is an array
+      const list = Array.isArray(prev) ? prev : [];
+      const exists = list.some(x => x && x.key === key);
+
+      if (selected) {//选中
+        if (exists) return list; // already selected
+        // store a normalized object to keep shape consistent
+        return [...list, { key, index, color, selected: true }];
+      } else {
+        return list.filter(x => !(x && x.key === key));
+      }
+      // deselect: remove any matching key
+
+    });
+  }
+
   useEffect(() => {
-    /* return () => {
-      clearTimeout(timeoutId);
-    }; */
-  }, []);
+    // console.log("ssssssssssssssssssss NavBar selectedTags=", selectedTags);
+    if (pageType === 'bookmarks') {
+      filterDataByTags(selectedTags);
+    }
+  }, [selectedTags]);
+
+  // When tags change, scroll the tags container to the rightmost edge
+  useEffect(() => {
+    const el = tagsContainerRef.current as HTMLDivElement | null;
+    if (el) {
+      // ensure scroll happens after render
+      requestAnimationFrame(() => {
+        try {
+          el.scrollLeft = el.scrollWidth;
+        } catch (e) {
+          // ignore
+        }
+      });
+    }
+  }, [selectedTags]);
+
+
+  useEffect(() => {
+    setSelectedTags([]);
+  }, [currentPage]);
 
 
   return (
@@ -332,20 +420,70 @@ function Navbar({ pageType, show, display, setNavBarKey, setAllDisplay }) {
         <div className={styles.left}>
           <div className={styles.logo}>
             <Logo />
-            {/* <div className={styles['logo-name']}>Arco Pro</div> */}
             <div className={styles['logo-name']}>Bookmarks Pro</div>
           </div>
         </div>
         <ul className={styles.right} style={{ marginBottom: '0rem' }}>
-          <li>
-            <Input.Search
-              allowClear
-              className={styles.round}
-              placeholder={t['navbar.search.placeholder']}
-              onChange={onInputChange}
-            />
-          </li>
+          {
+            pageType === 'bookmarks' && selectedTags.length > 0 &&
+            <li style={{ minWidth: 0, width: '1060px', flex: '0 0 1060px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'nowrap',
+                  alignItems: 'center',
+                  justifyContent: 'flex-start',
+                  width: '100%',
+                  maxHeight: '56px',
+                  overflowX: 'auto',
+                  overflowY: 'hidden',
+                  padding: '4px 0',
+                  minWidth: 0,
+                }}
+              >
+                {/* 左侧占位，用来把 tags 顶到右边 */}
+                <div style={{ flex: '1 0 auto' }} />
+                {selectedTags.map((item) => {
+                  return (
+                    <Tag
+                      key={item.key}
+                      closable
+                      style={{
+                        // margin: '16px 16px 16px 0',
+                        marginRight: '16px',
+                        flex: '0 0 auto',
+                        maxWidth: '160px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        display: 'inline-block',
+                      }}
+                      color={item.color}
+                      onClose={() => onTagClose(item)}
+                    >
+                      {item.key}
+                    </Tag>
+                  );
+                })}
+              </div>
+            </li>
 
+          }
+
+          <li>
+            <SearchHistory searchKeyword={searchKeyword} onClickHistory={onClickHistory} inputValue={keyword}>
+              <Input.Search
+                allowClear
+                className={styles.round}
+                // value={value}
+                value={keyword}
+                placeholder={t['navbar.search.placeholder']}
+                onChange={onInputChange}
+                // onPressEnter={(value) => setNavBarKey(value)}
+                onPressEnter={(value) => onEnterPress(value)}
+              />
+            </SearchHistory>
+          </li>
 
           <li>
             <Tooltip
@@ -365,6 +503,17 @@ function Navbar({ pageType, show, display, setNavBarKey, setAllDisplay }) {
             </Bookmarks>
           </li>
 
+          {
+            // pageType === 'bookmarks' && tagsMap && Object.keys(tagsMap).length > 0 && <li>
+            pageType === 'bookmarks' && <li>
+              {/* 跨组件共享数据Context */}
+              <TagContext.Provider value={unselectedTag}>
+                <Tags currentPage={currentPageId} onTagSwitch={onTagSwitch}>
+                  <IconButton icon={<IconTags />} />
+                </Tags>
+              </TagContext.Provider>
+            </li>
+          }
 
           <li>
             <Select
@@ -387,7 +536,6 @@ function Navbar({ pageType, show, display, setNavBarKey, setAllDisplay }) {
               }}
             />
           </li>
-
 
 
           <li>

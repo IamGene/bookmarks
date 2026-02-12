@@ -82,7 +82,6 @@ function BookmarksPages(props: BookmarksPageProps) {
   // console.log('useEffect BookmarksPages addedPageIds', addedPageIds);
   // const [newPageIds, setNewPageIds] = useState<number[]>(() => addedPageIds || []);
   // 本地是否已修改过 newPageIds（用户交互后设为 true），如果为 true 则不再由 props 覆盖
-  // console.log("BookmarksPages currentPageId=", currentPageId);
 
   function onItemClick(item: BookmarksPageData, index: number) {
     props.onItemClick && props.onItemClick(item, index);
@@ -213,17 +212,16 @@ function BookmarksPages(props: BookmarksPageProps) {
        console.log("href last", last);
      } */
     //else {} //是首页
-    console.log("---------->href", window.location.href);
-    console.log("---------->pathname", window.location.pathname);
-    // console.log("---------->href index", window.location.href.indexOf('/bookmarks'));
-    // console.log("==============>history.replace('/bookmarks');");
+    // console.log("---------->href", window.location.href);
+    // console.log("---------->pathname", window.location.pathname);
     let pathname = window.location.pathname;
-    if (pathname.startsWith('/bookmarksPro')) {//github pages
+    const pro = pathname.startsWith('/bookmarksPro');
+    if (pro) {//github pages
       pathname = pathname.replace('/bookmarksPro', '');
+      // console.log('-------------->>>>>', '/bookmarksPro')
     }
     if (pathname.indexOf('/bookmarks') === -1) {
       // if (window.location.pathname.indexOf('/bookmarks') === -1) {
-      // console.log("---------->history.replace('/bookmarks');");
       history.replace('/bookmarks');
     }
     /*  if (isContained(item.pageId)) {
@@ -243,7 +241,6 @@ function BookmarksPages(props: BookmarksPageProps) {
       switchPageId(item.pageId);//切换显示数据
     }
   }
-
 
   return (
     <>

@@ -49,6 +49,7 @@ export interface WebTag {
   name: string;
   url: string;
   originalName?: string;
+  tags?: string[];
   originalDescription?: string;
   //搜索关键词时name会被Element类型取代,无法获知原来的长度以tooltip展示，所以保存在这个变量里
   nameLength?: number;

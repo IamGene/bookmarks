@@ -11,8 +11,8 @@ import CardBlock1 from './card-block1';
 import CardItem from './card';
 // import CardEmpty from './card-empty';
 import EmptyCard from '@/components/EmptyCard/index';
+import SearchResult from '@/components/SearchResult/index';
 // import CardEmpty from './;
-
 // const TabPane = Tabs.TabPane;
 // import AddCard from './card-add';
 import { WebTag } from './interface';
@@ -28,7 +28,6 @@ function ListCard({ activeCardTab, display, setCardTabActive, keyWord, list, has
 
   // console.log('zzzzzzzzzzz has result', hasResult);
 
-  // const { activeCardTab, display, activeGroup, setCardTabActive, keyWord, list, hasResult, loading } = props;
   let search: boolean = keyWord && keyWord.length > 0;
 
   const [activeKey, setActiveKey] = useState('tags');
@@ -162,6 +161,8 @@ function ListCard({ activeCardTab, display, setCardTabActive, keyWord, list, has
         }}
       >
 
+        {(search && hasResult && (list && list.length > 0)) && <SearchResult search={search}></SearchResult>}
+
         {list && list.length > 0 && list.map((item, index) => {
           return <CardItem key={index}
             setCardTabActive={setCardTabActive}
@@ -180,6 +181,7 @@ function ListCard({ activeCardTab, display, setCardTabActive, keyWord, list, has
 
         {/* {(!hasResult || (list && list.length === 0)) && <CardEmpty search={search}></CardEmpty>} */}
         {(!hasResult || (list && list.length === 0)) && <EmptyCard search={search}></EmptyCard>}
+
 
         {/* <Footer /> */}
         {/* 三 */}

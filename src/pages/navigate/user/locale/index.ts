@@ -56,11 +56,13 @@ const i18n = {
     'cardList.add.quality': '点击创建质检内容队列',
 
     'cardList.add.tag': '点击添加网页标签',
-    'cardList.add.website.tag': '添加网页标签',
-    'cardList.edit.website.tag': '编辑网页标签',
+    'cardList.add.website.tag': '添加书签数据',
+    // 'cardList.edit.website.tag': '编辑网页标签',
+    'cardList.edit.website.tag': '编辑书签数据',
     // 'cardList.add.website.group': '添加标签分组',
     'cardList.add.bookmark.group': '添加书签或分组',
     'cardList.edit.bookmark.group': '编辑书签分组',
+    'cardList.rename.bookmark.page': '重命名书签页',
     'cardList.add.page.group': '添加书签页或分组',
     'cardList.select.group.placeholder': '请选择分组',
 

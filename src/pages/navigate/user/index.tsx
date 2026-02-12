@@ -9,6 +9,7 @@ import {
   IconList,
   IconSettings,
   IconFile,
+  IconFolder,
   IconApps,
   IconCheckCircle,
   IconExclamationCircle,
@@ -20,7 +21,7 @@ import {
   IconMenuUnfold,
 } from '@arco-design/web-react/icon';
 import qs from 'query-string';
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux';
 import cache from '@/plugins/cache';
 //注意顺序在前以免样式被覆盖 add
 import './index.css'
@@ -33,10 +34,10 @@ import { isArray } from '@/utils/is';
 import useLocale from '@/utils/useLocale';
 import getUrlParams from '@/utils/getUrlParams';
 import { RootState } from '@/store';
-import { updateUserInfo, reloadUserPages, fetchBookmarksPageData } from '@/store/modules/global';
+import { updateUserInfo, reloadUserPages, fetchBookmarksPageData, updateSearchState } from '@/store/modules/global';
 import { generatePermission } from '@/routes';
 import Navi from './navigate';
-import { getPages } from "@/db/bookmarksPages";
+import { getPages, saveSearchHistory, getBookmarkById, getBookmarkGroupById } from "@/db/bookmarksPages";
 import BackToTop from '../common/back-to-top';
 import styles from '@/style/layout.module.less';
 // import { fetchGroupData } from './common';
@@ -88,9 +89,10 @@ function searchDataRecursive(list, keyword) {
 
   function nodeHasMatch(node) {
     if (!node) return false;
-    if (node.urlList && node.urlList.length > 0) {
-      for (let i = 0; i < node.urlList.length; i++) {
-        const navi = node.urlList[i] || {};
+    // if (node.urlList && node.urlList.length > 0) {
+    if (node.bookmarks && node.bookmarks.length > 0) {
+      for (let i = 0; i < node.bookmarks.length; i++) {
+        const navi = node.bookmarks[i] || {};
         const name = (navi.name || '') + '';
         const description = (navi.description || '') + '';
         if (regex.test(name) || regex.test(description)) return true;
@@ -111,13 +113,11 @@ function searchDataRecursive(list, keyword) {
 }
 
 // 保持原名兼容，指向递归实现
-function searchData1(list, keyword) {
-  return searchDataRecursive(list, keyword);
-}
 
 function searchData2(list, keyword) {
   return searchDataRecursive(list, keyword);
 }
+
 
 
 function getIconFromKey(key) {
@@ -140,7 +140,8 @@ function getIconFromKey(key) {
       return <IconUser className={styles.icon} />;
     default:
       // return <div className={styles['icon-empty']} />;//空的
-      return <IconTag className={styles.icon} />;
+      // return <IconTag className={styles.icon} />;
+      return <IconFile className={styles.icon} />;
   }
 }
 
@@ -248,7 +249,7 @@ function UserNavigate() {
 
   const globalState = useSelector((state: RootState) => state.global);
 
-  const { settings, userLoading, userInfo, groups, pageId, activeGroup, treeData, hiddenGroup, loadedBookmarks } = globalState;
+  const { settings, userLoading, userInfo, groups, groups1, tagsMap, pageId, activeGroup, treeData, hiddenGroup, loadedBookmarks } = globalState;
 
   // console.log('!!!!!!!!!!!!! index ', treeData, activeGroup, hiddenGroup);
 
@@ -294,6 +295,16 @@ function UserNavigate() {
   const showMenu = settings.menu && urlParams.menu !== false;
   const showFooter = settings.footer && urlParams.footer !== false;
 
+
+  function onTreeTypeChange(value) {
+    // console.log('000000000000000000 onTreeTypeChange', value);
+    if (value === '按时间') {
+      setList(groups1);
+    } else if (value === '按分组') {
+      setList(groups);
+    }
+  }
+
   // const flattenRoutes = useMemo(() => getFlattenRoutes(routes) || [], [routes]);
   // 点击(菜单)回调
   function onClickMenuItem(key, e, keyPath) {//key
@@ -330,6 +341,7 @@ function UserNavigate() {
   const [treeSelected, setTreeSelected] = useState([]);
   const [treeSelectedKeys, setTreeSelectedKeys] = useState([]);
   const [treeInputValue, setTreeInputValue] = useState('');
+  const [tags, setTags] = useState([]);
 
   // 接收Tree传过来的选中项
   const getTreeSelect = (selected) => {
@@ -340,8 +352,148 @@ function UserNavigate() {
   }
 
   // 接收Tree传过来的关键词过滤后的数据
-  const getTreeSearchData = (treeData) => {
-    setData(treeData);
+
+
+  async function filterDataByTags(tags: any[]) {
+    setTags(tags);
+    // console.log('user navigate filterDataByTags tags=', tags);
+    if (!Array.isArray(tags) || tags.length === 0) {
+      if (groups && groups.length > 0) {
+        setList(groups);
+      }
+      return;
+    }
+    setNavbarKeyWord(null);//停用搜索功能
+
+    // 收集所有 tag.key
+    const keys = tags.map(t => (t && t.key) ? String(t.key) : (typeof t === 'string' ? t : null)).filter(Boolean);
+    // 合并 tagsMap 中对应的 id 列表
+    const idSet = new Set<string>();
+    if (tagsMap) {//key:[bookmarkIds]
+      for (const k of keys) {
+        const val = tagsMap[k];
+        if (Array.isArray(val)) {
+          for (const id of val) idSet.add(String(id));
+        }
+      }
+    }
+
+    const ids = Array.from(idSet);
+    const matchedBookmarks = await Promise.all(ids.map(id => getBookmarkById(id)));
+    // console.log('2222222222222222222 matchedBookmarks', matchedBookmarks);
+    // 根据 matchedBookmarks 的 gId 去重，然后逐个调用 getBookmarkGroupById
+    const gIdSet = new Set<string>();
+    (matchedBookmarks || []).forEach((b) => {
+      gIdSet.add(String(b.gId));
+    });
+    if (gIdSet.size > 0) {
+      const gIds = Array.from(gIdSet);
+      const groups = await Promise.all(gIds.map((gid) => getBookmarkGroupById(gid)));
+      const pGroups = [];
+      // 将 matchedBookmarks 分配到对应的 group.bookmarks（按 gId 匹配）
+      if (Array.isArray(groups) && groups.length > 0) {
+        groups.forEach((group) => {
+          if (!Array.isArray(group.bookmarks)) group.bookmarks = [];
+          const matched = (matchedBookmarks || []).filter((b) => b && String(b.gId) === String(group.id));
+          matched.forEach((m) => group.bookmarks.push(m));
+        });
+
+        // 构建父子分组结构：
+        // 1. 收集 groups 中所有不同的 pId（去重）
+        // 2. 对于每个 group，若 pId 为空则直接加入 pGroups；否则查询其父分组并将该 group 添加到父分组的 children
+        // 3. 向上递归，如果父分组还有 pId 则继续查询并把子分组添加到更上层的 children，直到最顶层，将最顶层加入 pGroups
+        const parentCache = new Map<string, any>();
+        // 已存在的 pGroups 变量在作用域内
+        for (const group of groups) {
+          if (!group) continue;
+          // 如果自身没有父级，直接作为顶层分组
+          if (!group.pId && group.pId !== 0) {
+            if (!pGroups.find((g) => String(g.id) === String(group.id))) pGroups.push(group);
+            continue;
+          }
+
+          // 查找直接父分组
+          const parentId = String(group.pId);
+          let parent = parentCache.get(parentId);
+          if (!parent) {
+            parent = await getBookmarkGroupById(parentId);
+            parentCache.set(parentId, parent);
+          }
+
+          if (parent) {
+            if (!Array.isArray(parent.children)) parent.children = [];
+            if (!parent.children.find((c) => String(c.id) === String(group.id))) parent.children.push(group);
+
+            // 向上递归把 parent 加入其上级的 children，直到最顶层
+            let ancestor = parent;
+            while (ancestor && ancestor.pId) {
+              const ancParentId = String(ancestor.pId);
+              let ancParent = parentCache.get(ancParentId);
+              if (!ancParent) {
+                ancParent = await getBookmarkGroupById(ancParentId);
+                parentCache.set(ancParentId, ancParent);
+              }
+              if (!ancParent) break;
+              if (!Array.isArray(ancParent.children)) ancParent.children = [];
+              if (!ancParent.children.find((c) => String(c.id) === String(ancestor.id))) ancParent.children.push(ancestor);
+              ancestor = ancParent;
+            }
+
+            // ancestor 为最顶层（没有 pId 的分组），加入 pGroups
+            if (ancestor) {
+              if (!pGroups.find((g) => String(g.id) === String(ancestor.id))) pGroups.push(ancestor);
+            }
+          } else {
+            // 未找到父分组时，将当前 group 作为顶层分组处理
+            if (!pGroups.find((g) => String(g.id) === String(group.id))) pGroups.push(group);
+          }
+        }
+
+
+        // 为每个顶层分组设置 tags 属性：
+        // tags 属性为传入的 tags 数组中，与该顶层分组子树内的书签存在交集的那些 tag 对象
+        if (Array.isArray(pGroups) && pGroups.length > 0 && Array.isArray(tags) && tags.length > 0) {
+          // 帮助函数：从节点子树中收集所有书签 id
+          const getBookmarkId = (b) => String(b && (b.id ?? ''));
+          const collectBookmarkIds = (root) => {
+            const idSet = new Set();
+            const dfs = (node) => {
+              if (!node) return;
+              if (Array.isArray(node.bookmarks)) {
+                node.bookmarks.forEach((bk) => {
+                  const bid = getBookmarkId(bk);
+                  if (bid) idSet.add(bid);
+                });
+              }
+              if (Array.isArray(node.children)) {
+                node.children.forEach((c) => dfs(c));
+              }
+            };
+            dfs(root);
+            return idSet;
+          };
+
+          for (const p of pGroups) {
+            const bookmarkIds = collectBookmarkIds(p);//本分组中所有筛选的书签ids
+            const matchedTags = (tags || []).filter((t) => {
+              // `t` 可能是一个对象（包含 `key` 属性），也可能直接是字符串形式的 tag
+              // 优先取对象的 `key`，否则如果 `t` 本身就是字符串则当作 key
+              // const key = t && t.key ? String(t.key) : (typeof t === 'string' ? String(t) : null);
+              const key = t.key;
+              // 从全局 `tagsMap` 中获取该 tag 对应的书签 id 列表（若不存在则为空数组）
+              const idsForTag = (tagsMap && tagsMap[key]) || [];
+              // 判断该 tag 对应的任一书签 id 是否存在于当前分组的 bookmarkIds 集合中
+              return idsForTag.some((id) => bookmarkIds.has(String(id)));
+            });
+            p.tags = matchedTags;
+          }
+        }
+        console.log('user navigate filterDataByTags pGroups=', pGroups);
+        setList(pGroups);
+      }
+    }
+
+
   }
 
   // 接收Tree传过来的关键词
@@ -409,6 +561,8 @@ function UserNavigate() {
   // 接收NavBar传过来的搜索关键词
   const getNavBarKey = (keyword) => {
     setNavbarKeyWord(keyword);
+    dispatch(updateSearchState({ keyword: keyword }));
+
     // 关键词过滤
     if (!keyword || !keyword.trim()) {
       setHasResult(true);
@@ -416,6 +570,7 @@ function UserNavigate() {
       const hasResult = searchData2(list, keyword);
       // console.log('00000000000 search', keyword, hasResult);
       setHasResult(hasResult);
+      saveSearchHistory(keyword.trim());
     }
     // setNavbarKeyWord(keyword)
   }
@@ -484,9 +639,9 @@ function UserNavigate() {
     }; */
 
 
-  useEffect(() => {
-    // fetchDefaultPageBookmarksData();
-  }, []);//仅在初次加载组件时候执行(pageId未设置到redux状态)
+  /*   useEffect(() => {
+      // fetchDefaultPageBookmarksData();
+    }, []);//仅在初次加载组件时候执行(pageId未设置到redux状态) */
 
   useEffect(() => {
     if (loadedBookmarks && loadedBookmarks.length > 0) {
@@ -498,12 +653,7 @@ function UserNavigate() {
     }
   }, [loadedBookmarks]);
 
-  /*   useEffect(() => {
-      console.log('888888888888888888888 user navigate useEffect groups', groups);
-      setList(groups);//Card 全部的
-      setHideGroup(hiddenGroup)//这个不能变->NavBar展示开关
-      // setDisplay(!hiddenGroup);//显示与否直接由导航栏的开关控制
-    }, [groups]); */
+
 
   const filteredData = useMemo(() => {
     if (hiddenGroup) {//有隐藏的分组，进行过滤
@@ -520,7 +670,7 @@ function UserNavigate() {
     setTreeDatas(treeData);
   }, [treeData]);//
 
-  /*原来的   const filteredData = useMemo(() => {
+  /*原来的 const filteredData = useMemo(() => {
       if (hiddenGroup) {//有隐藏的分组，进行过滤
         return filterHideItems(groups);
       }
@@ -557,12 +707,13 @@ function UserNavigate() {
         const { breadcrumb = true, ignore } = route;
         //根据key获取图标
         // const iconDom = getIconFromKey(route.key);
-        // const iconDom = getIconFromKey(route.id);
         //二级目录没有图标
-        const iconDom = route.pId ? '' : getIconFromKey(route.id);
+        // const iconDom = route.pId ? '' : getIconFromKey(route.id);
+        // const iconDom = <IconFile className={styles.icon} />;
+
+        const iconDom = route.children && route.children.length > 0 ? <IconFolder className={styles.icon} /> : <IconFile className={styles.icon} />;
         // const pid = route.pid;
         // onClick = {(event) => scrollToAnchor(event, {`${hrefId}`})
-
 
         {/* {iconDom} {locale[route.name] || route.name} */ }
         const hrefId = route.pId ? route.pId : route.id;
@@ -594,7 +745,6 @@ function UserNavigate() {
         const visibleChildren = (route.children || []).filter((child) => {
           // ignore：当前路由是否渲染菜单项，为 true 的话不会在菜单中显示，但可通过路由地址访问。
           const { ignore, breadcrumb = true } = child;
-
           // 如果父route或子route的ignore为true,设置breadcrumb路由地址
           /*  if (ignore || route.ignore) {
              routeMap.current.set(
@@ -659,7 +809,7 @@ function UserNavigate() {
 
         {/* num={groups.length} */}
         {/* pageNo={currentPage} */}
-        <Navbar show={showNavbar} pageType={'bookmarks'} display={hideGroup ? hiddenGroup : null} setNavBarKey={getNavBarKey} setAllDisplay={getAllDisplay} />
+        <Navbar show={showNavbar} pageType={'bookmarks'} filterDataByTags={filterDataByTags} pageId={pageId} display={hideGroup ? hiddenGroup : null} setNavBarKey={getNavBarKey} setAllDisplay={getAllDisplay} />
 
       </div>
       {userLoading ? (
@@ -699,7 +849,7 @@ function UserNavigate() {
                   <Tree setTreeSelected={getTreeSelect}
                     treeSelectedKeys={treeSelectedKeys}
                     // data={data}
-                    // data={treeDatas}
+                    setTreeType={onTreeTypeChange}
                     data={treeDatas}
                     inputValue={treeInputValue}
                     setTreeInputValue={getTreeInputValue}>
@@ -725,7 +875,7 @@ function UserNavigate() {
                 </div>
               )}
               <Content>
-                {/* Card-Tab列表 hasResult={hasResult}  */}
+                {/* Card-Tab列表 hasResult={hasResult} tags={tags} */}
                 <Navi activeCardTab={treeSelected} display={display} keyWord={navbarKeyWord} setCardTabActive={getCardTabActive} hasResult={hasResult} list={list} loading={loading}></Navi>
               </Content>
             </div>
