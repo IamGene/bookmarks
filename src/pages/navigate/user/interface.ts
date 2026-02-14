@@ -42,7 +42,7 @@ export interface WebTag {
   description: string;
   hide: boolean;
   gId: string;
-  path?: string;//所在group的path
+  path: string[];//所在group的path
 
   pageId: number;
   date?: string;

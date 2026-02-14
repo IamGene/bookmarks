@@ -2,19 +2,32 @@ import { openDB } from 'idb';
 
 export async function getDB() {
   // IndexedDB 版本号从 1 改为 2，以触发 upgrade 并创建 history 对象存储。
-  return await openDB('BookmarksDB', 2, {
+  return await openDB('BookmarksDB', 3, {
     upgrade(db) {
       if (!db.objectStoreNames.contains('pages')) {
         db.createObjectStore('pages', { keyPath: 'pageId' });
       }
-      if (!db.objectStoreNames.contains('nodes')) {
+      /* if (!db.objectStoreNames.contains('nodes')) {
         // const store = db.createObjectStore('nodes', { keyPath: 'id', autoIncrement: true });
         const store = db.createObjectStore('nodes', { keyPath: 'id' });
         store.createIndex('pageId', 'pageId');
         store.createIndex('pId', 'pId');
+      } */
+      if (!db.objectStoreNames.contains('groups')) {
+        // const store = db.createObjectStore('nodes', { keyPath: 'id', autoIncrement: true });
+        const store = db.createObjectStore('groups', { keyPath: 'id' });
+        store.createIndex('pageId', 'pageId');
+        store.createIndex('pId', 'pId');
       }
-      if (!db.objectStoreNames.contains('urls')) {
+
+      /* if (!db.objectStoreNames.contains('urls')) {
         const store = db.createObjectStore('urls', { keyPath: 'id' });
+        store.createIndex('pageId', 'pageId');
+        store.createIndex('gId', 'gId');
+      } */
+
+      if (!db.objectStoreNames.contains('bookmarks')) {
+        const store = db.createObjectStore('bookmarks', { keyPath: 'id' });
         store.createIndex('pageId', 'pageId');
         store.createIndex('gId', 'gId');
       }

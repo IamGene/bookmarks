@@ -23,10 +23,10 @@ const TabPane = Tabs.TabPane;
 const { Row, Col, GridItem } = Grid;
 // import { BackTop, Button, Select, Input, Typography, Space } from '@arco-design/web-react';
 
-function ListCard({ activeCardTab, display, setCardTabActive, keyWord, list, hasResult, loading }) {
+function ListCard({ activeCardTab, dataType, display, setCardTabActive, keyWord, list, hasResult, loading }) {
   const t = useLocale(locale);
 
-  // console.log('zzzzzzzzzzz has result', hasResult);
+  // console.log('zzzzzzzzzzz has dataType', dataType);
 
   let search: boolean = keyWord && keyWord.length > 0;
 
@@ -167,6 +167,7 @@ function ListCard({ activeCardTab, display, setCardTabActive, keyWord, list, has
           return <CardItem key={index}
             setCardTabActive={setCardTabActive}
             cardData={item}
+            dataType={dataType}
             // index={index}
             // last={index == list.length - 1}
             // first={index == 0}

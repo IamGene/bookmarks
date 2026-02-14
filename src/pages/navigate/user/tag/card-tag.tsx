@@ -21,8 +21,7 @@ interface CardBlockType {
     no: number;
     loading?: boolean;
     // parentHide?: boolean;
-    // selectGroup: Array<string>;
-    selectGroup: string;
+    selectGroup: string[];
     searching: boolean;
     editTag: Function;
     onDeleteSuccess?: (WebTag) => void;
@@ -43,8 +42,8 @@ const App = (props: CardBlockType) => {
     }
 
     const onClickMenuItem = (key: string) => {
-        if (key === '0') {
-            // console.log('点击了菜单,编辑', key, searching)
+        if (key === '0') {//编辑
+            // console.log('1111111111111111 点击了菜单,编辑', key, searching, selectGroup)
             editTag(tag, selectGroup, searching);
         } else if (key === '1') {//删除
             //弹出确认框
@@ -58,7 +57,7 @@ const App = (props: CardBlockType) => {
     const handleDelete = async () => {
         try {
             // const response = await removeWebTag(tag.id);
-            const response = await removeWebTag(tag.id);
+            // const response = await removeWebTag(tag.id);
             // console.log('handleDelete Tag', tag)
             const ok = await removeWebTag(tag.id);
             // if (response.code === 200) {
@@ -228,8 +227,6 @@ const App = (props: CardBlockType) => {
                         <Tooltip position='top' trigger='hover' content={<div style={{}}>
                             {tag.name}
                             {tag.date && <br />}
-
-                            {/* {tag.date && tag.date} */}
                             {<span style={{ color: 'var(--color-primary-light-4)' }}>
                                 {/* {<span style={{ color: '#5156be' }}> */}
                                 {tag.date && tag.date}

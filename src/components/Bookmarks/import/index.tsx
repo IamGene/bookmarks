@@ -83,7 +83,9 @@ function Imports(props: BookmarksPageProps) {
                 // 将读取到的文本内容解析为 JSON 对象
                 const jsonData = JSON.parse(event.target.result as string);
                 // 调用数据库方法，将 JSON 数据导入为一个新的书签页
+                // console.log('-------------- jsonData', jsonData);
                 const newPageIds: number[] = await importPageJson(jsonData); // newPageIds will be number[] | null
+                // console.log('-------------- newPageIds', newPageIds);
                 if (newPageIds && newPageIds.length > 0) {
                     Message.success('JSON 书签导入成功');
                     // 导入成功后，调用父组件的回调函数，并传入新页面的 ID

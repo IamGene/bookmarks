@@ -249,17 +249,21 @@ function UserNavigate() {
 
   const globalState = useSelector((state: RootState) => state.global);
 
-  const { settings, userLoading, userInfo, groups, groups1, tagsMap, pageId, activeGroup, treeData, hiddenGroup, loadedBookmarks } = globalState;
+  const { settings, userLoading, userInfo, dataByGroup, dataByDate, tagsMap, pageId,
+    activeGroup, treeData, hiddenGroup, loadedBookmarks } = globalState;
 
-  // console.log('!!!!!!!!!!!!! index ', treeData, activeGroup, hiddenGroup);
+  // console.log('!!!!!!!!!!!!! index ', dataByGroup, hiddenGroup);
 
-  const [list, setList] = useState(groups);
+  const [list, setList] = useState(dataByGroup);//右侧书签数据
+  const [dataType, setDataType] = useState(0);//数据组织类型：0：按分组；1：按时间
+
   const [hasResult, setHasResult] = useState(true);
   const [display, setDisplay] = useState(!hiddenGroup);//false
 
   const [hideGroup, setHideGroup] = useState(hiddenGroup);
   // const [data, setData] = useState(hiddenGroup ? filterHideItems(groups) : groups);
-  const [data, setData] = useState(groups);
+  const [data, setData] = useState(dataByGroup);
+
   const [treeDatas, setTreeDatas] = useState(treeData);
   const [searchFromAll, setSearchFromAll] = useState(data);
   // const [filterFromAll, setFilterFromAll] = useState(hiddenGroup ? filterHideItems(groups) : groups);
@@ -297,11 +301,13 @@ function UserNavigate() {
 
 
   function onTreeTypeChange(value) {
-    // console.log('000000000000000000 onTreeTypeChange', value);
     if (value === '按时间') {
-      setList(groups1);
+      setDataType(1);
+      // setList(dataByDate);
     } else if (value === '按分组') {
-      setList(groups);
+      setDataType(0);
+      // setList(dataByGroup);
+      // setGroups(groups);
     }
   }
 
@@ -358,8 +364,8 @@ function UserNavigate() {
     setTags(tags);
     // console.log('user navigate filterDataByTags tags=', tags);
     if (!Array.isArray(tags) || tags.length === 0) {
-      if (groups && groups.length > 0) {
-        setList(groups);
+      if (dataByGroup && dataByGroup.length > 0) {
+        setList(dataByGroup);
       }
       return;
     }
@@ -488,7 +494,7 @@ function UserNavigate() {
             p.tags = matchedTags;
           }
         }
-        console.log('user navigate filterDataByTags pGroups=', pGroups);
+        // console.log('user navigate filterDataByTags pGroups=', pGroups);
         setList(pGroups);
       }
     }
@@ -518,7 +524,6 @@ function UserNavigate() {
         setTreeDatas(result);
       } else {//在有隐藏项的基础上搜索
         const result = searchData(inputValue.trim(), data);
-        // console.log('44444444444 getTreeInputValue', inputValue, result);
         setTreeDatas(result);
       }
     }
@@ -654,16 +659,14 @@ function UserNavigate() {
   }, [loadedBookmarks]);
 
 
-
   const filteredData = useMemo(() => {
     if (hiddenGroup) {//有隐藏的分组，进行过滤
-      return filterHideItems(groups);
+      return filterHideItems(dataByGroup);
     }
-    setList(groups);
+    setList(dataByGroup);
     setHideGroup(hiddenGroup);//这个不能变->NavBar展示开关
-    return groups;
-  }, [groups, hiddenGroup]);
-
+    return dataByGroup;
+  }, [dataByGroup, hiddenGroup]);
 
   useEffect(() => {
     // setTreeDatas(filteredData);//TreeDatas应该从TreeData进行处理
@@ -842,13 +845,12 @@ function UserNavigate() {
                   }}
                 >
 
-                  {/* {renderRoutes(locale)(data, 1)} */}
-                  {renderRoutes(locale)(groups, 1)}
+                  {/* 按时间，月-展开分组；按分组，嵌套分组 */}
+                  {renderRoutes(locale)(list, 1)}
                 </Menu>
                   :
                   <Tree setTreeSelected={getTreeSelect}
                     treeSelectedKeys={treeSelectedKeys}
-                    // data={data}
                     setTreeType={onTreeTypeChange}
                     data={treeDatas}
                     inputValue={treeInputValue}
@@ -876,7 +878,15 @@ function UserNavigate() {
               )}
               <Content>
                 {/* Card-Tab列表 hasResult={hasResult} tags={tags} */}
-                <Navi activeCardTab={treeSelected} display={display} keyWord={navbarKeyWord} setCardTabActive={getCardTabActive} hasResult={hasResult} list={list} loading={loading}></Navi>
+                <Navi activeCardTab={treeSelected}
+                  dataType={dataType}
+                  display={display}
+                  keyWord={navbarKeyWord}
+                  setCardTabActive={getCardTabActive}
+                  hasResult={hasResult}
+                  list={dataType == 0 ? dataByGroup : dataByDate}
+                  loading={loading}>
+                </Navi>
               </Content>
             </div>
             {showFooter && <Footer />}

@@ -8,7 +8,7 @@ const TreeNode = Tree.Node;
 
 
 const Option = Select.Option;
-const options = ['按分组', '按时间'];
+const options = ['按分组', '按时间', '按域名'];
 function searchData(inputValue, treeData) {
     const loop = (data) => {
         const result = [];
@@ -69,6 +69,7 @@ function App({ data, setTreeSelected, setTreeType, treeSelectedKeys, inputValue,
 
     //搜索输入内容
     const [groupType, setGroupType] = useState('按分组');
+    // const [groupType, setGroupType] = useState('按时间');
 
     const [checked, setChecked] = useState(true);
     const [expand, setExpand] = useState(false);

@@ -43,8 +43,8 @@ function ExportModal({ page, visible, onClose }: ExportModalProps) {
             const res = await form.validate();
             setConfirmLoading(true);
             if (res.fileType === 'JSON') {
-                // await exportJsonPage(res.fileName);
-                await exportPageGroupsJson('groups');
+                await exportJsonPage(res.fileName);
+                // await exportPageGroupsJson('groups');
             } else {
                 await exportHtmlPage(res.fileName);
             }
@@ -92,6 +92,7 @@ function ExportModal({ page, visible, onClose }: ExportModalProps) {
     async function exportJsonPage(filename: string) {
         // 导出书签页
         const res = await exportPageJson(pageId);
+        // console.log('exportJsonPage res', res);
         if (res && res.pages) {
             // 将 JSON 对象转换为格式化的字符串
             const jsonString = JSON.stringify(res, null, 2);
@@ -163,7 +164,7 @@ function ExportModal({ page, visible, onClose }: ExportModalProps) {
                 initialValues={{ fileType: 'JSON', fileName: pageName ? pageName + '-导出' : '书签导出' }}
                 style={{ maxWidth: 650 }}
                 onValuesChange={(_, vs) => {
-                    console.log(vs);
+                    // console.log(vs);
                 }}
             >
                 {/* <Form.Item field='type' label='Type'> */}

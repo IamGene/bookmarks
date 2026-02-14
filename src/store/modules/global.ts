@@ -113,8 +113,8 @@ export interface GlobalState {
   // hasResult: boolean;
   // searchHistory: string[];
   userLoading?: boolean;
-  groups: TagGroups;
-  groups1: TagGroups;
+  dataByGroup: TagGroups;
+  dataByDate: TagGroups;
   dateGroups: TagGroups;
   treeData: TagGroups;
   pageId: number,
@@ -143,8 +143,8 @@ const initialState: GlobalState = {
   },
   // hasResult: true,
   // groups: [],//当前标签分组列表,用于新增
-  groups: null,//当前标签分组列表,用于新增
-  groups1: null,//当前标签分组列表（按时间排列）,用于新增
+  dataByDate: null,//当前标签分组列表,用于新增
+  dataByGroup: null,//当前标签分组列表（按时间排列）,用于新增
   dateGroups: null,//当前标签分组列表,用于新增
   treeData: [],//当前标签分组列表,用于新增
   // tagsMap: null,//当前标签分组列表,用于新增
@@ -231,8 +231,8 @@ const globalSlice = createSlice({
     },
 
     updateBookmarks: (state, action) => {
-      state.groups = action.payload.groups;
-      state.groups1 = action.payload.groups1;
+      state.dataByGroup = action.payload.dataByGroup;
+      state.dataByDate = action.payload.dataByDate
       state.hiddenGroup = action.payload.hideGroup;
       state.treeData = action.payload.treeData;
       state.currentPage = action.payload.currentPage;
@@ -339,6 +339,7 @@ const fetchBookmarksPageData = (pageId: number) => {
     const res = await getPageTree(pageId);
 
     const res1 = await getPageTreeByDate(pageId);
+    // console.log('--------------------fetchBookmarksPageData res1', res1);
     const dateGroups = res1.treeData;//
     const list1 = res1.data;//书签数据
 
@@ -355,14 +356,12 @@ const fetchBookmarksPageData = (pageId: number) => {
       //list: 分组书签（全字段）
       const list = data;
       const hideGroup: boolean = hasHidden(list);
-
       const treeData = filterChildrenArrayByPath(list);
-
       // console.log('999999999999 fetchTagGroupsData treeData', list);
-      dispatch(updateBookmarks({ groups: list, groups1: list1, hideGroup: hideGroup, dateGroups: dateGroups, tagsMap: tagsMap, currentPage: currentPage, treeData: treeData }));
+      dispatch(updateBookmarks({ dataByGroup: list, dataByDate: list1, hideGroup: hideGroup, dateGroups: dateGroups, tagsMap: tagsMap, currentPage: currentPage, treeData: treeData }));
       return res; // 直接返回整个响应对象
     } else {
-      dispatch(updateBookmarks({ groups: [], groups1: [], hideGroup: false, dateGroups: [], tagsMap: tagsMap, currentPage: currentPage, treeData: [] }));
+      dispatch(updateBookmarks({ dataByGroup: [], dataByDate: [], hideGroup: false, dateGroups: [], tagsMap: tagsMap, currentPage: currentPage, treeData: [] }));
       return [];
       // 处理错误情况
       // throw new Error('请求失败');
