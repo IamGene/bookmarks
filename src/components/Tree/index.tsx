@@ -1,14 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Tree, Switch, Input, Typography, Anchor, Select, Message, Space } from '@arco-design/web-react';
 import { RootState } from '@/store';
-import { useSelector } from 'react-redux';
-
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchBookmarksPageData0, fetchBookmarksPageData1, fetchBookmarksPageData2 } from '@/store/modules/global';
 const AnchorLink = Anchor.Link;
 const TreeNode = Tree.Node;
 
-
 const Option = Select.Option;
-const options = ['按分组', '按时间', '按域名'];
+const options = [
+    { label: '按分组', value: 0 },
+    { label: '按时间', value: 1 },
+    { label: '按域名', value: 2 },
+];
+
 function searchData(inputValue, treeData) {
     const loop = (data) => {
         const result = [];
@@ -24,9 +28,9 @@ function searchData(inputValue, treeData) {
         });
         return result;
     };
-
     return loop(treeData);
 }
+
 
 
 /* function filterChildrenArrayByPath(arr) {
@@ -56,20 +60,29 @@ function filterChildrenByPath(data) {
 */
 
 
-
 // 示例用法
 // const filteredArray = filterChildrenArrayByPath(jsonArray);
 // function App({ data, setTreeSelected, treeSelectedKeys, treeInputValue, setTreeInputValue, setTreeSearchData }) {
-function App({ data, setTreeSelected, setTreeType, treeSelectedKeys, inputValue, setTreeInputValue }) {
+function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
     //所有树数据
-    const [treeData, setTreeData] = useState(data);
+
+    const [pageId, setPageId] = useState(null);
+    const [inputValue, setInputValue] = useState(null);
     const globalState = useSelector((state: any) => state.global);
-    const { dateGroups, groups1 } = globalState;
-    // console.log('7777777777777777 Tree组件 ', groups1);
+    const { dateGroups, dataGroups, domainGroups, toUpdateGroupTypes } = globalState;
+
+    const allDataGroups = [
+        { data: dataGroups, value: 0 },
+        { data: dateGroups, value: 1 },
+        { data: domainGroups, value: 2 }
+    ];
+    const dispatch = useDispatch();
 
     //搜索输入内容
-    const [groupType, setGroupType] = useState('按分组');
-    // const [groupType, setGroupType] = useState('按时间');
+    const [groupType, setGroupType] = useState(options[0].value);
+
+    const [treeData, setTreeData] = useState(dataGroups);
+    // console.log('>>>>>>>>>>>>>>>>>>>>> tree组件渲染了11, treeData', treeData, dateGroups);
 
     const [checked, setChecked] = useState(true);
     const [expand, setExpand] = useState(false);
@@ -82,8 +95,43 @@ function App({ data, setTreeSelected, setTreeType, treeSelectedKeys, inputValue,
         if (expand) { //当前是展开，切换为收起
             setExpandedKeys([])//收起时，清空展开项
         }
-        setExpand(!expand)
+        setExpand(!expand);
     }
+
+
+    /*    useEffect(() => {
+        // console.log('>>>>>>>>>>>>>>>>> treeData useEffect', data);
+        // let filteredData = filterChildrenArrayByPath(data);
+        setTreeData(data);
+        if (!inputValue || !inputValue.trim()) {
+            setTempExpand(false);
+        } else if (data.length) {
+            setTempExpand(true);
+        }
+    }, [data]);
+ */
+
+    /* useEffect(() => {
+        if (dataGroups && dataGroups.length > 0) {
+            setPageId(dataGroups[0].pageId);
+        }
+        setTreeData(allDataGroups.find(g => g.value === groupType)?.data || []);
+    }, [allDataGroups]);//书签页数据发生变化 */
+
+
+    useEffect(() => {
+        const data = allDataGroups.find(g => g.value === groupType)?.data || []
+        if (dataGroups && dataGroups.length > 0) {
+            setPageId(dataGroups[0].pageId);
+        }
+        if (!inputValue || !inputValue.trim()) {//搜索词为空
+            setTreeData(data);
+        } else {//搜索词不为空
+            const result = searchData(inputValue.trim(), data);
+            // setSearchFromAll(result);//
+            setTreeData(result);
+        }
+    }, [allDataGroups, inputValue]);//书签页数据发生变化
 
     /*  useEffect(() => {
      // let filteredData = filterChildrenArrayByPath(data);
@@ -112,8 +160,10 @@ function App({ data, setTreeSelected, setTreeType, treeSelectedKeys, inputValue,
          }
      }, [display]); */
 
+
+
     const onInputChange = (inputValue) => {
-        setTreeInputValue(inputValue)
+        setInputValue(inputValue);
     }
     const [selectedKeys, setSelectedKeys] = useState([]);
 
@@ -179,16 +229,6 @@ function App({ data, setTreeSelected, setTreeType, treeSelectedKeys, inputValue,
          }
      }, [data, inputValue]); */
 
-    useEffect(() => {
-        // console.log('>>>>>>>>>>>>>>>>> treeData useEffect', data);
-        // let filteredData = filterChildrenArrayByPath(data);
-        setTreeData(data);
-        if (!inputValue || !inputValue.trim()) {
-            setTempExpand(false);
-        } else if (data.length) {
-            setTempExpand(true);
-        }
-    }, [data]);
 
     useEffect(() => {
         // 选中节点
@@ -252,25 +292,36 @@ function App({ data, setTreeSelected, setTreeType, treeSelectedKeys, inputValue,
 
 
 
-    function onTypeSelectChange(value) {
+    async function onTypeSelectChange(value) {
         /* Message.info({
             content: `You select ${value}.`,
             showIcon: true,
         }); */
+        if (value === 0) {
+            if (toUpdateGroupTypes.length > 0 && toUpdateGroupTypes.includes(0)) {
+                await dispatch(fetchBookmarksPageData0(pageId));
+            }
+            setTreeData(dataGroups);
+        } else if (value === 1) {
+            if (toUpdateGroupTypes.length > 0 && toUpdateGroupTypes.includes(1)) {
+                await dispatch(fetchBookmarksPageData1(pageId));
+            }
+            setTreeData(dateGroups);
+        } else if (value === 2) {
+            if (toUpdateGroupTypes.length > 0 && toUpdateGroupTypes.includes(2)) {
+                // await dispatch(fetchBookmarksPageData1(pageId));
+            }
+            // setTreeData(dateGroups);
+        }
         setTreeType(value);
         setGroupType(value);
-        if (value === '按分组') {
-            setTreeData(data);
-        } else {
-            setTreeData(dateGroups);
-        }
     }
 
     //入口
     function scrollToAnchor(event, path) {
-        if (groupType === '按分组') {
+        if (groupType === 0) {
             scrollToAnchor1(event, path);
-        } else {
+        } else if (groupType >= 1) {
             scrollToAnchor2(event, path);
         }
     }
@@ -383,14 +434,14 @@ function App({ data, setTreeSelected, setTreeType, treeSelectedKeys, inputValue,
                 <Switch size='small' checked={expand} onChange={switchExpand}></Switch>
                 <Typography.Text style={{ color: 'var(--color-text-2)' }}>展开</Typography.Text>
                 <Select
-                    defaultValue={options[0]}
+                    defaultValue={options[0].value}
                     style={{ width: 90 }}
                     size="small"
                     onChange={(value) => onTypeSelectChange(value)}
                 >
                     {options.map((option) => (
-                        <Option key={option} value={option}>
-                            {option}
+                        <Option key={option.value} value={option.value}>
+                            {option.label}
                         </Option>
                     ))}
                 </Select>

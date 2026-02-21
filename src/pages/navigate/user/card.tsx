@@ -10,8 +10,11 @@ import Add2Form from './form/add2form';
 import { removeConfirm } from './form/remove-confirm-modal';
 import { clearConfirm } from './form/clear-confirm-modal';
 import { saveTagGroup, moveGroupTopBottom } from '@/api/navigate';
-import { useDispatch } from 'react-redux'
-import { fetchBookmarksPageData, updateActiveGroup, updatePageBookmarkTags, updateSearchState, updatePageDataState } from '@/store/modules/global';
+import { useDispatch } from 'react-redux';
+import {
+    fetchBookmarksPageDatas, fetchBookmarksPageData0,
+    updateActiveGroup, updatePageBookmarkTags, updateSearchState, updatePageDataState
+} from '@/store/modules/global';
 import { getBookmarkGroupById, removeWebTags, removeGroupById, getBookmarksGroupById, resortNodes, getBookmarksNumByGId, clearGroupBookmarksById, getThroughChild } from '@/db/bookmarksPages';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -412,7 +415,7 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
 
 
     const processNotEmptySearch = (data, keyWord, showItem, searchTab) => {
-        console.log(cardData.name + ' processNotEmptySearch 搜索关键词', keyWord, 'showItem', showItem, 'searchTab', searchTab);
+        // console.log(cardData.name + ' processNotEmptySearch 搜索关键词', keyWord, 'showItem', showItem, 'searchTab', searchTab);
         setSearching(true);
         // const result = searchData(keyWord.trim(), cardData);
         // const result = searchDataAggregated(keyWord.trim(), cardData);
@@ -1014,6 +1017,18 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
         setSelectGroup(cardData.id);
     }; */
 
+    /**
+     * 处理添加标签页的操作
+     * @param group - 分组对象，包含id、pageId和path等属性
+     */
+    /**
+        console.log('xxxxxxxxxxxxxxxx', group); // 打印分组对象信息，用于调试
+        setTabForm(true); // 设置标签表单为可见状态
+        setTabGroup({ pId: group.id, pageId: group.pageId }); // 设置标签页的父ID和页面ID
+        const pathArr: string[] = group.path.split(","); // 将分组路径字符串按逗号分割成数组
+        setSelectGroup(pathArr); // 设置选中的分组为路径数组
+        // console.log('添加分组Tab handleAddTab', group, pathArr); // 注释掉的调试代码
+     */
     const handleAddTab = (group) => {
         setTabForm(true);
         setTabGroup({ pId: group.id, pageId: group.pageId });
@@ -1146,13 +1161,15 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
 
     async function processRemoveGroup2() {
         try {
-            // 提取当前 cardData.bookmarks 中的 id 数组（去重并过滤无效值）
             const bookmarkIds: string[] = Array.from(new Set(cardData.bookmarks.map(b => (b && b.id) || null).filter(Boolean)));
             const response = await removeWebTags(bookmarkIds);
             if (response) {
-                console.log('删除成功111');
+                // console.log('删除成功111');
                 // Message.success('删除成功');
-                getGroupData();
+                // getGroupData();
+                setCardShow(false);
+                // dispatch(fetchBookmarksPageData012(pageId));
+                dispatch(fetchBookmarksPageDatas([0, 1, 2]));
                 return true;
             } else {
                 return false;
@@ -1165,12 +1182,13 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
 
     async function processRemoveGroup1(id: string) {
         try {
-            //
             const response = await removeGroupById(id);
             if (response) {
                 // if (response.code === 200) {
                 // Message.success('删除成功');
-                getGroupData();
+                // getGroupData();
+                setCardShow(false);
+                dispatch(fetchBookmarksPageDatas([0, 1, 2]));
                 return true;
             } else {
                 return false;
@@ -1230,12 +1248,17 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
             }
         } */
 
+
         const processRemoveGroup1 = async () => {
             try {
-                // const response = await removeGroupById(subGroup.id);
                 const response = await removeGroupById(subGroup.id);
-                if (response) {
-                    getGroupData();
+                if (response.success) {
+                    // getGroupData();
+                    updateCardData();
+                    //有书签被删除才需要同步按时间/域名分组数据
+                    if (response.deletedBookmarks > 0)
+                        dispatch(fetchBookmarksPageDatas([0, 1, 2]));//删除了书签
+                    else dispatch(fetchBookmarksPageDatas([0]));//仅删除了分组
                     // console.log('删除成功', subGroup);
                     const pId = subGroup.pId;
                     const str = subGroup.path;
@@ -1246,15 +1269,12 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
                         const part2 = str.substring(lastIndex + 1); // +1 是为了跳过逗号本身
 
                         if (activeMap[key] === part2) {  //如果被删除的分组为active,则切换到兄弟tab
-                            // console.log('444444444444444444444 如果被删除的分组为active', part2);
                             const lastChild = await getThroughChild(pId, part2);
                             setActiveMap(buildActiveMap(lastChild.path));
                         } else {
-                            // console.log('66666666666666666666 broGroup newActiveMap 11', activeMap);
                             setActiveMap(activeMap);//点击下拉菜单之前的数据
                         }
                     }
-                    // else { } //parentTab -->''
                     return true;
                 } else {
                     return false;
@@ -1365,26 +1385,65 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
     }
 
 
+    //按时间/域名分组数据更新：修改了书签，可能影响按时间/域名分组数据，临时更新到一级分组列表
+    function updateCardData1(newTag: WebTag,) {
+        // console.log('updateCardData1 newTag', newTag, cardData);
+        const newBookmarks = cardData.bookmarks.filter(b => b.id !== newTag.id);
+        newBookmarks.push(newTag);
+        setData({ ...data, bookmarks: newBookmarks });
+    }
+
+
     async function closeTagModal(success: boolean, newTag: WebTag, oldTag: WebTag, type: number) {
         setAddTagVisible(false);
         if (success) {//刷新当前页面数据
             // console.log('close Modal group', newTag);
             if (newTag) {//所在的分组，重置位置
-                if (type === 0) {//修改了分组,更新整个页面的数据
+                if (type === 0) {//修改了所属分组，gId发生变化
                     const group = await getBookmarkGroupById(newTag.gId);
-                    const pId = group.path.split(',')[0];
+                    const path = group.path.split(',');//更新path
+                    newTag.path = path;
+                    const pId = path[0];
                     if (pId !== data.id) { //变为属于别的大分组
-                        await getGroupData();
+                        if (dataType === 0) {
+                            await getGroupData();
+                            dispatch(fetchBookmarksPageDatas([1, 2]));//修改了分组，可能影响按时间/域名分组数据
+                        } else {
+                            //临时更新该时间/域名分组数据
+                            updateCardData1(newTag);
+                            dispatch(fetchBookmarksPageDatas([0, 1, 2]));//修改了分组，可能影响按时间/域名分组数据
+                        }
                     } else {//active所属新的tab分组（无论搜索中与否）
-                        const activeMap = buildActiveMap(group.path);
-                        setActiveMap(activeMap);
-                        updateCardData(); //仅重置Card(搜索)数据
+                        if (dataType === 0) {
+                            const activeMap = buildActiveMap(group.path);
+                            setActiveMap(activeMap);
+                            updateCardData(); //仅重置Card(搜索)数据
+                        } else {
+                            //临时更新该时间/域名分组数据
+                            updateCardData1(newTag);
+                        }
+                        dispatch(fetchBookmarksPageDatas([0, 1, 2]));//修改了分组，可能影响按时间/域名分组数据
+
                     }
-                } else {//  if (type >= 1) 修改书签1 新增书签2 重置(搜索)数据
-                    updateCardData();
+                } else {//  if (type >= 1) 修改书签1 新增书签2 -> 重置(搜索)数据
+                    if (type == 1) { //修改书签除分组外的其他属性 ok
+                        if (dataType === 0) {
+                            updateCardData();
+                        } else {
+                            updateCardData1(newTag);
+                        }
+                    } else if (type == 2) { //新增书签:按分组
+                        updateCardData();
+                    }
+                    dispatch(fetchBookmarksPageDatas([0, 1, 2]));//修改了分组，可能影响按时间/域名分组数据
                     // refreshDataByAddBookmark(newTag);//新增书签
                 }
             }
+
+            //a.修改了所在大分组：按分组：刷新页面；按时间/按域名：不用刷新页面，只更新类型toUPdates012,临时更新到一级分组列表 ok
+            //b.修改了所在的所在的小分组 ok
+            //c.修改了书签其他属性，按分组updateCardData()/按时间/按域名updateCardData1():    -> d.修改了域名：按域名分组
+            //e.新增了书签：按分组，更新所在大分组updateCardData()ok，更新类型toUPdates012 ok
 
 
             // 根据 newTag 与 oldTag 的 tags 字段计算 tagsUpdate 并更新全局 tagsMap
@@ -1413,7 +1472,6 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
 
                 return updates;
             };
-
             const tagsUpdate = computeTagsUpdate(newTag, oldTag);
             if (tagsUpdate && tagsUpdate.length > 0) {
                 dispatch(updatePageBookmarkTags(tagsUpdate));
@@ -1464,8 +1522,7 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
     }
 
     const getGroupData = async () => {
-        // console.log('11111111111 card getGroupData', pageId)
-        const data: any = await dispatch(fetchBookmarksPageData(pageId));
+        const data: any = await dispatch(fetchBookmarksPageData0(pageId));
     }
 
     /*   const getGroupData1 = async () => {
@@ -1773,13 +1830,13 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
         //当前所属分组变为空?切换到兄弟节点tab
         //查询所在分组的urlList,若为空，则切换到搜索结果tab（根据pId）
         if (dataType == 1) {
-            const newBookmarks = cardData.bookmarks.filter(b => b.id !== tag.id);
-            // console.log('aaaaaaaaaaaaaaaaaaaa', dataType, newBookmarks);
-            if (newBookmarks.length > 0) {//分组内无数据
-                setData({ ...cardData, bookmarks: newBookmarks });
+            const newBookmarks = data.bookmarks.filter(b => b.id !== tag.id);
+            if (newBookmarks.length == 0) {//分组内已无数据
+                setCardShow(false);//隐藏该选项卡
+            } else {
+                setData({ ...data, bookmarks: newBookmarks });
             }
-            // refreshDataByUpdateBookmark(tag);
-        } else {
+        } else if (dataType == 0) {
             getBookmarksGroupById(data.id).then((resultData) => {
                 const groupData = resultData.groupData;
                 // 必须通过 dispatch 派发 thunk action
@@ -1797,15 +1854,14 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
                 }
             })
         }
-
         // 如果是新增（oldTag 为空或 oldTag.tags 为空）且 newTags 非空：全部视为新增（add: true）
         if (tag.tags && tag.tags.length > 0) {
             const updates = [];
             for (const t of tag.tags) updates.push({ tag: t, add: false, id: tag.id });
             dispatch(updatePageBookmarkTags(updates));
         }
-
-        getGroupData();//重置pageData数据，触发重新渲染
+        dispatch(fetchBookmarksPageDatas([0, 1, 2]));
+        // getGroupData();//重置pageData数据，触发重新渲染
     }
 
     function determinShowTabOrNot(item: any) {
@@ -1904,8 +1960,6 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
                                         <Typography.Text style={{ color: 'var(--color-text-2)' }}>显示</Typography.Text>
                                         <Switch size='small' style={{ marginLeft: 12, marginRight: 12 }} checked={showItem} onChange={switchShow}></Switch>
                                     </label>}
-
-
                                     <SelectedTags tags={selectedTags} />
 
                                     <Input.Search

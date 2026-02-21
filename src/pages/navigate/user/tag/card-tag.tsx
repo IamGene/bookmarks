@@ -25,7 +25,6 @@ interface CardBlockType {
     searching: boolean;
     editTag: Function;
     onDeleteSuccess?: (WebTag) => void;
-    // tag={item} parentHide={parentHide} 
 }
 
 const App = (props: CardBlockType) => {

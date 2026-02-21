@@ -34,9 +34,9 @@ function App(props: TagDataParams) {
     // const formRef = useRef<FormInstance>();
 
     const globalState = useSelector((state: any) => state.global);
-    const { treeData, tagsMap } = globalState;
-    const cascaderOptions = treeData;
-    const keys = Object.keys(tagsMap);
+    const { dataGroups, tagsMap } = globalState;
+    const cascaderOptions = dataGroups;
+    const keys = tagsMap && Object.keys(tagsMap) || [];
     // console.log('44444444 tag form data', data);
     // console.log('44444444 tag form cascaderOptions', cascaderOptions);
     // console.log('44444444 tag form selectGroup', selectGroup);
@@ -269,6 +269,7 @@ function App(props: TagDataParams) {
         const newBookmark = await updateBookmarkById(tag);
         return newBookmark;
     }
+
     const addBookmark = async (tag: WebTag): Promise<any> => {
         const newBookmark = await addNewBookmark(tag);
         return newBookmark;

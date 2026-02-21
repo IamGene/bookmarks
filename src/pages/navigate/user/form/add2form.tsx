@@ -35,9 +35,9 @@ function App(props: TagDataParams) {
   const [confirmLoading, setConfirmLoading] = useState(false);
 
   const globalState = useSelector((state: any) => state.global);
-  const { treeData } = globalState;
+  const { dataGroups } = globalState;
   // console.log('sssssssssss tag form data', selectGroup, groups)
-  const cascaderOptions = treeData;
+  const cascaderOptions = dataGroups;
 
   //要显示的选择分组
   // const [optionValues, setOptionValues] = useState(selectGroup);

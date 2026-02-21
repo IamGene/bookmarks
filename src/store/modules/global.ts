@@ -67,7 +67,7 @@ export default store
 import { createSlice } from '@reduxjs/toolkit';
 import defaultSettings from '../../settings.json';
 // import { getUserNaviate } from '@/api/navigate';
-import { getPageTree, getPageTreeByDate, getPages, getPage, getSearchHistory } from "@/db/bookmarksPages";
+import { getPageTree, getPageTreeByDate, getPages, getPageTreeByDomain, getPage, getSearchHistory } from "@/db/bookmarksPages";
 import { WebTag } from '@/pages/navigate/user/interface';
 export interface GroupNode {
   id: string;
@@ -115,8 +115,11 @@ export interface GlobalState {
   userLoading?: boolean;
   dataByGroup: TagGroups;
   dataByDate: TagGroups;
+  dataByDomain: TagGroups;
+  toUpdateGroupTypes: number[];
   dateGroups: TagGroups;
-  treeData: TagGroups;
+  dataGroups: TagGroups;
+  domainGroups: TagGroups;
   pageId: number,
   currentPage: Page,
   // group1s: TagGroups;
@@ -145,10 +148,11 @@ const initialState: GlobalState = {
   // groups: [],//当前标签分组列表,用于新增
   dataByDate: null,//当前标签分组列表,用于新增
   dataByGroup: null,//当前标签分组列表（按时间排列）,用于新增
+  dataByDomain: null,//当前标签分组列表（按域名排列）,用于新增
   dateGroups: null,//当前标签分组列表,用于新增
-  treeData: [],//当前标签分组列表,用于新增
-  // tagsMap: null,//当前标签分组列表,用于新增
-  // group1s: [],//当前标签分组列表,用于新增
+  domainGroups: null,//当前标签分组列表,用于新增
+  dataGroups: [],//当前标签分组列表
+  toUpdateGroupTypes: [],//
   hiddenGroup: false,//有隐藏分组
   defaultPage: null,
   currentPage: null,
@@ -210,7 +214,6 @@ const globalSlice = createSlice({
         const keyword = action.payload.keyword;
         // 将 keyword 移到 state.searchHistory 的第一个位置（若已存在则先移除再放到最前面；若不存在则添加到最前面）
         if (!keyword) return;
-
         const list = Array.isArray(state.search.searchHistory) ? [...state.search.searchHistory] : [];
         const idx = list.findIndex(item => item === keyword);
         if (idx > -1) {
@@ -231,13 +234,33 @@ const globalSlice = createSlice({
     },
 
     updateBookmarks: (state, action) => {
-      state.dataByGroup = action.payload.dataByGroup;
-      state.dataByDate = action.payload.dataByDate
+      if (action.payload.dataGroups) state.dataGroups = action.payload.dataGroups;
+      if (action.payload.dataByDate) state.dataByDate = action.payload.dataByDate;
+      if (action.payload.dataByDomain) state.dataByDomain = action.payload.dataByDomain;
+      if (action.payload.dataByGroup) state.dataByGroup = action.payload.dataByGroup;
+      if (action.payload.dateGroups) state.dateGroups = action.payload.dateGroups;
+      if (action.payload.domainGroups) state.domainGroups = action.payload.domainGroups;
+      if (action.payload.currentPage) state.currentPage = action.payload.currentPage;
+      if (action.payload.tagsMap) state.tagsMap = action.payload.tagsMap;
+
       state.hiddenGroup = action.payload.hideGroup;
-      state.treeData = action.payload.treeData;
-      state.currentPage = action.payload.currentPage;
-      state.tagsMap = action.payload.tagsMap;
-      state.dateGroups = action.payload.dateGroups;
+      if (action.payload.updatedGroupType != null) {
+        if (state.toUpdateGroupTypes.includes(action.payload.updatedGroupType)) {
+          const idx = state.toUpdateGroupTypes.indexOf(action.payload.updatedGroupType);
+          state.toUpdateGroupTypes.splice(idx, 1);
+        }
+      }
+    },
+
+    updateGroupTypes: (state, action) => {
+      if (action.payload.toUpdateGroupTypes) {
+        const types = action.payload.toUpdateGroupTypes;
+        for (const t of types) {
+          if (!state.toUpdateGroupTypes.includes(t)) {
+            state.toUpdateGroupTypes.push(t);
+          }
+        }
+      }
     },
 
     updateTagsMap: (state, action) => {
@@ -255,15 +278,14 @@ const globalSlice = createSlice({
 
         const currentArr: string[] = Array.isArray(state.tagsMap[tagKey]) ? [...state.tagsMap[tagKey]] : [];
 
-        if (add) {
+        if (add) {//增加
           if (id) {
             if (!currentArr.includes(id)) currentArr.push(id);
             state.tagsMap[tagKey] = currentArr;
           } else {
-            // no id provided: ensure key exists (can't associate id)
             if (!state.tagsMap[tagKey]) state.tagsMap[tagKey] = [];
           }
-        } else {
+        } else {//删除
           if (id) {
             const filtered = currentArr.filter(x => x !== id);
             if (filtered.length === 0) delete state.tagsMap[tagKey];
@@ -337,12 +359,10 @@ function filterChildrenByPath(data) {
 const fetchBookmarksPageData = (pageId: number) => {
   return async (dispatch) => {
     const res = await getPageTree(pageId);
-
     const res1 = await getPageTreeByDate(pageId);
-    // console.log('--------------------fetchBookmarksPageData res1', res1);
-    const dateGroups = res1.treeData;//
-    const list1 = res1.data;//书签数据
-
+    const res2 = await getPageTreeByDomain(pageId);
+    const domainGroups = res2.treeData;//
+    const list2 = res2.data;//书签数据
     // console.log('--------------------fetchBookmarksPageData res', res);
     const data = res.data;
     let tagsMap = res.tagsMap;
@@ -350,6 +370,11 @@ const fetchBookmarksPageData = (pageId: number) => {
     if (tagsMap instanceof Map) {
       tagsMap = Object.fromEntries(tagsMap);
     }
+
+    // console.log('--------------------fetchBookmarksPageData res1', res1);
+    const dateGroups = res1.treeData;//
+    const list1 = res1.data;//书签数据
+
     // console.log('5555555555555 fetchTagGroupsData tagsMap', tagsMap);
     const currentPage = await getPage(pageId);
     if (data.length > 0) {
@@ -357,11 +382,21 @@ const fetchBookmarksPageData = (pageId: number) => {
       const list = data;
       const hideGroup: boolean = hasHidden(list);
       const treeData = filterChildrenArrayByPath(list);
-      // console.log('999999999999 fetchTagGroupsData treeData', list);
-      dispatch(updateBookmarks({ dataByGroup: list, dataByDate: list1, hideGroup: hideGroup, dateGroups: dateGroups, tagsMap: tagsMap, currentPage: currentPage, treeData: treeData }));
+      // console.log('999999999999 fetchTagGroupsData treeData', treeData);
+      dispatch(updateBookmarks({
+        dataByGroup: list,
+        dataByDate: list1,
+        dataByDomain: list2,
+        hideGroup: hideGroup,
+        dateGroups: dateGroups,
+        domainGroups: domainGroups,
+        dataGroups: treeData,
+        tagsMap: tagsMap,
+        currentPage: currentPage,
+      }));
       return res; // 直接返回整个响应对象
     } else {
-      dispatch(updateBookmarks({ dataByGroup: [], dataByDate: [], hideGroup: false, dateGroups: [], tagsMap: tagsMap, currentPage: currentPage, treeData: [] }));
+      dispatch(updateBookmarks({ dataByGroup: [], dataByDate: [], hideGroup: false, dateGroups: [], tagsMap: tagsMap, currentPage: currentPage, dataGroups: [] }));
       return [];
       // 处理错误情况
       // throw new Error('请求失败');
@@ -369,6 +404,100 @@ const fetchBookmarksPageData = (pageId: number) => {
   }
 };
 
+const fetchBookmarksPageData0 = (pageId: number) => {
+  return async (dispatch) => {
+    const res = await getPageTree(pageId);
+    // console.log('--------------------fetchBookmarksPageData0 res', res);
+    const data = res.data;
+    let tagsMap = res.tagsMap;
+    // 如果后端/DB 返回的是 Map，转换为普通对象以保证 state 可序列化
+    if (tagsMap instanceof Map) {
+      tagsMap = Object.fromEntries(tagsMap);
+    }
+    //
+    // const currentPage = await getPage(pageId);
+    if (data.length > 0) {
+      //list: 分组书签（全字段）
+      const list = data;
+      // const hideGroup: boolean = hasHidden(list);
+      const hideGroup: boolean = false;
+      const treeData = filterChildrenArrayByPath(list);
+      dispatch(updateBookmarks({
+        dataByGroup: list,
+        dataGroups: treeData,
+        hideGroup: hideGroup,
+        tagsMap: tagsMap,
+        updatedGroupType: 0,
+        // currentPage: currentPage
+      }));
+      return res; // 直接返回整个响应对象
+    } else {
+      await dispatch(updateBookmarks({ dataByGroup: [], hideGroup: false, tagsMap: [], treeData: null }));
+      // await dispatch(updateGroupTypes({ updatedGroupType: 0 }));
+      // dispatch(updateBookmarks({ dataByGroup: [], dataByDate: [], hideGroup: false, dateGroups: [], tagsMap: tagsMap, currentPage: currentPage, treeData: [] }));
+      return [];
+      // 处理错误情况
+      // throw new Error('请求失败');
+    }
+  }
+};
+
+
+
+const fetchBookmarksPageData1 = (pageId: number) => {
+  return async (dispatch) => {
+    const res1 = await getPageTreeByDate(pageId);
+    const dateGroups = res1.treeData;//
+    // console.log('999999999999 fetchBookmarksPageData1 treeData', res1);
+    const list1 = res1.data;//书签数据
+    if (list1.length > 0) {
+      await dispatch(updateBookmarks({ dataByDate: list1, dateGroups: dateGroups, updatedGroupType: 1 }));
+      // await dispatch(updateGroupTypes({  }));
+      return res1; // 直接返回整个响应对象
+    } else {
+      dispatch(updateBookmarks({ dataByDate: [], hideGroup: false, dateGroups: [], treeData: [] }));
+      return [];
+      // 处理错误情况
+      // throw new Error('请求失败');
+    }
+  }
+};
+
+
+const fetchBookmarksPageData2 = (pageId: number) => {
+  return async (dispatch) => {
+    const res1 = await getPageTreeByDomain(pageId);
+    const domainGroups = res1.treeData;//
+    const list1 = res1.data;//书签数据
+    const currentPage = await getPage(pageId);
+    if (list1.length > 0) {
+      dispatch(updateBookmarks({ dataByDomain: list1, domainGroups: domainGroups, currentPage: currentPage }));
+      return res1; // 直接返回整个响应对象
+    } else {
+      dispatch(updateBookmarks({ dataByDomain: [], hideGroup: false, domainGroups: [], currentPage: currentPage, treeData: [] }));
+      return [];
+    }
+  }
+};
+
+
+/* const fetchBookmarksPageData012 = (pageId: number) => {
+  console.log('sssssssssssss fetchBookmarksPageData012 pageId', pageId);
+  return async (dispatch) => {
+    dispatch(updateGroupTypes({ toUpdateGroupTypes: [0, 1, 2] }));
+  };
+};
+const fetchBookmarksPageData12 = (pageId: number) => {
+  return async (dispatch) => {
+    dispatch(updateGroupTypes({ toUpdateGroupTypes: [1, 2] }));
+  };
+}; */
+
+const fetchBookmarksPageDatas = (types: number[]) => {
+  return async (dispatch) => {
+    dispatch(updateGroupTypes({ toUpdateGroupTypes: types }));
+  };
+};
 
 const updatePageDataState = (pageData: any[]) => {
   return async (dispatch) => {
@@ -411,7 +540,13 @@ const loadSearchHistory = () => {
 
 // export const { updateSettings, updateUserInfo, updateHasResult, updateBookmarks } = globalSlice.actions;
 //updateSearchHistory 
-const { updateSettings, updateUserInfo, updateHasResult, updateSearchState, updateTagsMap, updateBookmarks, setUserPages, setSearchHistory, updateActiveGroup, setLoadBookmarks } = globalSlice.actions;
-export { updateSettings, updateUserInfo, updateHasResult, updateSearchState, loadSearchHistory, updatePageBookmarkTags, updateBookmarks, updateActiveGroup, updatePageDataState, reloadUserPages, fetchBookmarksPageData, loadNewAddedBookmarks };
+const { updateSettings, updateUserInfo, updateHasResult, updateGroupTypes, updateSearchState, updateTagsMap, updateBookmarks, setUserPages, setSearchHistory, updateActiveGroup, setLoadBookmarks } = globalSlice.actions;
+export {
+  updateSettings, updateUserInfo, updateHasResult, updateSearchState, updateBookmarks, updateActiveGroup,
+  loadSearchHistory, updatePageBookmarkTags,
+  updatePageDataState, reloadUserPages, fetchBookmarksPageData,
+  fetchBookmarksPageData0, fetchBookmarksPageData1, fetchBookmarksPageData2, fetchBookmarksPageDatas,
+  loadNewAddedBookmarks
+};
 export default globalSlice.reducer;
 // export { dispatchTagGroupsData };

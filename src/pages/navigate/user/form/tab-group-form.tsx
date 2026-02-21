@@ -26,12 +26,11 @@ function App(props: GroupFormParams) {
 
     // console.log('tab form group', group);
 
-    // const [visible, setVisible] = React.useState(false);
-    // const formRef = useRef<FormInstance>();
     const [confirmLoading, setConfirmLoading] = useState(false);
 
     const globalState = useSelector((state: any) => state.global);
-    const treeData = globalState.treeData;
+    const treeData = globalState.dataGroups;
+    // const treeData = globalState.dataGroups;
     const pages = globalState.pages;
     const [optionValues, setOptionValues] = useState(selectGroup);
     const [optionValues1, setOptionValues1] = useState(pageId);
@@ -149,6 +148,8 @@ function App(props: GroupFormParams) {
      }, [pageId]); */
 
     function setDisabledNodes(nodes, selectNode) {
+
+        console.log('aaaaaaaaaaaaaa nodes', nodes, selectNode);
         function setDisabledForGroupChldren(nodes, selectNode) {
             return nodes
                 .map(node => {
@@ -166,7 +167,7 @@ function App(props: GroupFormParams) {
 
     useEffect(() => {
         if (group) {
-            // console.log('000000000000 useEffect group', group);
+            console.log('000000000000 useEffect cascaderOptions group', cascaderOptions, group);
             //将属于group的子分组禁用 ok
             setCascaderOptions(setDisabledNodes(cascaderOptions, group))
             form.setFields({

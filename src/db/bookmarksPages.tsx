@@ -1256,6 +1256,142 @@ export async function getPageTreeByDate(pageId) {
     return { data: groups, treeData: treeData };
 }
 
+
+
+export async function getPageTreeByDomain(pageId) {
+    // 新实现：按书签链接的域名分组（不包含协议），保持返回结构与原来相同
+    const db = await getDB();
+    const bookmarks = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
+
+    // 为每个书签根据 gId 计算所在分组的祖先路径（从根到本组 id 的数组），并缓存复用
+    const pathCache = new Map(); // gId -> pathArray
+    const uniqueGIds = Array.from(new Set(bookmarks.map(b => b && b.gId).filter(Boolean)));
+    for (const gid of uniqueGIds) {
+        if (pathCache.has(gid)) continue;
+        const pathArr = [];
+        const seen = new Set();
+        let cur = gid;
+        while (cur) {
+            if (seen.has(cur)) break;
+            seen.add(cur);
+            const group = await db.get('groups', cur);
+            if (!group) break;
+            pathArr.push(group.id);
+            if (!group.pId) break;
+            cur = group.pId;
+        }
+        pathCache.set(gid, pathArr.reverse());
+    }
+
+    for (const u of bookmarks) {
+        const gid = u && u.gId;
+        u.path = gid ? (pathCache.get(gid) || []) : [];
+    }
+
+    // 域名提取器：去掉协议，去掉 www. 前缀，返回小写主机名
+    function extractDomain(url) {
+        if (!url) return 'unknown';
+        let tmp = String(url).trim();
+        try {
+            if (!/^https?:\/\//i.test(tmp)) tmp = 'http://' + tmp;
+            const parsed = new URL(tmp);
+            let host = parsed.hostname || '';
+            host = host.replace(/^www\./i, '').toLowerCase();
+            return host || 'unknown';
+        } catch (e) {
+            // 回退：直接切掉路径
+            tmp = tmp.replace(/^.*?:\/\//, '').split('/')[0];
+            tmp = tmp.replace(/^www\./i, '').toLowerCase();
+            return tmp || 'unknown';
+        }
+    }
+
+    // 按域名分组
+    const map = new Map(); // domain -> bookmarks[]
+    for (const u of bookmarks) {
+        const domain = extractDomain(u.url);
+        u.domain = domain;
+        if (!map.has(domain)) map.set(domain, []);
+        map.get(domain).push(u);
+    }
+
+    // 构建域名层级数据（首字母 -> 域名 -> bookmarks）
+    const domainGroups = Array.from(map.entries()).map(([domain, items]) => {
+        items.sort((a, b) => (b.addDate ?? 0) - (a.addDate ?? 0));
+        return {
+            id: domain,
+            date: domain,
+            name: domain,
+            pageId: pageId,
+            bookmarks: items,
+            count: items.length,
+        };
+    });
+
+    domainGroups.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+
+    // 按首字母分组，生成 data（两层嵌套）和 treeData（用于 UI 的树形结构）
+    const initialMap = new Map();
+    for (const g of domainGroups) {
+        let initial = (g.name && g.name[0]) ? g.name[0].toUpperCase() : '#';
+        if (!/^[A-Z0-9]$/.test(initial)) initial = '#';
+        if (!initialMap.has(initial)) initialMap.set(initial, []);
+        initialMap.get(initial).push(g);
+    }
+
+    // 为所有分组生成 uuid 作为 id，并设置 path：
+    // - 第一级分组 path 为 null
+    // - 第二级分组 path 为 "<parentId>,<childId>"
+    const data = [];
+    for (const [initial, domains] of initialMap.entries()) {
+        domains.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+        const parentId = uuid();
+        const children = domains.map((m, idx) => {
+            const childId = m.id || uuid();
+            return {
+                id: childId,
+                date: m.date,
+                name: m.name,
+                pageId: m.pageId,
+                bookmarks: m.bookmarks,
+                count: m.count,
+                order: idx + 1,
+                path: `${parentId},${childId}`,
+            };
+        });
+        data.push({
+            id: parentId,
+            name: initial,
+            pageId: pageId,
+            bookmarks: [],
+            order: 1,
+            path: null,
+            children,
+        });
+    }
+
+    const treeData = data.map(d => ({
+        id: d.id,
+        date: d.id,
+        path: d.path,
+        name: d.name,
+        bookmarks: [],
+        order: d.order,
+        children: d.children.map((c, idx) => ({
+            id: c.id,
+            path: c.path,
+            date: c.date,
+            name: c.name,
+            pId: d.id,
+            bookmarks: c.bookmarks,
+            order: idx + 1,
+            count: c.count,
+        })),
+    }));
+
+    return { data: data, treeData: treeData };
+}
+
 export async function getPageGroupData1(group) {
     const db = await getDB();
     const bookmarkList = [];
@@ -1397,45 +1533,32 @@ export function collectUrlTags(urls?: any[]): Map<string, string[]> {
 export async function removeGroupById(groupId) {
     try {
         const db = await getDB();
-        const group = await db.get('groups', groupId);
-        const childGroups = await db.getAllFromIndex('groups', 'pId', groupId);
-        if (group.pId === null) { //删除祖节点
-            const urls = await db.getAllFromIndex('bookmarks', 'gId', groupId);
-            if (urls.length > 0 && childGroups.length > 0) {//仅仅删除其标签
+        const root = await db.get('groups', groupId);
+        if (!root) return { success: false, error: 'group not found' };
 
-                /**
-                 * 合并 urls 中所有元素的 tags 字段，返回不重复的 tag 数组
-                 * @param {Array=} urls 可选，若未传入则读取全部 `urls` 表数据
-                 * @returns {Promise<string[]>}
-                 */
+        let deletedBookmarks = 0;
 
+        // 递归深度优先删除：先删除子分组，再删除当前分组及其书签
+        async function deleteGroupAndChildren(id) {
+            const children = await db.getAllFromIndex('groups', 'pId', id);
+            for (const child of children) {
+                await deleteGroupAndChildren(child.id);
+            }
+
+            const urls = await db.getAllFromIndex('bookmarks', 'gId', id);
+            if (urls && urls.length > 0) {
                 for (const url of urls) {
                     await db.delete('bookmarks', url.id);
-                }
-                return true;
-            }
-        }
-        await db.delete('groups', groupId);
-        // 删除 urls 表中所有 pageId 匹配的数据
-        const urls = await db.getAllFromIndex('bookmarks', 'gId', groupId);
-        for (const url of urls) {
-            await db.delete('bookmarks', url.id);
-        }
-        const childNodes = await db.getAllFromIndex('groups', 'pId', groupId);
-        if (childNodes.length > 0) {
-            for (const node of childNodes) {
-                await db.delete('groups', node.id);
-                const urls = await db.getAllFromIndex('bookmarks', 'gId', node.id);
-                if (urls.length > 0) {
-                    for (const url of urls) {
-                        await db.delete('bookmarks', url.id);
-                    }
+                    deletedBookmarks++;
                 }
             }
+            await db.delete('groups', id);
         }
-        return true;
+
+        await deleteGroupAndChildren(groupId);
+        return { success: true, deletedBookmarks: deletedBookmarks };
     } catch (e) {
-        return false;
+        return { success: false, error: e };
     }
 }
 
