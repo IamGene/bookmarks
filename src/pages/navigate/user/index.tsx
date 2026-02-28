@@ -113,7 +113,6 @@ function searchDataRecursive(list, keyword) {
 }
 
 // 保持原名兼容，指向递归实现
-
 function searchData2(list, keyword) {
   return searchDataRecursive(list, keyword);
 }
@@ -299,15 +298,6 @@ function UserNavigate() {
   const showFooter = settings.footer && urlParams.footer !== false;
 
 
-  /*   function onTreeTypeChange(value) {
-      if (value === '按时间') {
-        setDataType(1);
-      } else if (value === '按分组') {
-        setDataType(0);
-        // setGroups(groups);
-      }
-    } */
-
   function onTreeTypeChange(value) {
     setDataType(value);
   }
@@ -352,7 +342,10 @@ function UserNavigate() {
 
   // 接收Tree传过来的选中项
   const getTreeSelect = (selected) => {
-    const value = selected[0];
+
+    // console.log('user navigate getTreeSelect selected=', selected);
+    // const value = selected[0];
+    const value = selected;
     const stringArray: string[] = value.split(',');
     const activeCardTab: string[] = stringArray.map(String);
     setTreeSelected(activeCardTab);

@@ -147,7 +147,7 @@ function Index() {
         const currentPageId = await getCurrentPageId();
 
         let dbBookmark = await getBookmarkById(bookmark.id);
-        console.log("A.com 主线程: 检查书签是否已存在 IndexedDB:", dbBookmark);
+        // console.log("A.com 主线程: 检查书签是否已存在 IndexedDB:", dbBookmark);
 
         if (dbBookmark) {
           // console.log(`A.com 主线程: 书签 "${bookmark.title}" 已存在 IndexedDB，跳过保存。`, bookmark);
@@ -158,7 +158,7 @@ function Index() {
           try {
             const saveBookMark = await saveBookmarkToDB(bookmark);
             dbBookmark = saveBookMark;
-            console.log(`A.com 主线程: 已将书签 "${bookmark.title}" 写入 IndexedDB。`, bookmark, store);
+            // console.log(`A.com 主线程: 已将书签 "${bookmark.title}" 写入 IndexedDB。`, bookmark, store);
             event.source.postMessage({
               type: 'SAVE_TO_DB_RESPONSE', ok: true, data: saveBookMark
             }, event.origin);
@@ -171,7 +171,7 @@ function Index() {
         }
 
         // 如果当前在 /bookmarks 页面，并且保存的书签属于当前展示的书签页，则刷新
-        console.log("A.com 主线程: 触发重新获取页面数据的操作?", currentPageId === dbBookmark.pageId, currentPageId, dbBookmark.pageId,);
+        // console.log("A.com 主线程: 触发重新获取页面数据的操作?", currentPageId === dbBookmark.pageId, currentPageId, dbBookmark.pageId,);
         if (window.location.pathname === '/bookmarks' && currentPageId === dbBookmark.pageId) {
           store.dispatch(fetchBookmarksPageData(dbBookmark.pageId));
         }

@@ -38,6 +38,7 @@ export interface WebTag {
   // icon1?: number;
   id?: string;
   icon?: string;
+  gId1?: string;
   status?: 0 | 1 | 2;
   description: string;
   hide: boolean;

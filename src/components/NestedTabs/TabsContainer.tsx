@@ -20,6 +20,8 @@ interface Props {
     WrapTabNode: any;
     moveTabNode: Function;
     searching: boolean;
+    dataType: number;
+    // showItem
     // searchResult: any[];
     // cardData: any;
     // currentSearch: any;
@@ -53,6 +55,7 @@ export default function TabsContainer(props: Props) {
         WrapTabNode,
         moveTabNode,
         searching,
+        dataType,
         tabMore,
         searchTabKey,
         renderContent,
@@ -103,6 +106,7 @@ export default function TabsContainer(props: Props) {
         <Tabs
             editable
             type="card-gutter"
+            showAddButton={dataType == 0}
             onAddTab={() => handleAddTab && handleAddTab(data)}
             onChange={(key) => onTabChange && onTabChange(key, props.data, props.currentPath)}
             activeTab={activeTab ? activeTab : data.children[0].id}

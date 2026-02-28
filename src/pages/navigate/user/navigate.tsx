@@ -21,12 +21,11 @@ import './mock';
 // tab标签类型
 const TabPane = Tabs.TabPane;
 const { Row, Col, GridItem } = Grid;
-// import { BackTop, Button, Select, Input, Typography, Space } from '@arco-design/web-react';
 
 function ListCard({ activeCardTab, dataType, display, setCardTabActive, keyWord, list, hasResult, loading }) {
   const t = useLocale(locale);
 
-  // console.log('zzzzzzzzzzz has dataType', dataType);
+  // console.log('zzzzzzzzzzz  dataType', activeCardTab);
 
   let search: boolean = keyWord && keyWord.length > 0;
 
@@ -168,6 +167,7 @@ function ListCard({ activeCardTab, dataType, display, setCardTabActive, keyWord,
             setCardTabActive={setCardTabActive}
             cardData={item}
             dataType={dataType}
+            tags={null}
             // index={index}
             // last={index == list.length - 1}
             // first={index == 0}

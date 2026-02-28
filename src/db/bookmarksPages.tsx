@@ -546,6 +546,16 @@ export async function getBookmarksNumByGId(gId) {
     }
 }
 
+export async function getBookmarksByGId(gId) {
+    try {
+        const db = await getDB();
+        const urls = await db.getAllFromIndex('bookmarks', 'gId', gId);
+        return urls;
+    } catch (e) {
+        console.error('getBookmarksByGId error', e);
+        return [];
+    }
+}
 export async function getBookmarkGroupsByPId(pId) {
     try {
         const db = await getDB();
@@ -1112,27 +1122,31 @@ export async function getPageTree(pageId) {
     const tagsMap = collectUrlTags(urls);
     // console.log('getPageTree tags', tagsMap);
     // function buildTree(parentId, parentPath, isRoot = false) {
+    const expandedKeysSet = new Set();
+
     function buildTree(parentId, parentPath) {
         return nodes
             .filter(node => node.pId === parentId)
             .sort((a, b) => !parentId ? ((b.addDate ?? 0) - (a.addDate ?? 0)) : ((a.order ?? a.addDate ?? 0) - (b.order ?? b.addDate ?? 0)))
-
             .map(node => {
                 const currentPath = parentPath ? parentPath + ',' + node.id : node.id;
                 const children = buildTree(node.id, currentPath);
                 const urlList = urls.filter(n => n.gId === node.id);
                 urls.sort((a, b) => (a.addDate ?? 0) - (b.addDate ?? 0));
                 node.path = currentPath;
-                //大分组存在标签，复制新的对象，作为子分组
+
+                let finalChildren = children;
+                let resultNode;
+
+                // 大分组存在标签，复制新的对象，作为子分组
                 if (urlList && urlList.length > 0 && children.length > 0) {
-                    node.list = true;//有数组
+                    node.list = true; // 有数组
                     const child1 = {
                         ...node,
                         children: [],
                         copy: true,
                         order: node.order1 ? node.order1 : 0,
                         list: false,
-                        // urlList: urlList,
                         bookmarks: urlList,
                     };
                     if (node.order1) {
@@ -1140,22 +1154,31 @@ export async function getPageTree(pageId) {
                         const newChildren = [...children];
                         // 若索引超出范围，则追加到末尾；否则在指定位置插入
                         const insertIndex = Math.min(idx, newChildren.length);
-                        newChildren.splice(insertIndex, 0, child1);//插入一个
-                        return { ...node, children: newChildren };
+                        newChildren.splice(insertIndex, 0, child1); // 插入一个
+                        finalChildren = newChildren;
+                    } else {
+                        finalChildren = [child1, ...children];
                     }
-                    return {
+                    resultNode = { ...node, children: finalChildren };
+                } else {
+                    resultNode = {
                         ...node,
-                        children: [child1, ...children]
+                        children: children,
+                        bookmarks: urlList,
                     };
-                } else return {
-                    ...node,
-                    children: children,
-                    bookmarks: urlList,
-                };
+                }
+
+                // 收集子分组不为空的分组 id
+                if (finalChildren && finalChildren.length > 0) {
+                    // expandedKeysSet.add(node.path);
+                    expandedKeysSet.add(node.id);
+                }
+
+                return resultNode;
             });
     }
     // return buildTree(null, null); // 根节点
-    return { data: buildTree(null, null), tagsMap: tagsMap }; // 根节点
+    return { data: buildTree(null, null), tagsMap: tagsMap, expandedKeys: Array.from(expandedKeysSet) }; // 根节点
 }
 
 
@@ -1319,8 +1342,8 @@ export async function getPageTreeByDomain(pageId) {
     const domainGroups = Array.from(map.entries()).map(([domain, items]) => {
         items.sort((a, b) => (b.addDate ?? 0) - (a.addDate ?? 0));
         return {
-            id: domain,
-            date: domain,
+            id: uuid(),
+            // date: domain,
             name: domain,
             pageId: pageId,
             bookmarks: items,
@@ -1348,12 +1371,14 @@ export async function getPageTreeByDomain(pageId) {
         const parentId = uuid();
         const children = domains.map((m, idx) => {
             const childId = m.id || uuid();
+            // 为该域名分组下的每个 bookmark 添加 gId1 属性，指向所属（域名）分组 id
+            const bookmarksWithGId1 = Array.isArray(m.bookmarks) ? m.bookmarks.map(b => ({ ...b, gId1: childId })) : [];
             return {
                 id: childId,
-                date: m.date,
+                // date: m.date,
                 name: m.name,
                 pageId: m.pageId,
-                bookmarks: m.bookmarks,
+                bookmarks: bookmarksWithGId1,
                 count: m.count,
                 order: idx + 1,
                 path: `${parentId},${childId}`,
@@ -1365,7 +1390,8 @@ export async function getPageTreeByDomain(pageId) {
             pageId: pageId,
             bookmarks: [],
             order: 1,
-            path: null,
+            // path: null,
+            path: parentId,
             children,
         });
     }

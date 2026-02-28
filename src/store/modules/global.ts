@@ -117,6 +117,7 @@ export interface GlobalState {
   dataByDate: TagGroups;
   dataByDomain: TagGroups;
   toUpdateGroupTypes: number[];
+  expandedKeys: string[];
   dateGroups: TagGroups;
   dataGroups: TagGroups;
   domainGroups: TagGroups;
@@ -152,6 +153,7 @@ const initialState: GlobalState = {
   dateGroups: null,//当前标签分组列表,用于新增
   domainGroups: null,//当前标签分组列表,用于新增
   dataGroups: [],//当前标签分组列表
+  expandedKeys: [],//当前标签分组列表
   toUpdateGroupTypes: [],//
   hiddenGroup: false,//有隐藏分组
   defaultPage: null,
@@ -207,8 +209,9 @@ const globalSlice = createSlice({
       state.search.hasResult = action.payload.hasResult;
     },
     updateSearchState: (state, action) => {
+      // console.log('xxxxxxxxxxxxxxxxxxxxx updateSearchState', action.payload);
       state.search.hasResult = action.payload.hasResult;
-      if (action.payload.keyword != null) {
+      if (action.payload.keyword != null) {//重新搜索
         state.search.keyword = action.payload.keyword;
         state.search.searchResultNum = 0;//每次新搜索，重置结果数
         const keyword = action.payload.keyword;
@@ -242,8 +245,9 @@ const globalSlice = createSlice({
       if (action.payload.domainGroups) state.domainGroups = action.payload.domainGroups;
       if (action.payload.currentPage) state.currentPage = action.payload.currentPage;
       if (action.payload.tagsMap) state.tagsMap = action.payload.tagsMap;
-
+      state.search.searchResultNum = 0;//每次更新书签数据，重置搜索结果数
       state.hiddenGroup = action.payload.hideGroup;
+      state.expandedKeys = action.payload.expandedKeys;
       if (action.payload.updatedGroupType != null) {
         if (state.toUpdateGroupTypes.includes(action.payload.updatedGroupType)) {
           const idx = state.toUpdateGroupTypes.indexOf(action.payload.updatedGroupType);
@@ -359,8 +363,12 @@ function filterChildrenByPath(data) {
 const fetchBookmarksPageData = (pageId: number) => {
   return async (dispatch) => {
     const res = await getPageTree(pageId);
+
+    // console.log('--------------------fetchBookmarksPageData res', res);
     const res1 = await getPageTreeByDate(pageId);
+    const expandedKeys = res.expandedKeys || [];
     const res2 = await getPageTreeByDomain(pageId);
+    // const domainGroups = res2.treeData.slice(0, 10);//
     const domainGroups = res2.treeData;//
     const list2 = res2.data;//书签数据
     // console.log('--------------------fetchBookmarksPageData res', res);
@@ -388,6 +396,7 @@ const fetchBookmarksPageData = (pageId: number) => {
         dataByDate: list1,
         dataByDomain: list2,
         hideGroup: hideGroup,
+        expandedKeys: expandedKeys,
         dateGroups: dateGroups,
         domainGroups: domainGroups,
         dataGroups: treeData,
@@ -494,6 +503,7 @@ const fetchBookmarksPageData12 = (pageId: number) => {
 }; */
 
 const fetchBookmarksPageDatas = (types: number[]) => {
+  console.log('sssssssssssss fetchBookmarksPageDatas types', types);
   return async (dispatch) => {
     dispatch(updateGroupTypes({ toUpdateGroupTypes: types }));
   };

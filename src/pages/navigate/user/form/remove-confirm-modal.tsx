@@ -21,6 +21,7 @@ export function removeConfirm(
         const handleOk = async () => {
             try {
                 const success = await onOk(id);
+                console.log('xxxxxxxxxxxxxxxxxxxxxxxx', success);
                 if (success) {
                     Message.success('删除成功');
                     resolve(true);
