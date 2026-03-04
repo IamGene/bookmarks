@@ -562,7 +562,6 @@ function UserNavigate() {
   const getNavBarKey = (keyword) => {
     setNavbarKeyWord(keyword);
     dispatch(updateSearchState({ keyword: keyword }));
-
     // 关键词过滤
     if (!keyword || !keyword.trim()) {
       setHasResult(true);

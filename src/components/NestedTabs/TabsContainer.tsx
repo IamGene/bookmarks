@@ -19,6 +19,7 @@ interface Props {
     determinShowTabOrNot: Function;
     WrapTabNode: any;
     moveTabNode: Function;
+    onClickSearchMenuItem: any;
     searching: boolean;
     dataType: number;
     // showItem
@@ -27,9 +28,10 @@ interface Props {
     // currentSearch: any;
     activeCardTab: string[];
     tabMore: Function;
+    // searchTabMore: Function;
     showItem: boolean;
     searchTabKey: any;
-    showSearchResult: any[];
+    // showSearchResult: any[];
     renderContent: (child: any, idx: number) => React.ReactNode;
     renderSearchContent: () => React.ReactNode;
 }
@@ -58,12 +60,14 @@ export default function TabsContainer(props: Props) {
         dataType,
         tabMore,
         searchTabKey,
+        onClickSearchMenuItem,
         renderContent,
         renderSearchContent,
     } = props;
 
 
     const children = [...data.children];
+    // console.log('TabsContainer render, data.name=', data.name, ' children=', children);
     if (children.length > 0 && !searching) {//非搜索，按原始顺序，排序，保持稳定性；搜索时有结果的排在前面，方便选择activeTab
         children.sort((a, b) => ((a.order ?? a.addDate ?? 0) - (b.order ?? b.addDate ?? 0)));
     }
@@ -86,7 +90,7 @@ export default function TabsContainer(props: Props) {
         const index = activeCardTab.indexOf(item.id);
         const yes = searching && (activeCardTab.length == 0 || index === -1 || index === activeCardTab.length - 1); //Tree中当前node的子节点未被选中的情况下
 
-        if (yes && totalMatchCount > 0 && item.children.length > 1) {//包括子分组和复制分组（全部搜索结果）？
+        if (yes && totalMatchCount > 0 && item.children && item.children.length > 1) {//包括子分组和复制分组（全部搜索结果）？
             const res = item.children.filter(item1 => { // 复制子分组包含全部搜索结果
                 return item1.copy && item1.totalMatchCount == totalMatchCount;
             });
@@ -169,8 +173,28 @@ export default function TabsContainer(props: Props) {
 
 
             {searching && level <= 0 && (
-                <TabPane key={searchTabKey} title={<span style={{ color: 'red' }}>{`搜索结果(${props.showSearchResult ? props.showSearchResult.length : 0})`}</span>}>
-                    {/* <TabPane key={searchTabKey} title={<span style={{ color: 'red' }}>{`搜索结果(${data.searchResult ? props.searchResult.length : 0})`}</span>}> */}
+                /*  <TabPane key={searchTabKey} title={<span style={{ color: 'red' }}>{`搜索结果(${props.showSearchResult ? props.showSearchResult.length : 0})`}</span>}>
+                     {renderSearchContent()}
+                 </TabPane> */
+                <TabPane key={searchTabKey}
+                    title={
+                        <Dropdown
+                            position={'top'}
+                            trigger="hover"
+                            droplist={
+                                <Menu mode='pop' onClickMenuItem={onClickSearchMenuItem}>
+                                    <Menu.Item key={'1'} >删除</Menu.Item>
+                                    <Menu.Item key={'2'} >打开</Menu.Item>
+                                </Menu>
+                            }
+                        // onVisibleChange={setVisible}
+                        // onVisibleChange={handleDropdownVisibleChange}
+                        // popupVisible={visible}
+                        >
+                            {<span style={{ color: 'red' }}>{`搜索结果(${data.searchResult ? data.searchResult.length : 0})`}</span>}
+                        </Dropdown>
+                    }
+                >
                     {renderSearchContent()}
                 </TabPane>
             )}

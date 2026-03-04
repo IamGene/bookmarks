@@ -42,7 +42,7 @@ const App = (props: CardBlockType) => {
 
     const onClickMenuItem = (key: string) => {
         if (key === '0') {//编辑
-            // console.log('1111111111111111 点击了菜单,编辑', key, searching, selectGroup)
+            // console.log('1111111111111111 点击了菜单,编辑', tag);
             editTag(tag, selectGroup, searching);
         } else if (key === '1') {//删除
             //弹出确认框

@@ -67,7 +67,7 @@ export default store
 import { createSlice } from '@reduxjs/toolkit';
 import defaultSettings from '../../settings.json';
 // import { getUserNaviate } from '@/api/navigate';
-import { getPageTree, getPageTreeByDate, getPages, getPageTreeByDomain, getPage, getSearchHistory } from "@/db/bookmarksPages";
+import { getPageTree, getPageTreeByDate, getPages, testData, getPageTreeByDomain, getPage, getSearchHistory } from "@/db/bookmarksPages";
 import { WebTag } from '@/pages/navigate/user/interface';
 export interface GroupNode {
   id: string;
@@ -225,11 +225,13 @@ const globalSlice = createSlice({
         list.unshift(keyword);
         state.search.searchHistory = list;
         // console.log('🌀 updateSearchHistory state.searchHistory=', list);
-
       }
       // console.log('---------------', action.payload);
       if (action.payload.searchResultNum != null) {
         state.search.searchResultNum = state.search.searchResultNum + action.payload.searchResultNum;
+      }
+      if (action.payload.resetSearchResultNum) {
+        state.search.searchResultNum = 0;
       }
     },
     setSearchHistory: (state, action) => {
@@ -363,6 +365,7 @@ function filterChildrenByPath(data) {
 const fetchBookmarksPageData = (pageId: number) => {
   return async (dispatch) => {
     const res = await getPageTree(pageId);
+    // const resss = await testData(pageId);
 
     // console.log('--------------------fetchBookmarksPageData res', res);
     const res1 = await getPageTreeByDate(pageId);
@@ -371,7 +374,17 @@ const fetchBookmarksPageData = (pageId: number) => {
     // const domainGroups = res2.treeData.slice(0, 10);//
     const domainGroups = res2.treeData;//
     const list2 = res2.data;//书签数据
-    // console.log('--------------------fetchBookmarksPageData res', res);
+
+    //调试代码
+    /* let count = 0;
+    res.data.forEach(item => {
+      if (item.bookmarksNum) {
+        count += item.bookmarksNum;
+      }
+    });
+    console.log('--------------------fetchBookmarksPageData res', res.data, count);
+     */
+
     const data = res.data;
     let tagsMap = res.tagsMap;
     // 如果后端/DB 返回的是 Map，转换为普通对象以保证 state 可序列化
@@ -383,7 +396,14 @@ const fetchBookmarksPageData = (pageId: number) => {
     const dateGroups = res1.treeData;//
     const list1 = res1.data;//书签数据
 
-    // console.log('5555555555555 fetchTagGroupsData tagsMap', tagsMap);
+    // 调试代码
+    /*  let count1 = 0;
+     list1.forEach(item => {
+       if (item.bookmarks) {
+         count1 += item.bookmarks.length;
+       }
+     });
+     console.log('--------------------fetchBookmarksPageData1 res1', res1.data, count1); */
     const currentPage = await getPage(pageId);
     if (data.length > 0) {
       //list: 分组书签（全字段）
@@ -503,7 +523,7 @@ const fetchBookmarksPageData12 = (pageId: number) => {
 }; */
 
 const fetchBookmarksPageDatas = (types: number[]) => {
-  console.log('sssssssssssss fetchBookmarksPageDatas types', types);
+  // console.log('sssssssssssss fetchBookmarksPageDatas types', types);
   return async (dispatch) => {
     dispatch(updateGroupTypes({ toUpdateGroupTypes: types }));
   };

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Tree, Switch, Input, Typography, Anchor, Select, Message, Space } from '@arco-design/web-react';
 import { RootState } from '@/store';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchBookmarksPageData0, fetchBookmarksPageData1, fetchBookmarksPageData2 } from '@/store/modules/global';
+import { fetchBookmarksPageData0, fetchBookmarksPageData1, updateSearchState, fetchBookmarksPageData2 } from '@/store/modules/global';
 const AnchorLink = Anchor.Link;
 const TreeNode = Tree.Node;
 
@@ -114,9 +114,9 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
             setTreeExpandedKeys([])//收起时，清空展开项
         } else {
             if (groupType === 0) {
-                setTreeExpandedKeys(expandedKeys)//展开时，展开所有项
+                setTreeExpandedKeys(Array.isArray(expandedKeys) ? expandedKeys : [])//展开时，展开所有项
             } else {
-                setTreeExpandedKeys(treeData.map((item) => item.id))//展开时，展开所有项
+                setTreeExpandedKeys(Array.isArray(treeData) ? treeData.map((item) => item.id) : [])//展开时，展开所有项
             }
         }
         setExpand(!expand);
@@ -154,13 +154,14 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
         setTreeData(allDataGroups.find(g => g.value === value)?.data || []);
         //切换分组类型时，默认展开该分组下的所有项
         if (expand) {
-            setTreeExpandedKeys(value == 0 ? expandedKeys :
-                value == 1 ? dateGroups.map((item) => item.id) :
-                    domainGroups.map((item) => item.id)//展开时，展开所有项
-            )
+            setTreeExpandedKeys(value == 0 ? (Array.isArray(expandedKeys) ? expandedKeys : []) :
+                value == 1 ? (Array.isArray(dateGroups) ? dateGroups.map((item) => item.id) : []) :
+                    (Array.isArray(domainGroups) ? domainGroups.map((item) => item.id) : [])
+            );//展开时，展开所有项
         } else {
             setTreeExpandedKeys([])//收起时，清空展开项
         }
+        dispatch(updateSearchState({ resetSearchResultNum: true }));
         setTreeType(value);
         setGroupType(value);
     }
@@ -178,10 +179,11 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
             const result = searchData(inputValue.trim(), data);
             setTreeData(result);
             //展开所有结果
-            setTreeExpandedKeys(groupType == 0 ? expandedKeys :
-                groupType == 1 ?
-                    dateGroups.map((item) => item.id) ://展开时，展开所有项
-                    domainGroups.map((item) => item.id));
+            setTreeExpandedKeys(
+                groupType == 0 ? (Array.isArray(expandedKeys) ? expandedKeys : []) :
+                    groupType == 1 ? (Array.isArray(dateGroups) ? dateGroups.map((item) => item.id) : []) :
+                        (Array.isArray(domainGroups) ? domainGroups.map((item) => item.id) : [])
+            );
         }
     }, [inputValue]);//书签页数据发生变化
 
@@ -287,7 +289,8 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
         // setSelectedKeys(path);
         if (groupType === 0) {
             scrollToAnchor1(event, path);
-            if (expandedKeys.includes(id)) {//有子分组
+            // console.log('sssssssssssssssss', expandedKeys, id);
+            if (expandedKeys && expandedKeys.includes(id)) {//有子分组
                 if (!treeExpandedKeys.includes(id)) {//当前未展开
                     setTreeExpandedKeys(prev => {
                         const merged = Array.from(new Set([...prev, id]));
@@ -304,7 +307,7 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
 
         else if (groupType === 2) {
             scrollToAnchor1(event, path);
-            console.log('groupType', groupType, domainGroups);
+            // console.log('groupType', groupType, domainGroups);
             if (!treeExpandedKeys.includes(path)) {
                 setTreeExpandedKeys(prev => {
                     const merged = Array.from(new Set([...prev, path]));
@@ -319,7 +322,6 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
         }
 
         else if (groupType === 1) {
-            // console.log('groupType', groupType, path);
             scrollToAnchor2(event, path);
             if (path.length === 4) {
                 if (!treeExpandedKeys.includes(path)) {
@@ -420,64 +422,6 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
         }
     }
 
-    const getTree = (treeData) => {
-        // console.log('非展开树被渲染了')
-        const autoExpandParent = false;
-        return (
-            <Tree
-                // onSelect={onTreeSelect}
-                treeData={treeData}
-                autoExpandParent={autoExpandParent}
-                showLine={checked}
-                selectedKeys={selectedKeys}
-                actionOnClick="expand"
-                onExpand={(keys, extra) => {
-                    changeExpandedKeys(keys, extra);
-                }}
-                expandedKeys={treeExpandedKeys}
-                onSelect={(value, extra) => {
-                    //无效？
-                    setSelectedKeys(value);
-                }}
-                fieldNames={{
-                    key: 'path',
-                    // key: 'id',
-                    title: 'name',
-                    // isLeaf: ''
-                }}
-
-                renderTitle={({ id, name, pId, path }) => {
-                    const hrefId = pId ? pId : id
-                    if (inputValue) {
-                        const index = name.toLowerCase().indexOf(inputValue.toLowerCase());
-                        if (index === -1) {
-                            return <AnchorLink href={`#${hrefId}`} title={name} onClick={(event) => scrollToAnchor(event, `${id}`, `${path}`)} />;
-                        }
-
-                        const prefix = name.substr(0, index);
-                        const suffix = name.substr(index + inputValue.length);
-
-                        return (
-                            // <Anchor hash={false} affix={false} animation={false} lineless >
-                            <AnchorLink href={`#${hrefId}`} onClick={(event) => scrollToAnchor(event, `${id}`, `${path}`)} title={<span>
-                                {prefix}
-                                {/* 匹配词高亮 */}
-                                <span style={{ color: 'var(--color-primary-light-4)' }}>
-                                    {name.substr(index, inputValue.length)}
-                                </span>
-                                {suffix}
-                            </span>} >
-                            </AnchorLink>
-                        );
-                    }
-                    return <AnchorLink href={`#${hrefId}`} title={name} onClick={(event) => scrollToAnchor(event, `${id}`, `${path}`)} style={{ color: 'var(--color-primary-light-4)' }} />;
-                    // return <AnchorLink href={`#${hrefId}`} title={name} style={{ color: 'var(--color-primary-light-4)' }} />;
-                }}
-            >
-                {/* <Anchor hash={false} affix={false} animation={false} lineless ></Anchor> */}
-            </Tree >
-        );
-    }
 
     const getTree1 = (treeData) => {
         // console.log('非展开树被渲染了')
@@ -574,7 +518,6 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
                 onChange={onInputChange}
             />
 
-            {/* {getTree(treeData)} */}
             {getTree1(treeData)}
 
             {/*   <Tree

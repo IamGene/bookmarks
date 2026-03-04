@@ -48,9 +48,8 @@ function App(props: TagDataParams) {
     const processAddSaveTag = async (tag: WebTag) => {
         // console.log('form data', tag);
         const newTag = await addBookmark(tag);
-        if (data.gId1) {
-            newTag.gId1 = data.gId1;
-        }
+        if (data.gId1) newTag.gId1 = data.gId1;
+        if (data.path) newTag.path = data.path;
         Message.success('Success !');
         // setConfirmLoading(false);
         closeWithSuccess(true, newTag, data, 2);//相当于点击取消/关闭按钮 true:新增；false:更新
@@ -59,6 +58,8 @@ function App(props: TagDataParams) {
     const processUpdateSaveTag = async (tag: WebTag) => {
         // const group = await submitTagData(tag)
         const newTag = await updateBookmark(tag);
+        if (data.gId1) newTag.gId1 = data.gId1;
+        if (data.path) newTag.path = data.path;
         // const group = await saveTagData(tag)
         Message.success('Success !');
         // setConfirmLoading(false);

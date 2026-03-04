@@ -160,7 +160,7 @@ function ListCard({ activeCardTab, dataType, display, setCardTabActive, keyWord,
         }}
       >
 
-        {(search && hasResult && (list && list.length > 0)) && <SearchResult search={search}></SearchResult>}
+        {(search && hasResult && (list && list.length > 0)) && <SearchResult></SearchResult>}
 
         {list && list.length > 0 && list.map((item, index) => {
           return <CardItem key={index}
@@ -175,7 +175,7 @@ function ListCard({ activeCardTab, dataType, display, setCardTabActive, keyWord,
             display={display}
             treeSelectedNode={activeCardTab}
             keyWord={keyWord}
-            hasResult={hasResult}
+          // hasResult={hasResult}
           >
           </CardItem>
         })}

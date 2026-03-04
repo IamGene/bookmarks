@@ -1024,8 +1024,9 @@ export async function testUpdate() {
     // const group = await db.get('groups', "i1bk37x58");
     // group.pId = "95rdpjwqy";
     //ysb4ng4i9  |  qrz3nhln3,v3zlzwr2f,ysb4ng4i9  //私密
-    const group = await db.get('groups', "coudbwbr4");//临时
-    group.pId = "y0gl7ixv9";
+    const group = await db.get('groups', "9cmc8u4l6");//临时
+    group.pId = null;
+    group.path = '9cmc8u4l6';
     // group.pageId = 1760881337215;
 
     // const group1 = await db.get('groups', "0oawbeuhz");//
@@ -1102,10 +1103,18 @@ export async function getPageTreeGroups(pageId) {
                 const currentPath = parentPath ? parentPath + ',' + node.id : node.id;
                 const children = buildTree(node.id, currentPath);
                 node.path = currentPath;
+                // 计算本节点 bookmarksNum：自身（若有）+ 子节点的 bookmarksNum
+                let bookmarksNum = 0;
+                if (node.bookmarks && Array.isArray(node.bookmarks)) bookmarksNum += node.bookmarks.length;
+                for (const ch of children) {
+                    if (typeof ch.bookmarksNum === 'number') bookmarksNum += ch.bookmarksNum;
+                    else if (ch.bookmarks && Array.isArray(ch.bookmarks)) bookmarksNum += ch.bookmarks.length;
+                }
                 //大分组存在标签，复制新的对象，作为子分组
                 return {
                     ...node,
-                    children: children
+                    children: children,
+                    bookmarksNum,
                 };
             });
     }
@@ -1116,13 +1125,25 @@ export async function getPageTree(pageId) {
 
     const db = await getDB();
     const nodes = await db.getAllFromIndex('groups', 'pageId', pageId);
-    // nodes.sort((a, b) => (a.addDate ?? 0) - (b.addDate ?? 0));
     const urls = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
+    // console.log(pageId, '0000000000000000 getPageTree urls', urls.length, 'count');
+
+    /* const k = 'a';
+    const regex = new RegExp(escapeRegExp(k), 'i');
+    let count = 0;
+    // if (node.urlList && node.urlList.length > 0) {
+    for (let i = 0; i < urls.length; i++) {
+        const navi = urls[i] || {};
+        const name = (navi.name || '') + '';
+        const description = (navi.description || '') + '';
+        if (regex.test(name) || regex.test(description)) count++;
+    }
+    console.log(pageId, '0000000000000000 getPageTree urls', urls.length, 'count', count); */
 
     const tagsMap = collectUrlTags(urls);
-    // console.log('getPageTree tags', tagsMap);
-    // function buildTree(parentId, parentPath, isRoot = false) {
     const expandedKeysSet = new Set();
+    // 收集属于各分组的所有书签（展平为单个数组）
+    // const addUrls: any[] = [];
 
     function buildTree(parentId, parentPath) {
         return nodes
@@ -1132,9 +1153,12 @@ export async function getPageTree(pageId) {
                 const currentPath = parentPath ? parentPath + ',' + node.id : node.id;
                 const children = buildTree(node.id, currentPath);
                 const urlList = urls.filter(n => n.gId === node.id);
-                urls.sort((a, b) => (a.addDate ?? 0) - (b.addDate ?? 0));
+                urlList.sort((a, b) => (a.addDate ?? 0) - (b.addDate ?? 0));
+                // 将该分组的书签加入汇总（若有）
+                /*  if (Array.isArray(urlList) && urlList.length > 0) {
+                     addUrls.push(...urlList);
+                 } */
                 node.path = currentPath;
-
                 let finalChildren = children;
                 let resultNode;
 
@@ -1174,12 +1198,39 @@ export async function getPageTree(pageId) {
                     expandedKeysSet.add(node.id);
                 }
 
+                // 计算 bookmarksNum：自身 bookmarks（如果有）加上所有子分组的 bookmarksNum
+                /*  let bookmarksNum = 0;
+                 if (resultNode.bookmarks && Array.isArray(resultNode.bookmarks)) bookmarksNum += resultNode.bookmarks.length;
+                 if (resultNode.children && Array.isArray(resultNode.children)) {
+                     for (const ch of resultNode.children) {
+                         // 子节点可能已包含 bookmarksNum（递归返回），否则回退到 bookmarks 长度
+                         if (typeof ch.bookmarksNum === 'number') bookmarksNum += ch.bookmarksNum;
+                         else if (ch.bookmarks && Array.isArray(ch.bookmarks)) bookmarksNum += ch.bookmarks.length;
+                     }
+                 }
+                 resultNode.bookmarksNum = bookmarksNum; */
+
                 return resultNode;
             });
     }
-    // return buildTree(null, null); // 根节点
-    return { data: buildTree(null, null), tagsMap: tagsMap, expandedKeys: Array.from(expandedKeysSet) }; // 根节点
+    // 构建树并在构建完成后打印/返回汇总的书签
+    const data = buildTree(null, null);
+    return { data: data, tagsMap: tagsMap, expandedKeys: Array.from(expandedKeysSet) }; // 根节点
+
+    // console.log('collected addUrls count:', addUrls, addUrls.length);
+    // 计算 urls 与 addUrls 的差集（按 id 区分，得到未被归入 addUrls 的书签）
+    /* try {
+        const addUrlsIds = new Set(addUrls.map(u => u && u.id).filter(Boolean));
+        // const urlsIds = new Set(urls.map(u => u && u.id).filter(Boolean));
+        const urlsNotInAddUrls = urls.filter(u => !(u && addUrlsIds.has(u.id)));
+        console.log('urls not in addUrls count:', urlsNotInAddUrls.length, urlsNotInAddUrls);
+    } catch (e) {
+        console.error('compute diff error', e);
+    } */
+
+
 }
+
 
 
 export async function getPageTreeByDate(pageId) {
@@ -1280,11 +1331,16 @@ export async function getPageTreeByDate(pageId) {
 }
 
 
+function escapeRegExp(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 export async function getPageTreeByDomain(pageId) {
     // 新实现：按书签链接的域名分组（不包含协议），保持返回结构与原来相同
     const db = await getDB();
     const bookmarks = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
+
+
 
     // 为每个书签根据 gId 计算所在分组的祖先路径（从根到本组 id 的数组），并缓存复用
     const pathCache = new Map(); // gId -> pathArray
