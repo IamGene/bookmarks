@@ -15,7 +15,7 @@ import {
     fetchBookmarksPageDatas, fetchBookmarksPageData0,
     updateActiveGroup, updatePageBookmarkTags, updateSearchState, updatePageDataState
 } from '@/store/modules/global';
-import { getBookmarkGroupById, getBookmarksByGId, removeWebTags, removeGroupById, getBookmarksGroupById, resortNodes, getBookmarksNumByGId, clearGroupBookmarksById, getThroughChild } from '@/db/bookmarksPages';
+import { getBookmarkGroupById, getBookmarksByGId, removeWebTags, removeWebTagsAndGroups, removeGroupById, getBookmarksGroupById, resortNodes, getBookmarksNumByGId, clearGroupBookmarksById, getThroughChild } from '@/db/bookmarksPages';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import TabsContainer from '../../../components/NestedTabs/TabsContainer';
@@ -463,7 +463,6 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
         // console.log("ggggggggggggggggggggggg processSearchInputChange", cardData.name, searchKeyword);
         if (searchKeyword) {//有关键词->搜索->展示?
             setTreeSelected(false);
-
             const searchResult = processNotEmptySearch(data, searchKeyword, showItem, searchTab, currentSearch)//处理搜索结果
             setShowSearchResult([...searchResult]);//展示搜索结果 默认展示所有搜索结果
             /*   if (hasResult) {//(全局？)有搜索结果时
@@ -474,8 +473,9 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
               } else {//全部没有搜索结果时,如果当前搜索则展示Card
                   // setCardShow(currentSearch);
               } */
-        } else {//处理空字符串搜索 显示(可能改变的)data的urlList数据 不显示搜索数据 也不需要处理搜索
+        } else {//处理空字符串搜索 显示(可能改变的)data的bookmarks书签数据 不显示搜索数据 也不需要处理搜索
             setSearching(false);
+            setCurrentSearch(false);
             setCardShow(true);
         }
     }
@@ -511,22 +511,23 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
         setActiveCardTab([]);//相当于tree选中节点失效,除非重新点击
         //点击搜索后点击tab后应恢复到默认tabs
 
-        if (keyword === '') {
-            if (defaultActiveMap) setActiveMap(defaultActiveMap);
-            else {
-                if (!activeMap || activeMap[cardData.id] == searchTabKey) {
-                    // console.log('111111111111111 onKeywordChange processSearchKeywordChange', cardData);
-                    if (dataType == 0) initActiveMap(cardData.id);//初始化第一层tabs的activeTab
-                }
-            }
-        } else {//搜索结果tab
-            setActiveMap({ [data.id]: searchTabKey })
-        }
 
         //是否展示当前Card: 非隐藏或设置显示，再根据搜索结果判断
         // const showCard = !cardData.hide || display;
         //处理关键词搜索
         processSearchKeywordChange(data, keyword, currentSearch, true);
+
+        if (keyword === '') {
+            if (defaultActiveMap) setActiveMap(defaultActiveMap);
+            else {
+                if (!activeMap || activeMap[cardData.id] == searchTabKey) {
+                    if (dataType == 0) initActiveMap(cardData.id);//初始化第一层tabs的activeTab
+                    else if (dataType == 2) setActiveMap({ [cardData.id]: data.children[0].id });//初始化第一层tabs的activeTab
+                }
+            }
+        } else {//搜索结果tab
+            setActiveMap({ [data.id]: searchTabKey })
+        }
     }
 
     const onInputChange = (inputValue) => {
@@ -1159,7 +1160,7 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
 
     //打开全部标签
     const openGroupAllTags = (group) => {
-        // console.log('打开全部标签', group)
+        console.log('打开全部标签', group.bookmarks);
         openUrls(group.bookmarks);
     }
 
@@ -1172,98 +1173,63 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
     //删除大分组
     async function processRemoveGroup00(id: string) {
         try {
-            const response = await removeGroupById(id);
-            if (response.success) {
-                // updateCardData();
-                setCardShow(false);
-                //有书签被删除才需要同步按时间/域名分组数据
-                if (response.deletedBookmarks > 0)
-                    dispatch(fetchBookmarksPageDatas([0, 1, 2]));//删除了书签
-                else dispatch(fetchBookmarksPageDatas([0]));//仅删除了分组(书签为空)
-                // console.log('删除成功', subGroup);
-                return true;
+            if (searching) {//搜索模式 删除大分组中的所有搜索结果
+                /* const bookmarkIds: string[] = Array.from(new Set(data.searchResult.map(b => (b && b.id) || null).filter(Boolean)));
+                const response = await removeWebTags(bookmarkIds);
+                if (response) {
+                    const groupData = (await getBookmarksGroupById(id)).groupData;
+                    const newData = { ...groupData, searchResult: [], totalMatchCount: 0 };
+                    setData(newData);
+                    if (currentSearch) {
+                        setActiveMap({ [cardData.id]: searchTabKey }); //搜索结果变为0
+                    } else {
+                        dispatch(updateSearchState({ searchResultNum: bookmarkIds.length * -1 }));
+                        setCardShow(false);
+                    }
+                    dispatch(fetchBookmarksPageDatas([0, 1, 2]));
+                    return true;
+                } */
+
+                //当被删除的书签所在的分组为空时，需要删除该分组，并向上迭代删除直至祖分组
+                const removeBookmarks = data.searchResult;
+                const response = await removeWebTagsAndGroups(data.searchResult);
+                if (response) {
+                    const resultData = await getBookmarksGroupById(id);
+                    if (resultData) {
+                        const groupData = resultData.groupData;
+                        const newData = { ...groupData, searchResult: [], totalMatchCount: 0 };
+                        setData(newData);
+                        if (currentSearch) {
+                            setActiveMap({ [data.id]: searchTabKey }); //搜索结果变为0
+                        } else {
+                            setCardShow(false);
+                        }
+                        dispatch(fetchBookmarksPageDatas([0, 1, 2]));
+                    } else {
+                        // console.log('组分组被删除了', resultData);
+                        getGroupData();//刷新当前页面数据
+                        dispatch(fetchBookmarksPageDatas([1, 2]));
+                    }
+
+                    if (!currentSearch) dispatch(updateSearchState({ searchResultNum: removeBookmarks.length * -1 }));
+                    return true;
+                }
+                return false;
             } else {
+                const response = await removeGroupById(id);
+                if (response.success) {
+                    getGroupData();//刷新书签页数据
+                    // setCardShow(false);
+                    //有书签被删除才需要同步按时间/域名分组数据
+                    if (response.deletedBookmarks > 0) dispatch(fetchBookmarksPageDatas([1, 2]));//删除了书签
+                    return true;
+                }
                 return false;
             }
         } catch (error) {
             return false;
         }
     }
-
-
-    /*   const processRemoveGroup00 = async () => {
-          try {
-              console.log('0000000000000000000-1 processRemoveGroup0');
-              const response = await removeGroupById(subGroup.id);
-              if (response.success) {
-                  // getGroupData();
-                  updateCardData();
-                  //有书签被删除才需要同步按时间/域名分组数据
-                  if (response.deletedBookmarks > 0)
-                      dispatch(fetchBookmarksPageDatas([0, 1, 2]));//删除了书签
-                  else dispatch(fetchBookmarksPageDatas([0]));//仅删除了分组
-                  // console.log('删除成功', subGroup);
-                  const pId = subGroup.pId;
-                  const str = subGroup.path;
-                  const lastIndex = str.lastIndexOf(',');
-                  if (lastIndex > -1) {
-                      const part1 = str.substring(0, lastIndex);
-                      const key = part1.replaceAll(',', '-');
-                      const part2 = str.substring(lastIndex + 1); // +1 是为了跳过逗号本身
-  
-                      if (activeMap[key] === part2) {  //如果被删除的分组为active,则切换到兄弟tab
-                          const lastChild = await getThroughChild(pId, part2);
-                          setActiveMap(buildActiveMap(lastChild.path));
-                      } else {
-                          setActiveMap(activeMap);//点击下拉菜单之前的数据
-                      }
-                  }
-                  return true;
-              } else {
-                  return false;
-              }
-          } catch (error) {
-              return false;
-          }
-      } */
-
-    /**
-     * 移除分组的处理函数
-     * 根据不同的数据类型调用不同的删除确认和处理逻辑
-     */
-    const removeGroup1 = () => {
-        // 如果数据类型为0，调用删除分组的确认函数，处理分组及其所有书签的删除
-        if (dataType == 0) removeConfirm(cardData.id, cardData.name, '点击确定将删除该分组及其所有书签', '分组', processRemoveGroup00);
-        // if (dataType == 0) removeConfirm(cardData.id, cardData.name, '点击确定将删除该分组及其所有书签', '分组', processRemoveGroup00);
-        else if (dataType == 1) removeConfirm(cardData.id, cardData.name, searching ? '点击确定将删除该时间段内的书签搜索结果' : '点击确定将删除该时间段内所有的书签', '分组', processRemoveGroup1);
-        else if (dataType == 2) removeConfirm(cardData.id, cardData.name, searching ? '点击确定将删除该首字母域名的书签搜索结果' : '点击确定将删除该首字母域名的所有书签', '分组', processRemoveGroup2);
-    }
-
-    const clearGroup = () => {
-        clearConfirm(cardData.id, cardData.name, '点击确定将清空该的所有书签', '分组', processClearGroup);
-    }
-
-    // 四、增删改部分 end====================================================================================
-
-    //四、添加/编辑/删除Tab标签部分 End
-    const [addTagVisible, setAddTagVisible] = useState(false);//添加标签
-    const [add2TypesVisible, setAdd2TypesVisible] = useState(false);//添加标签
-    // const [addTabVisible, setAddTabVisible] = useState(false);//添加Tab
-    const [tagSelectGroup, setTagSelectGroup] = useState([]);//添加Tab
-
-    const [editTag, setEditTag] = useState(null);//添加Tab
-
-    // const onEditTag = (tag: WebTag, nodePath: string, searching: boolean) => {
-    const onEditTag = (tag: WebTag, nodePath: string[], searching: boolean) => {
-        // console.log('aaaaaaaaaaaaaaa onEditTag searching', searching, nodePath, tag);
-        setAddTagVisible(true);
-        setEditTag(tag);
-        // if (searching) setTagSelectGroup(tag.path.split(","));//搜索中
-        if (searching) setTagSelectGroup(dataType >= 1 ? tag.path : nodePath);
-        // else setTagSelectGroup(nodePath.split(","))
-        else setTagSelectGroup(nodePath);
-    }
-
 
     async function processRemoveGroup1() {//按时间(年-月)分组-删除大分组
         try {
@@ -1307,7 +1273,7 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
     }
 
 
-    async function processRemoveGroup2() {
+    async function processRemoveGroup2() {//按域名分组删除大分组，实际只删除书签，不需要删除分组
         // console.log('0000000000000000000-22 processRemoveGroup1 按域名分组');
         try {
             const allBookmarkIds = [];
@@ -1327,7 +1293,7 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
                             if (newBookmarks.length > 0) {
                                 acc.push({ ...ch, bookmarks: newBookmarks });
                             }
-                        } else {//该子分组中搜索结果为空，则保留该子分组及其书签（没有书签被删除）以供下次默认/搜索展示
+                        } else {//该子分组中不包含搜索结果(隐藏的)，则保留该子分组及其书签（没有书签被删除）以供下次默认/搜索展示
                             acc.push(ch);
                         }
                         return acc;
@@ -1366,6 +1332,81 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
             return false;
         }
     }
+    /*   const processRemoveGroup00 = async () => {
+          try {
+              console.log('0000000000000000000-1 processRemoveGroup0');
+              const response = await removeGroupById(subGroup.id);
+              if (response.success) {
+                  // getGroupData();
+                  updateCardData();
+                  //有书签被删除才需要同步按时间/域名分组数据
+                  if (response.deletedBookmarks > 0)
+                      dispatch(fetchBookmarksPageDatas([0, 1, 2]));//删除了书签
+                  else dispatch(fetchBookmarksPageDatas([0]));//仅删除了分组
+                  // console.log('删除成功', subGroup);
+                  const pId = subGroup.pId;
+                  const str = subGroup.path;
+                  const lastIndex = str.lastIndexOf(',');
+                  if (lastIndex > -1) {
+                      const part1 = str.substring(0, lastIndex);
+                      const key = part1.replaceAll(',', '-');
+                      const part2 = str.substring(lastIndex + 1); // +1 是为了跳过逗号本身
+  
+                      if (activeMap[key] === part2) {  //如果被删除的分组为active,则切换到兄弟tab
+                          const lastChild = await getThroughChild(pId, part2);
+                          setActiveMap(buildActiveMap(lastChild.path));
+                      } else {
+                          setActiveMap(activeMap);//点击下拉菜单之前的数据
+                      }
+                  }
+                  return true;
+              } else {
+                  return false;
+              }
+          } catch (error) {
+              return false;
+          }
+      } */
+
+    /**
+     * 移除分组的处理函数
+     * 根据不同的数据类型调用不同的删除确认和处理逻辑
+     */
+    const removeGroup1 = () => {
+        // 如果数据类型为0，调用删除分组的确认函数，处理分组及其所有书签的删除
+        if (dataType == 0) removeConfirm(cardData.id, cardData.name, searching ? '点击确定将删除该分组的书签搜索结果' : '点击确定将删除该分组及其所有书签', '分组', processRemoveGroup00);
+        // if (dataType == 0) removeConfirm(cardData.id, cardData.name, '点击确定将删除该分组及其所有书签', '分组', processRemoveGroup00);
+        else if (dataType == 1) removeConfirm(cardData.id, cardData.name, searching ? '点击确定将删除该时间段内的书签搜索结果' : '点击确定将删除该时间段内所有的书签', '分组', processRemoveGroup1);
+        else if (dataType == 2) removeConfirm(cardData.id, cardData.name, searching ? '点击确定将删除该首字母域名的书签搜索结果' : '点击确定将删除该首字母域名的所有书签', '分组', processRemoveGroup2);
+    }
+
+    const clearGroup = () => {
+        clearConfirm(cardData.id, cardData.name, '点击确定将清空该的所有书签', '分组', processClearGroup);
+    }
+
+    // 四、增删改部分 end====================================================================================
+
+    //四、添加/编辑/删除Tab标签部分 End
+    const [addTagVisible, setAddTagVisible] = useState(false);//添加标签
+    const [add2TypesVisible, setAdd2TypesVisible] = useState(false);//添加标签
+    // const [addTabVisible, setAddTabVisible] = useState(false);//添加Tab
+    const [tagSelectGroup, setTagSelectGroup] = useState([]);//添加Tab
+
+    const [editTag, setEditTag] = useState(null);//添加Tab
+
+    // const onEditTag = (tag: WebTag, nodePath: string, searching: boolean) => {
+    const onEditTag = (tag: WebTag, nodePath: string[], searching: boolean) => {
+        // console.log('aaaaaaaaaaaaaaa onEditTag searching', searching, nodePath, tag);
+        setAddTagVisible(true);
+        setEditTag(tag);
+        // if (searching) setTagSelectGroup(tag.path.split(","));//搜索中
+        if (searching) setTagSelectGroup(dataType >= 1 ? tag.path : nodePath);
+        // else setTagSelectGroup(nodePath.split(","))
+        else setTagSelectGroup(nodePath);
+    }
+
+
+
 
 
     async function processClearGroup(id: string) {
@@ -1388,6 +1429,7 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
         if (tags.length > 0) {
             tags.forEach((tag, index) => {
                 // setTimeout(() => {
+                console.log('zzzzzzzzzzzzz url', tag.url)
                 // if (confirm(`是否打开链接 ${tag.url}？`)) {
                 window.open(tag.url, '_blank');
                 // }
@@ -1396,82 +1438,6 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
         }
     }
 
-    const searchTabMore = (searchResult) => {
-        // 创建自定义事件并分发
-        //删除子分组-按分组
-        const processRemoveSubGroup0 = async () => {
-            try {
-                // console.log('0000000000000000000 processRemoveGroup0');
-                const response = await removeGroupById(subGroup.id);
-                if (response.success) {
-                    // getGroupData();
-                    updateCardData();
-                    //有书签被删除才需要同步按时间/域名分组数据
-                    if (response.deletedBookmarks > 0)
-                        dispatch(fetchBookmarksPageDatas([0, 1, 2]));//删除了书签
-                    else dispatch(fetchBookmarksPageDatas([0]));//仅删除了分组
-                    // console.log('删除成功', subGroup);
-                    const pId = subGroup.pId;
-                    const str = subGroup.path;
-                    const lastIndex = str.lastIndexOf(',');
-                    if (lastIndex > -1) {
-                        const part1 = str.substring(0, lastIndex);
-                        const key = part1.replaceAll(',', '-');
-                        const part2 = str.substring(lastIndex + 1); // +1 是为了跳过逗号本身
-
-                        if (activeMap[key] === part2) {  //如果被删除的分组为active,则切换到兄弟tab
-                            const lastChild = await getThroughChild(pId, part2);
-                            setActiveMap(buildActiveMap(lastChild.path));
-                        } else {
-                            setActiveMap(activeMap);//点击下拉菜单之前的数据
-                        }
-                    }
-                    return true;
-                } else {
-                    return false;
-                }
-            } catch (error) {
-                return false;
-            }
-        }
-
-
-        // 2级分组菜单
-        const onClickMenuItem = (key: string, event) => {
-            console.log('aaaaaaaaaaaaa onClickMenuItem searchTabMore', key)
-        }
-
-        return <Dropdown
-            position={'top'}
-            droplist={
-                <Menu onClickMenuItem={onClickMenuItem} mode='pop'>
-                    {/* {['添加', '编辑', '删除', '打开'].map((item, index) => (
-                            <Menu.Item key={index.toString() + '-' + json} >{item}</Menu.Item>
-                        ))} */}
-                    {/* {subGroup.pId != null && */}
-                    {
-                        enable && dropdownVisible && <>
-                            {/*    <Menu.Item key={'0-' + json} >添加1</Menu.Item>
-                            <Menu.Item key={'1-' + json} >编辑1</Menu.Item>
-                            <Menu.Item key={'2-' + json} >删除1</Menu.Item> */}
-                            <Menu.Item key={'1-'} >打开1</Menu.Item>
-                            <Menu.Item key={'2-'} >删除1</Menu.Item>
-                        </>
-                    }
-
-                </Menu>
-            }
-            trigger="hover"
-            // onVisibleChange={setVisible}
-            onVisibleChange={handleDropdownVisibleChange}
-        // popupVisible={visible}
-        >
-            {/*  <div className="tab-more" style={{ display: 'inline-block', color: 'var(--color-text-2)' }}>
-                    <IconMore />
-                </div> */}
-
-        </Dropdown>
-    }
     // const [visible, setVisible] = useState(false);
     const tabMore = (subGroup) => {
         // 创建自定义事件并分发
@@ -1494,13 +1460,12 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
 
 
 
-
         /* const processRemoveSubGroup = async () => {
             if (dataType == 0) processRemoveGroup0();
             else if (dataType == 2) processRemoveGroup2();
         } */
 
-        //删除子分组-按分组
+        //删除子分组-按默认分组
         const processRemoveSubGroup0 = async () => {
             try {
                 // console.log('0000000000000000000 processRemoveGroup0');
@@ -1510,9 +1475,10 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
                     updateCardData();
                     //有书签被删除才需要同步按时间/域名分组数据
                     if (response.deletedBookmarks > 0)
-                        dispatch(fetchBookmarksPageDatas([0, 1, 2]));//删除了书签
+                        dispatch(fetchBookmarksPageDatas([0, 1, 2]));//删除了书签+分组
                     else dispatch(fetchBookmarksPageDatas([0]));//仅删除了分组
                     // console.log('删除成功', subGroup);
+
                     const pId = subGroup.pId;
                     const str = subGroup.path;
                     const lastIndex = str.lastIndexOf(',');
@@ -1528,6 +1494,7 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
                             setActiveMap(activeMap);//点击下拉菜单之前的数据
                         }
                     }
+
                     return true;
                 } else {
                     return false;
@@ -1693,12 +1660,13 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
                     data.children.some((item) => {
                         if (item.id === subGroup.id) {//非隐藏的
                             // tags = item.bookmarks;
-                            tags = item.bookmarks;
+                            tags = searching ? item.searchResult : item.bookmarks;
                             return true;//终止遍历
                         } else {//当前项隐藏
                             return false;//继续遍历
                         }
                     });
+                    // openUrls(tags);
                     openUrls(tags);
                 }
             };
@@ -1740,23 +1708,128 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
 
     const [loading, setLoading] = useState(true);
 
-    //提交成功后关闭或取消关闭Modal窗口
-    async function updateCardData() {
-        getBookmarksGroupById(data.id).then((resultData) => {
-            const groupData = resultData.groupData;
-            // 必须通过 dispatch 派发 thunk action
-            // dispatch(updatePageDataState(resultData.pageData));//groups变化会触发重新渲染顶层组件(已订阅)
-            if (searching) {//搜索模式
-                const result = searchDataAggregated(searchInput.trim(), groupData);
-                // console.log('close Modal searchDataAggregated searchResult', result.searchResult);
-                if (result.searchResult.length == 0) {//ok
-                    setActiveMap({ [data.id]: searchTabKey });
-                }
-                setSearchResult(result.searchResult); //（全部）搜索结果
-                setShowSearchResult(result.searchResult); //（全部）搜索结果
-                setData(result);
+
+    function findFirstWithMatches(node: any): string | null {
+        if (!node) return null;
+        if (node.totalMatchCount > 0) {
+            // 尽量返回最深的第一个含结果的后代路径
+            let cur = node;
+            while (Array.isArray(cur.children) && cur.children.length > 0) {
+                const next = cur.children.find((c: any) => c.totalMatchCount > 0);
+                if (!next) break;
+                cur = next;
+            }
+            return cur.path;
+        }
+        return null;
+    }
+
+    function traverseForMatch(startNode: any, pathArr: string[], idx: number): string | null {
+        if (!startNode) return null;
+        if (!Array.isArray(startNode.children) || startNode.children.length === 0) {
+            return startNode.totalMatchCount > 0 ? startNode.path : null;
+        }
+
+        let node = startNode;
+        for (let i = idx; i < pathArr.length; i++) {
+            const targetId = pathArr[i];
+            const child = Array.isArray(node.children) ? node.children.find((c: any) => c.id == targetId) : null;
+            if (!child) {
+                // path 在此层未命中，尝试在同层寻找第一个有结果的兄弟并从其深度查找
+                const sibling = Array.isArray(node.children) ? node.children.find((c: any) => c.totalMatchCount > 0) : null;
+                return sibling ? findFirstWithMatches(sibling) : null;
+            }
+
+            if (child.totalMatchCount > 0) {
+                // 沿 path 继续深入
+                node = child;
+                continue;//沿着for循环进行下一次遍历 node随之深入寻找到
             } else {
-                setData(groupData);
+                // child 存在但无结果，优先在同层找有结果的兄弟
+                const sibling = Array.isArray(node.children) ? node.children.find((c: any) => c.id !== child.id && c.totalMatchCount > 0) : null;
+                if (sibling) return findFirstWithMatches(sibling);
+                // 否则在 child 的后代中尝试查找
+                return findFirstWithMatches(child);
+            }
+        }
+
+        // 沿 path 完全匹配(for完全循环遍历)，返回该节点或其第一个深层含结果的后代路径
+        return findFirstWithMatches(node) || node.path;
+    }
+
+
+    //提交成功后关闭或取消关闭Modal窗口 
+    //适用于：新增/修改书签(除了修改所属大分组)，
+    async function updateCardData(group?: any) {
+        getBookmarksGroupById(data.id).then((resultData) => {
+            if (resultData) {
+                const groupData = resultData.groupData;
+                if (searching) {//搜索模式
+                    const result = searchDataAggregated(searchInput.trim(), groupData);
+                    if (result.searchResult.length == 0) {//无搜索结果 ok
+                        setActiveMap({ [data.id]: searchTabKey });
+                        if (currentSearch) {//当前tab的搜索结果变为空？
+                        } else {
+                            setCardShow(false);
+                        }
+                    } else {//有搜索结果 如果该分组无搜索结果了，切换到最近的有搜索结果的分组
+                        if (group) {
+                            const path = group.path.split(',');
+                            if (path.length >= 2) {//对应的分组从第二级开始
+                                const pId = path[1];//适用于二级分组及以下的书签,path[0]是祖分组id，path[1]是第一层tabs的active项
+                                result.children.forEach((item: any) => {
+                                    //所属当前分组无搜索结果
+                                    if (item.id === pId) {
+                                        if (item.totalMatchCount == 0) setActiveMap({ [data.id]: searchTabKey });
+                                        else {//该tab有搜索结果，继续路径匹配直到最底层
+                                            // 优先沿 path 深度匹配；若未命中则在同层找第一个有结果的兄弟并递归到底层
+                                            const matchedPath = traverseForMatch(item, path, 2);//从path[2]第二个元素开始匹配
+                                            if (matchedPath) setActiveMap(buildActiveMap(matchedPath));
+                                            // else setActiveMap({ [data.id]: searchTabKey });
+                                        }
+                                    }
+                                })
+                            } else if (path.length == 1) {//书签属于一级分组，
+                                const pId = path[0];//但是因为因为一级分组本身有子分组，所有children至少有2个元素
+                                if (result.children.length >= 2 && pId === data.id) {
+                                    result.children.forEach((item: any) => {
+                                        //所属当前分组无搜索结果
+                                        if (item.id === pId && item.totalMatchCount == 0) {
+                                            setActiveMap({ [data.id]: searchTabKey });
+                                        } //else {}
+                                    })
+                                }
+                            }
+                        }
+                    }
+
+                    if (currentSearch) {//当前tab的搜索结果变为空？
+                        // setActiveMap({ [data.id]: searchTabKey });
+                    } else {
+                        dispatch(updateSearchState({ searchResultNum: result.searchResult.length - data.totalMatchCount }));
+                    }
+
+                    //a.只有一个搜索结果->0个搜索结果 全局搜索/局部搜索 ok
+                    //b.n个搜索结果->n+1个搜索结果： 新增 ok
+                    //c.n个搜索结果->n个搜索结果： 新增 ok
+                    //d.全部搜索结果>0的情况下，书签所在分组不变 且当前tab搜索结果1变为0，切换到有搜索结果的最近兄弟分组 tab ok
+                    //e.全部搜索结果>0的情况下，书签所在分组变化 且切换后的tab搜索结果为0，切换到搜索结果tab ok
+
+                    // setSearchResult(result.searchResult); //（全部）搜索结果
+                    // setShowSearchResult(result.searchResult); //（全部）搜索结果
+                    setData(result);
+                } else {
+                    setData(groupData);
+                }
+
+                /* if (group) {
+                    console.log('xxxxxxxxxxxxxxxxx 切换到新分组', group);
+                    const activeMap = buildActiveMap(group.path);//更新后的所属分组
+                    setActiveMap(activeMap);
+                } */
+            } else {
+                // 删除子分组(默认分组方式) ?
+                // getGroupData();
             }
         })
     }
@@ -1882,11 +1955,14 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
         if (success) {//刷新当前页面数据
             // console.log('close Modal group', newTag);
             if (newTag) {//所在的分组，重置位置
+
+                const group = await getBookmarkGroupById(newTag.gId);
+                const path = group.path.split(',');//更新path
+                newTag.path = path;
+                const pId = path[0];
+
                 if (type === 0) {//修改了所属分组，gId发生变化
-                    const group = await getBookmarkGroupById(newTag.gId);
-                    const path = group.path.split(',');//更新path
-                    newTag.path = path;
-                    const pId = path[0];
+
                     if (pId !== data.id) { //变为属于别的大分组
                         if (dataType === 0) {
                             await getGroupData();
@@ -1901,36 +1977,20 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
                             dispatch(fetchBookmarksPageDatas([0, 1, 2]));//修改了分组，可能影响按时间/域名分组数据
                         }
                     } else {//active所属新的tab分组（无论搜索中与否）
-                        if (dataType === 0) {
-                            const activeMap = buildActiveMap(group.path);
-                            setActiveMap(activeMap);
-                            updateCardData(); //仅重置Card(搜索)数据
-                        } else if (dataType === 1) {
-                            //临时更新该时间/域名分组数据
-                            updateCardData1(newTag);
-                        } else if (dataType === 2) {
-                            //临时更新该时间/域名分组数据
-                            updateCardData2(newTag);
-                        }
+                        if (dataType === 0) updateCardData(group); //仅重置Card(搜索)数据 修改了所属（子）分组
+                        else if (dataType === 1) updateCardData1(newTag); //临时更新该时间分组数据
+                        else if (dataType === 2) updateCardData2(newTag); //临时更新该域名分组数据
                         dispatch(fetchBookmarksPageDatas([0, 1, 2]));//修改了分组，可能影响按时间/域名分组数据
                     }
                 } else {//  if (type >= 1) 修改书签1 新增书签2 -> 重置(搜索)数据
                     if (type == 1) { //修改书签除分组外的其他属性 ok
-                        if (dataType === 0) {
-                            updateCardData();
-                        } else if (dataType === 1) {
-                            updateCardData1(newTag);
-                        } else if (dataType === 2) {
-                            updateCardData2(newTag);
-                        }
-                    } else if (type == 2) { //新增书签:按分组
-                        // console.log('11111111111111111新增书签 updateCardData1 newTag', newTag, cardData);
-                        if (dataType === 0) {
-                            updateCardData();
-                        } else if (dataType === 2) {//按域名分组，在当前分组添加书签 搜索模式下？
-                            // console.log('xxxxxxxxxxxxxxxxxx', newTag);
-                            updateCardData2AddBookmark(newTag);
-                        }
+                        if (dataType === 0) updateCardData(group);//可能导致搜索结果为空，切换到搜索结果tab
+                        else if (dataType === 1) updateCardData1(newTag);
+                        else if (dataType === 2) updateCardData2(newTag);
+                    } else if (type == 2) { //新增书签:默认分组/按域名分组
+                        if (dataType === 0) updateCardData();//搜索？一定是有搜索结果的，因此当前tab是激活的
+                        else if (dataType === 2) updateCardData2AddBookmark(newTag);//按域名分组，在当前分组添加书签 搜索模式下？
+                        // console.log('xxxxxxxxxxxxxxxxxx', newTag);
                     }
                     dispatch(fetchBookmarksPageDatas([0, 1, 2]));//修改了分组，可能影响按时间/域名分组数据
                     // refreshDataByAddBookmark(newTag);//新增书签
@@ -1939,8 +1999,8 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
 
             //a.修改了所在大分组：按分组：刷新页面；按时间/按域名：不用刷新页面，只更新类型toUPdates012,临时更新到一级分组列表 ok
             //b.修改了所在的所在的小分组 ok
-            //c.修改了书签其他属性，按分组updateCardData()/按时间/按域名updateCardData1():    -> d.修改了域名：按域名分组
-            //e.新增了书签：按分组，更新所在大分组updateCardData()ok，更新类型toUPdates012 ok
+            //c.修改了书签其他属性，按分组/按时间/按域名updateCardData1():    -> d.修改了域名：按域名分组
+            //e.新增了书签：按分组，更新所在大分组ok，更新类型toUPdates012 ok
 
             // 根据 newTag 与 oldTag 的 tags 字段计算 tagsUpdate 并更新全局 tagsMap
             const computeTagsUpdate = (newTagObj, oldTagObj) => {
@@ -2330,7 +2390,6 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
             getBookmarksGroupById(data.id).then((resultData) => {
                 const groupData = resultData.groupData;
                 // 必须通过 dispatch 派发 thunk action
-
                 // dispatch(updatePageDataState(resultData.pageData));//groups变化会触发重新渲染顶层组件(已订阅)
                 if (searching) {//搜索模式
                     const keyword = searchInput.trim();
@@ -2375,7 +2434,6 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
                         // setActiveMap({ [data.id]: searchTabKey });
                         setCardShow(false);//隐藏该选项卡
                     }
-
                 } else {
                     setData(newData);
                     // setData({ ...data, bookmarks: newBookmarks });
@@ -2502,19 +2560,146 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
         );
     };
 
-    const onClickSearchMenuItem = (key: string, event) => {
-        if (key == '1') {//删除搜索结果的所有书签
-            if (dataType == 0) {
 
-            } else if (dataType == 1) {//按时间分组
 
-            } else if (dataType == 2) {
+
+    const removeSearchResultDataType2 = async () => {
+        // 删除书签，更新所有子分组的书签数据（如果数据为空则将该子分组剔除），如果是全局搜索隐藏该card，否则切换到搜索结果Tab
+        // 逻辑同搜索模式下删除大分组 processRemoveSubGroup2
+        // 收集所有该子分组当前搜索结果中的书签 id，批量删除一次
+        const bookmarkIds = (Array.isArray(data.searchResult) ? data.searchResult.map(b => b && b.id).filter(Boolean) : []);
+        if (bookmarkIds.length > 0) {
+            // const res = true;//删除书签数组
+            const res = await removeWebTags(bookmarkIds);//删除书签数组
+            if (res) {//删除书签成功
+                const newChildren = data.children.reduce((acc, ch) => {
+                    if (ch.searchResult && ch.searchResult.length > 0) {//有搜索结果
+                        const currentBookmarks = Array.isArray(ch.bookmarks) ? ch.bookmarks : [];
+                        const newBookmarks = currentBookmarks.filter(b => !bookmarkIds.includes(b.id));//删除搜索结果后的剩余书签数组
+                        // 仅当 newBookmarks 非空时保留该子元素
+                        if (newBookmarks.length > 0) {
+                            acc.push({ ...ch, bookmarks: newBookmarks, searchResult: [], totalMatchCount: 0 });
+                        }
+                    } else {//无搜索结果，不受影响，仍放回数组
+                        acc.push(ch);
+                    }
+                    return acc;
+                }, []);
+
+
+                if (currentSearch) {
+                    setActiveMap({ [data.id]: searchTabKey });
+                } else {//全局搜索下
+                    setCardShow(false);//隐藏整个Card
+                    dispatch(updateSearchState({ searchResultNum: bookmarkIds.length * -1 }));
+                    if (data.children.length > 0) {//为
+                        setActiveMap({ [data.id]: data.children[0].id });
+                    }
+                }
+
+                const newData = { ...data, children: newChildren, totalMatchCount: 0, searchResult: [] };
+                setData(newData);
+
+                /*  if (newChildren.length == 0) {//已无子分组和书签数据 渲染时会判断不再展示Card
+                     setCardShow(false);//如果没有子分组了，隐藏整个Card
+                 } */
+
+                dispatch(fetchBookmarksPageDatas([0, 1, 2]));//删除了书签，同步数据
+                return true;
             }
-            if (!currentSearch) dispatch(updateSearchState({ searchResultNum: -1 * data.searchResult.length }));
-            // console.log('xxxxxxxxxxxxxxxxxxx onClickSerchMenuItem 删除', key);
-        } else if (key == '2') {
-            console.log('xxxxxxxxxxxxxxxxxxx onClickSerchMenuItem 打开', key);
         }
+        return false;
+    }
+    const removeSearchResultDataType1 = async () => {
+        const bookmarkIds = (Array.isArray(data.searchResult) ? data.searchResult.map(b => b && b.id).filter(Boolean) : []);
+        if (bookmarkIds.length > 0) {
+            const res = await removeWebTags(bookmarkIds);//删除书签数组
+            // const res = true;//删除书签数组
+            if (res) {//删除书签成功
+                const newBookmarks = data.bookmarks.filter(b => !bookmarkIds.includes(b.id));//删除搜索结果后的剩余书签数组)
+                setData({ ...data, bookmarks: newBookmarks, searchResult: [], totalMatchCount: 0 });
+                if (currentSearch) {
+                    // setActiveMap({ [data.id]: searchTabKey });
+                } else {//全局搜索下
+                    setCardShow(false);//隐藏整个Card
+                    dispatch(updateSearchState({ searchResultNum: bookmarkIds.length * -1 }));
+                }
+                dispatch(fetchBookmarksPageDatas([0, 1, 2]));//删除了书签，同步数据
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    const removeSearchResultDataType0 = async () => {
+        const bookmarkIds = (Array.isArray(data.searchResult) ? data.searchResult.map(b => b && b.id).filter(Boolean) : []);
+        if (bookmarkIds.length > 0) {
+            const res = await removeWebTags(bookmarkIds);//删除书签数组
+            // const res = true;//删除书签数组
+            if (res) {//删除书签成功
+                getBookmarksGroupById(data.id).then((resultData) => {
+                    setData(resultData.groupData);
+                    if (currentSearch) {
+                        setActiveMap({ [data.id]: searchTabKey });
+                    } else {
+                        setCardShow(false);
+                        initActiveMap(data.id);
+                        //如果全部书签被删除
+                        dispatch(updateSearchState({ searchResultNum: bookmarkIds.length * -1 }));
+                    }
+                });
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /*  const removeSearchResultDataType0 = async () => {
+         // const bookmarkIds = (Array.isArray(data.searchResult) ? data.searchResult.map(b => b && b.id).filter(Boolean) : []);
+         const bookmarks = (Array.isArray(data.searchResult) ? data.searchResult : []);
+         if (bookmarks.length > 0) {
+             console.log('xxxxxxxxxxxxxxxxxxxxxx removeSearchResultDataType0 bookmarks', bookmarks);
+             const res = await removeWebTagsAndGroups(bookmarks);//删除书签数组
+             // const res = true;//删除书签数组
+             if (res) {//删除书签成功
+                 getBookmarksGroupById(data.id).then((resultData) => {
+                     setData(resultData.groupData);
+                     if (currentSearch) {
+                         setActiveMap({ [data.id]: searchTabKey });
+                     } else {
+                         setCardShow(false);
+                         initActiveMap(data.id);
+                         //如果全部书签被删除
+                         dispatch(updateSearchState({ searchResultNum: bookmarkIds.length * -1 }));
+                     }
+                     console.log('xxxxxxxxxxxxxxxxxxxxxx removeSearchResultDataType0', resultData)
+                 });
+                 return true;
+             }
+         }
+         return false;
+     } */
+
+    const onClickSearchMenuItem = async (key: string, event) => {
+        if (key == '1') {//删除搜索结果的所有书签
+            removeConfirm(data.id, data.name,
+                '点击确定将删除该分组的书签搜索结果',
+                '分组',
+                dataType == 0 ? removeSearchResultDataType0 : (dataType == 1 ? removeSearchResultDataType1 : removeSearchResultDataType2),
+                '搜索结果',
+            );
+        }
+        ////////////////////////////////////////
+        else if (key == '2') {//打开搜索结果的所有书签
+            const urls = data.searchResult.map(b => (b && b.url) || null);
+            if (urls.length > 0) {
+                urls.forEach((url, index) => {
+                    window.open(url, '_blank');
+                });
+            }
+        }
+        ////////////////////////////////////////
     }
 
     // 通用递归渲染器 scaffold：支持任意深度的分组渲染
@@ -2527,6 +2712,9 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
         if (!node.children || node.children.length === 0) {
             const data = node;
             if (level === 0) {//仅有一层根层
+                if (dataType == 2 && searching && !currentSearch) return <></>;//按域名分组，非局部搜索模式:当子分组为空时不展示
+                else if (dataType == 1 && node.bookmarks.length == 0 && !currentSearch) return <></>;//按时间分组，非局部搜索模式:当子分组为空时不展示
+
                 return (
                     <>
                         <Card id={data.id} key={data.id}
@@ -2545,7 +2733,7 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
                                         {/* {!data.hide && <Button onClick={switchGroup1} icon={<IconEyeInvisible />} >隐藏</Button>} */}
                                         <Button onClick={removeGroup1} icon={<IconDelete />} >删除</Button>
                                         {/* {data.urlList.length > 0 && <Button onClick={clearGroup} icon={<IconEraser />} >清空</Button>} */}
-                                        {data.bookmarks.length > 0 && < Button onClick={(e) => openGroupAllTags(data)} icon={<IconLink />} >打开</Button>}
+                                        {data.bookmarks && data.bookmarks.length > 0 && < Button onClick={(e) => openGroupAllTags(data)} icon={<IconLink />} >打开</Button>}
                                     </ButtonGroup>
                                 </>
                             }
@@ -2588,11 +2776,10 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
                                             <Dropdown
                                                 position={'top'}
                                                 trigger="hover"
-                                                droplist={
-                                                    <Menu mode='pop' onClickMenuItem={onClickSearchMenuItem}>
-                                                        <Menu.Item key={'1'} >删除</Menu.Item>
-                                                        <Menu.Item key={'2'} >打开</Menu.Item>
-                                                    </Menu>
+                                                droplist={data.searchResult.length > 0 ? <Menu mode='pop' onClickMenuItem={onClickSearchMenuItem}>
+                                                    <Menu.Item key={'1'} >删除</Menu.Item>
+                                                    <Menu.Item key={'2'} >打开</Menu.Item>
+                                                </Menu> : null
                                                 }
                                             >
                                                 <span style={{ color: 'red' }}>{`搜索结果(${data.searchResult.length})`}</span>

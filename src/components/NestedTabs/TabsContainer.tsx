@@ -64,7 +64,7 @@ export default function TabsContainer(props: Props) {
         renderContent,
         renderSearchContent,
     } = props;
-
+    2
 
     const children = [...data.children];
     // console.log('TabsContainer render, data.name=', data.name, ' children=', children);
@@ -182,11 +182,13 @@ export default function TabsContainer(props: Props) {
                             position={'top'}
                             trigger="hover"
                             droplist={
-                                <Menu mode='pop' onClickMenuItem={onClickSearchMenuItem}>
+                                data.searchResult.length > 0 ? <Menu mode='pop' onClickMenuItem={onClickSearchMenuItem}>
                                     <Menu.Item key={'1'} >删除</Menu.Item>
                                     <Menu.Item key={'2'} >打开</Menu.Item>
-                                </Menu>
+                                </Menu> : null
                             }
+
+
                         // onVisibleChange={setVisible}
                         // onVisibleChange={handleDropdownVisibleChange}
                         // popupVisible={visible}

@@ -44,6 +44,7 @@ import { useFetchPageData } from '@/hooks/fetchPageData';
 import { GlobalContext } from '@/context';
 import useLocale from '@/utils/useLocale';
 import Logo from '@/assets/logo.svg';
+import Plugins from '@/components/Icons';
 import MessageBox from '@/components/MessageBox';
 import Bookmarks from '@/components/Bookmarks';
 import SearchHistory from '@/components/SearchHistory';
@@ -345,6 +346,10 @@ function Navbar({ pageType, pageId, filterDataByTags, show, display, setNavBarKe
 
   // 使用共享的 TagContext（不要在组件内重新创建）
   const [unselectedTag, setUnselectedTag] = useState<any>(null);
+  function downloadPlugin() {
+    window.location.href = '/plugin-add2Bookmarks-v1.0.zip';
+  }
+
   function onTagClose(item) {
     // const key = item && item.key ? item.key : (typeof item === 'string' ? item : null);
     setUnselectedTag(item.key);
@@ -569,6 +574,22 @@ function Navbar({ pageType, pageId, filterDataByTags, show, display, setNavBarKe
               />
             </Tooltip>
           </li>
+
+
+          <li>
+            <Tooltip
+              content={
+                '下载插件'
+              }
+            >
+              <IconButton onClick={() => downloadPlugin()}>
+                <Plugins
+                />
+              </IconButton>
+            </Tooltip>
+          </li>
+
+
 
 
           {/*  <li>

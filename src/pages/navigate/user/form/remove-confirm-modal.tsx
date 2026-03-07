@@ -15,13 +15,14 @@ export function removeConfirm(
     content: string,
     extra: string,
     type: string,
-    onOk: (id?: string) => Promise<boolean>
+    onOk: (id?: string) => Promise<boolean>,
+    other?: string
 ): Promise<boolean> {
     return new Promise((resolve) => {
         const handleOk = async () => {
             try {
                 const success = await onOk(id);
-                console.log('xxxxxxxxxxxxxxxxxxxxxxxx', success);
+                // console.log('xxxxxxxxxxxxxxxxxxxxxxxx', success);
                 if (success) {
                     Message.success('删除成功');
                     resolve(true);
@@ -46,7 +47,7 @@ export function removeConfirm(
             // `确定删除标签"${tag.name}"吗？`,
             content: (
                 <p>
-                    确定删除{type} "<span style={{ color: '#F53F3F' }}>{content}</span>" 吗？{extra}
+                    确定删除{type} "<span style={{ color: '#F53F3F' }}>{content}</span>" {other}吗？{extra}
                 </p>
             ),
             // disabled: true

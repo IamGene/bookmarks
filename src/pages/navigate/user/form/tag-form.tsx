@@ -48,8 +48,10 @@ function App(props: TagDataParams) {
     const processAddSaveTag = async (tag: WebTag) => {
         // console.log('form data', tag);
         const newTag = await addBookmark(tag);
-        if (data.gId1) newTag.gId1 = data.gId1;
-        if (data.path) newTag.path = data.path;
+
+        // 安全赋值：仅在 data 存在且 newTag 存在时才赋值，避免空属性报错
+        if (data?.gId1 != null) newTag.gId1 = data.gId1;
+        if (data?.path != null) newTag.path = data.path;
         Message.success('Success !');
         // setConfirmLoading(false);
         closeWithSuccess(true, newTag, data, 2);//相当于点击取消/关闭按钮 true:新增；false:更新
@@ -58,8 +60,9 @@ function App(props: TagDataParams) {
     const processUpdateSaveTag = async (tag: WebTag) => {
         // const group = await submitTagData(tag)
         const newTag = await updateBookmark(tag);
-        if (data.gId1) newTag.gId1 = data.gId1;
-        if (data.path) newTag.path = data.path;
+        // 安全赋值：仅在 newTag 存在且 data 属性非空时才赋值
+        if (data?.gId1 != null) newTag.gId1 = data.gId1;
+        if (data?.path != null) newTag.path = data.path;
         // const group = await saveTagData(tag)
         Message.success('Success !');
         // setConfirmLoading(false);

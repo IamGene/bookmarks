@@ -30,7 +30,8 @@ function Setting(props: SettingProps) {
 
   return (
     <div style={{
-      marginTop: '14px'
+      marginTop: '14px',
+      marginLeft: '5px'
     }}>
       {trigger ? (
         React.cloneElement(trigger as React.ReactElement, {

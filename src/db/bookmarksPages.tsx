@@ -683,6 +683,7 @@ export async function getBookmarksGroupById(groupId) {
     try {
         const db = await getDB();
         const group = await db.get('groups', groupId);
+        // console.log('group', group);
         if (!group) return null;//先校验存不存在
 
         // 读取整页树并规范化（合并因同时包含子文件夹和书签而分裂的节点）
@@ -1009,6 +1010,54 @@ export async function removeWebTags(ids: string[]): Promise<boolean> {
         return false;
     }
 }
+
+
+export async function removeWebTagsAndGroups(bookmarks: any[]): Promise<boolean> {
+    try {
+        const db = await getDB();
+        const ids = (Array.isArray(bookmarks) ? bookmarks.map(b => b && b.id).filter(Boolean) : []);
+        const gIds = (Array.isArray(bookmarks) ? Array.from(new Set(bookmarks.map(b => b && b.gId).filter(Boolean))) : []);
+
+        // 删除书签
+        for (const id of ids) {
+            await db.delete('bookmarks', id);
+        }
+
+        // 递归向上删除没有书签且没有子分组的分组
+        async function tryDeleteGroupIfEmpty(groupId: string | null | undefined) {
+            if (!groupId) return;
+            const group = await db.get('groups', groupId);
+            if (!group) return;
+
+            // 如果该分组还有书签，不删除
+            const urls = await db.getAllFromIndex('bookmarks', 'gId', groupId);
+            if (urls && urls.length > 0) return;
+
+            // 如果该分组还有子分组，不删除
+            const children = await db.getAllFromIndex('groups', 'pId', groupId);
+            if (children && children.length > 0) return;
+
+            // 可以删除当前分组
+            console.log('zzzzzzzzzzzzzzzzzz tryDeleteGroupIfEmpty', groupId)
+            await db.delete('groups', groupId);
+
+            // 继续向上检查父分组
+            const parentId = group.pId;
+            if (parentId) await tryDeleteGroupIfEmpty(parentId);
+        }
+
+        for (const gid of gIds) {
+            await tryDeleteGroupIfEmpty(gid);
+        }
+
+        return true;
+    } catch (e) {
+        console.error('removeWebTags error', e);
+        return false;
+    }
+}
+
+
 export async function getPageGroupData(groupId: string) {
     const db = await getDB();
     const group = await db.get('groups', groupId);
@@ -1227,7 +1276,6 @@ export async function getPageTree(pageId) {
     } catch (e) {
         console.error('compute diff error', e);
     } */
-
 
 }
 
