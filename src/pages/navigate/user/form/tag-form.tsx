@@ -7,7 +7,7 @@ import { Modal, Upload, Input, Cascader, Switch, Form, Select, Message } from '@
 import useLocale from '@/utils/useLocale';
 import locale from '../locale';
 import { getUrlInfo, saveWebTag } from '@/api/navigate';
-import { updateBookmarkById, addNewBookmark } from '@/db/bookmarksPages';
+import { updateBookmarkById, addNewBookmark } from '@/db/BookmarksPages';
 import isUrl from 'is-url';
 import { useSelector } from 'react-redux';
 import { WebTag } from '../interface';

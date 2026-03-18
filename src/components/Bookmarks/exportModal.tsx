@@ -2,7 +2,7 @@ import { Modal, Button, Form, Input, Radio, Select, Message } from '@arco-design
 import { useRef, useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 // import { Form, Input, Message, Radio, Button, Select } from '@arco-design/web-react';
-import { exportPageJson, getPageBookmarks, generateBookmarkHTML } from '@/db/bookmarksPages';
+import { exportPageJson, getPageBookmarks, generateBookmarkHTML } from '@/db/BookmarksPages';
 import { BookmarksPageData } from './list';
 const FormItem = Form.Item;
 

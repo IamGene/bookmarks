@@ -99,6 +99,12 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
         setTreeData(data);
     }, [allDataGroups]);//书签页数据发生变化
 
+    useEffect(() => {
+        /*  dataGroups.filter(g => g.id === "01xsz1ezn").map(g =>
+             console.log('>>>>>>>>>>>>>>>>>>>>> tree组件渲染了33, dataGroups11111111111111111111111111', g.children)); */
+        if (groupType === 0) setTreeData(dataGroups);
+    }, [dataGroups]);//书签页数据发生变化
+
 
     //搜索输入内容
     const [groupType, setGroupType] = useState(options[0].value);
@@ -133,7 +139,7 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
             setTempExpand(true);
         }
     }, [data]);
- */
+    */
 
 
     async function onTypeSelectChange(value) {
@@ -151,6 +157,7 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
                 await dispatch(fetchBookmarksPageData2(pageId));
             }
         }
+
         setTreeData(allDataGroups.find(g => g.value === value)?.data || []);
         //切换分组类型时，默认展开该分组下的所有项
         if (expand) {
@@ -165,7 +172,6 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
         setTreeType(value);
         setGroupType(value);
     }
-
 
 
     useEffect(() => {
@@ -253,12 +259,12 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
              });
          }
      }
-  */
+    */
     /*  useEffect(() => {
          console.log('treeData useEffect', data, inputValue);
          let filteredData = filterChildrenArrayByPath(data);
          setTreeData(filteredData);
- 
+     
          if (!inputValue || !inputValue.trim()) {
              setTempExpand(false);
          }
@@ -283,10 +289,10 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
 
 
     //入口
-    function scrollToAnchor(event, id, path) {
-        // const paths = getExpandedKeys(path.split(',').map(s => s.trim()))
-        setTreeSelected(path);
-        // setSelectedKeys(path);
+    function scrollToAnchor(event, id, path, list: boolean) {
+        const paths = !!list ? path + ',' + id + '_copy' : path
+        console.log('111111111111111 scrollToAnchor', id, path, list, paths);
+        setTreeSelected(paths);
         if (groupType === 0) {
             scrollToAnchor1(event, path);
             // console.log('sssssssssssssssss', expandedKeys, id);
@@ -446,12 +452,12 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
                     key: 'id',
                     title: 'name',
                 }}
-                renderTitle={({ id, name, pId, path }) => {
+                renderTitle={({ id, name, pId, path, list }) => {
                     const hrefId = pId ? pId : id
                     if (inputValue) {
                         const index = name.toLowerCase().indexOf(inputValue.toLowerCase());
                         if (index === -1) {
-                            return <AnchorLink href={`#${hrefId}`} title={name} onClick={(event) => scrollToAnchor(event, `${id}`, `${path}`)} />;
+                            return <AnchorLink href={`#${hrefId}`} title={name} onClick={(event) => scrollToAnchor(event, `${id}`, `${path}`, list)} />;
                         }
 
                         const prefix = name.substr(0, index);
@@ -459,7 +465,7 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
 
                         return (
                             // <Anchor hash={false} affix={false} animation={false} lineless >
-                            <AnchorLink href={`#${hrefId}`} onClick={(event) => scrollToAnchor(event, `${id}`, `${path}`)} title={<span>
+                            <AnchorLink href={`#${hrefId}`} onClick={(event) => scrollToAnchor(event, `${id}`, `${path}`, list)} title={<span>
                                 {prefix}
                                 {/* 匹配词高亮 */}
                                 <span style={{ color: 'var(--color-primary-light-4)' }}>
@@ -470,7 +476,7 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
                             </AnchorLink>
                         );
                     }
-                    return <AnchorLink href={`#${hrefId}`} title={name} onClick={(event) => scrollToAnchor(event, `${id}`, `${path}`)} style={{ color: 'var(--color-primary-light-4)' }} />;
+                    return <AnchorLink href={`#${hrefId}`} title={name} onClick={(event) => scrollToAnchor(event, `${id}`, `${path}`, list)} style={{ color: 'var(--color-primary-light-4)' }} />;
                     // return <AnchorLink href={`#${hrefId}`} title={name} style={{ color: 'var(--color-primary-light-4)' }} />;
                 }}
             >

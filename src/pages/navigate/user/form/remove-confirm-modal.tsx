@@ -11,21 +11,24 @@ import { Modal, Message } from '@arco-design/web-react';
  * @returns Promise<boolean> 用户确认并删除成功后返回 true，否则 false
  */
 export function removeConfirm(
+    // id: string,
     id: string,
     content: string,
+    order: boolean,
     extra: string,
     type: string,
-    onOk: (id?: string) => Promise<boolean>,
-    other?: string
-): Promise<boolean> {
+    onOk: (id: string, params?: any) => Promise<boolean>,
+    params?: any,
+    other?: string,
+): Promise<any> {
     return new Promise((resolve) => {
         const handleOk = async () => {
             try {
-                const success = await onOk(id);
+                const result = await onOk(id, params);
                 // console.log('xxxxxxxxxxxxxxxxxxxxxxxx', success);
-                if (success) {
+                if (result) {
                     Message.success('删除成功');
-                    resolve(true);
+                    resolve(result);
                 } else {
                     Message.error('删除失败');
                     resolve(false);
@@ -45,10 +48,21 @@ export function removeConfirm(
             // TODO: 用t local改一下？',
             // 'Are you sure you want to delete the 3 selected items? Once you press the delete button, the items will be deleted immediately. You can’t undo this action.',
             // `确定删除标签"${tag.name}"吗？`,
-            content: (
+            /* content: (
                 <p>
+                      确定删除{type} "<span style={{ color: '#F53F3F' }}>{content}</span>" {other}吗？{extra}:
+                    
+                </p>
+            ), */
+
+            content: (
+                order ? <p>
                     确定删除{type} "<span style={{ color: '#F53F3F' }}>{content}</span>" {other}吗？{extra}
                 </p>
+                    :
+                    <p>
+                        确定删除 "<span style={{ color: '#F53F3F' }}>{content}</span>"{type} {other}吗？{extra}
+                    </p>
             ),
             // disabled: true
             okButtonProps: { status: 'danger' },

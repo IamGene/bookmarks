@@ -575,11 +575,11 @@ function Navbar({ pageType, pageId, filterDataByTags, show, display, setNavBarKe
             </Tooltip>
           </li>
 
-
+          {/* settings.navbar.plugin.download */}
           <li>
             <Tooltip
               content={
-                '下载插件'
+                t['settings.navbar.plugin.download']
               }
             >
               <IconButton onClick={() => downloadPlugin()}>
@@ -588,8 +588,6 @@ function Navbar({ pageType, pageId, filterDataByTags, show, display, setNavBarKe
               </IconButton>
             </Tooltip>
           </li>
-
-
 
 
           {/*  <li>

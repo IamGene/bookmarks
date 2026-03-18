@@ -15,7 +15,7 @@ import { GlobalContext } from './context';
 import Login from './pages/login';
 import changeTheme from './utils/changeTheme';
 import useStorage from './utils/useStorage';
-import { getCollectPageGroups, saveBookmarkToDB, saveBookmarksToDB, getBookmarkById, getPages } from './db/bookmarksPages';
+import { getCollectPageGroups, saveBookmarkToDB, saveBookmarksToDB, getBookmarkById, getPages } from './db/BookmarksPages';
 // import { useDispatch, useSelector } from 'react-redux'
 // import { RootState } from '@/store';
 import { fetchBookmarksPageData, loadNewAddedBookmarks, reloadUserPages, loadSearchHistory } from '@/store/modules/global'; // 确保路径正确

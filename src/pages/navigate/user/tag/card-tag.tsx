@@ -4,32 +4,39 @@ import { useEffect, useState } from 'react';
 import {
     IconMore, IconEdit
 } from '@arco-design/web-react/icon';
-import { Tooltip, Tag, Dropdown, Menu, Popover } from '@arco-design/web-react';
+import { Tooltip, Tag, Dropdown, Menu, Checkbox, Popover } from '@arco-design/web-react';
 import { removeConfirm } from '../form/remove-confirm-modal';
 import { WebTag } from '../interface';
 import { useDispatch } from 'react-redux'
 import { fetchBookmarksPageData } from '@/store/modules/global';
 // import useLocale from '@/utils/useLocale';
 // import EditTagForm from '../form/tag-form';
-import { removeWebTag } from '@/db/bookmarksPages';
+import { removeWebTag } from '@/db/BookmarksPages';
 
 const api = import.meta.env.VITE_REACT_APP_BASE_API;
 
 interface CardBlockType {
     // card: QualityInspection & BasicCard;
     tag: WebTag;
+    select: boolean,
     no: number;
     loading?: boolean;
     // parentHide?: boolean;
     selectGroup: string[];
+    groupId: string;
     searching: boolean;
     editTag: Function;
     onDeleteSuccess?: (WebTag) => void;
+    // 当复选框选中/取消时向上汇报：id, checked
+    onSelectChange?: (id: string | number, checked: boolean) => void;
+    // 当前是否被选中
+    selected?: boolean;
 }
 
 const App = (props: CardBlockType) => {
-    const { tag, no, searching, editTag, selectGroup, onDeleteSuccess } = props
+    const { tag, no, searching, editTag, selectGroup, onDeleteSuccess, groupId, select } = props
 
+    // console.log('xxxxxxxxxxxxxxxxxxxxxx', selectGroup, select);
     const [visible, setVisible] = useState(false);
     //配置编辑表单展示与否
     const [editVisible, setEditVisible] = useState(false);
@@ -42,16 +49,22 @@ const App = (props: CardBlockType) => {
 
     const onClickMenuItem = (key: string) => {
         if (key === '0') {//编辑
-            // console.log('1111111111111111 点击了菜单,编辑', tag);
-            editTag(tag, selectGroup, searching);
+            let selectGroup1 = selectGroup;
+            if (selectGroup[selectGroup.length - 1].endsWith('_copy')) {
+                selectGroup1 = [...selectGroup.slice(0, selectGroup.length - 1)];//去掉最后一个（复制子分组）
+            };//确保在编辑标签时能正确传递当前分组路径
+            editTag(tag, selectGroup1, searching);
         } else if (key === '1') {//删除
             //弹出确认框
             // console.log('点击了菜单,删除', key)
             // confirm(tag);
-            // removeConfirm(tag.name, '', '标签', handleDelete);
-            removeConfirm(tag.id, tag.name, '', '标签', handleDelete);
+            removeConfirm(tag.id, tag.name, true, '', '标签', handleDelete);
+
+            // ssss
+
         }
     }
+
 
     const handleDelete = async () => {
         try {
@@ -149,6 +162,13 @@ const App = (props: CardBlockType) => {
     }
 
     const [imgSrc, setImgSrc] = useState(tag.icon);
+    // const [currentSelected, setCurrentSelected] = useState(false);
+    const [currentSelected, setCurrentSelected] = useState(!!props.selected);
+
+    // 当外部 selected prop 变化时同步到内部状态，防止内部复选框状态滞后
+    useEffect(() => {
+        setCurrentSelected(!!props.selected);
+    }, [props.selected]);
     const [triedProxy, setTriedProxy] = useState(false);
 
     // 当 tag.icon prop 发生变化时，同步更新内部的 imgSrc 状态
@@ -175,12 +195,26 @@ const App = (props: CardBlockType) => {
             <div className="xe-widget xe-conversations box2 label-info"
                 // <div className="xe-widget box2"
                 // style={{ backgroundColor: tag.hide || parentHide ? '#E8F3FF' : 'transparent' }}
-                style={{ backgroundColor: tag.hide ? '#E8F3FF' : 'transparent' }}
+                style={{ backgroundColor: tag.hide ? '#E8F3FF' : 'transparent', position: 'relative' }}
+
+
                 // onClick={() => openUrl(tag.url)}
                 // 'var(--color-fill-3)'
                 data-toggle="tooltip" data-placement="bottom" title="">
-                <div className="xe-comment-entry">
 
+                {select && <div style={{ position: 'absolute', left: '1px', top: '1px' }}>
+                    {/* checked={!!props.selected} */}
+                    <Checkbox checked={currentSelected} onChange={(checked, e) => {
+                        // Arco Checkbox onChange 可接受 (checked: boolean, e?: Event)
+                        // 但某些场景下回调可能收到事件对象，兼容处理以确保传递布尔值
+                        // console.log('CardTag Checkbox onChange', checked, 'id', tag.id);
+                        setCurrentSelected(checked);
+                        if (props.onSelectChange) props.onSelectChange(tag.id, checked);
+                    }}
+                    ></Checkbox>
+                </div>}
+
+                <div className="xe-comment-entry">
                     <a className="xe-user-img" href={tag.url} target="_blank" >
                         {/* <img src={tag.icon && tag.icon.startsWith('/profile/icon/') ? `${api}${tag.icon}` : tag.icon} */}
                         {/*  <img src={tag.icon}
@@ -257,7 +291,6 @@ const App = (props: CardBlockType) => {
                             </p>
                         </Tooltip>
 
-
                     </div>
 
                     <div className="tag-list" >
@@ -326,9 +359,7 @@ const App = (props: CardBlockType) => {
                         <IconMore />
                     </div>
 
-
                 </Dropdown>
-
 
 
             </div>

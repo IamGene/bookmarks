@@ -18,7 +18,7 @@ import useLocale from '../../utils/useLocale';
 import History, { BookmarksPagesType, MessageListType, BookmarksPageData } from './list';
 // import RenamePageForm from '@compo';
 // import { set } from 'mobx';
-import { deletePageBookmarks } from '@/db/bookmarksPages';
+import { deletePageBookmarks } from '@/db/BookmarksPages';
 import { useFetchPageData } from '@/hooks/fetchPageData';
 import { removeConfirm } from '@/pages/navigate/user/form/remove-confirm-modal';
 import styles from './style/index.module.less';

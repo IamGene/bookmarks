@@ -8,7 +8,7 @@ import { getUrlInfo, saveWebTag, saveTagGroup } from '@/api/navigate';
 import { useSelector } from 'react-redux';
 import { WebTag } from '../interface';
 import { GroupNode } from '@/store/modules/global';
-import { saveGroup, addBookmarksPage } from '@/db/bookmarksPages';
+import { saveGroup, addBookmarksPage } from '@/db/BookmarksPages';
 const FormItem = Form.Item;
 const TextArea = Input.TextArea;
 const api = import.meta.env.VITE_REACT_APP_BASE_API;

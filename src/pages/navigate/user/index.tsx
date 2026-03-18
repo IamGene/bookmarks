@@ -37,7 +37,7 @@ import { RootState } from '@/store';
 import { updateUserInfo, fetchBookmarksPageData, updateSearchState } from '@/store/modules/global';
 import { generatePermission } from '@/routes';
 import Navi from './navigate';
-import { getPages, saveSearchHistory, getBookmarkById, getBookmarkGroupById } from "@/db/bookmarksPages";
+import { getPages, saveSearchHistory, getBookmarkById, getBookmarkGroupById } from "@/db/BookmarksPages";
 import BackToTop from '../common/back-to-top';
 import styles from '@/style/layout.module.less';
 // import { fetchGroupData } from './common';
@@ -342,8 +342,7 @@ function UserNavigate() {
 
   // 接收Tree传过来的选中项
   const getTreeSelect = (selected) => {
-
-    // console.log('user navigate getTreeSelect selected=', selected);
+    // console.log('00000000000000 user  getTreeSelect selected=', selected);
     // const value = selected[0];
     const value = selected;
     const stringArray: string[] = value.split(',');

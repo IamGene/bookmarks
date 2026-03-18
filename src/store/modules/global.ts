@@ -67,7 +67,7 @@ export default store
 import { createSlice } from '@reduxjs/toolkit';
 import defaultSettings from '../../settings.json';
 // import { getUserNaviate } from '@/api/navigate';
-import { getPageTree, getPageTreeByDate, getPages, testData, getPageTreeByDomain, getPage, getSearchHistory } from "@/db/bookmarksPages";
+import { getPageTree, getPageTreeByDate, getPages, getPageTreeGroupsData, getPageTreeByDomain, getPage, getSearchHistory } from "@/db/BookmarksPages";
 import { WebTag } from '@/pages/navigate/user/interface';
 export interface GroupNode {
   id: string;
@@ -249,13 +249,17 @@ const globalSlice = createSlice({
       if (action.payload.tagsMap) state.tagsMap = action.payload.tagsMap;
       state.search.searchResultNum = 0;//每次更新书签数据，重置搜索结果数
       state.hiddenGroup = action.payload.hideGroup;
-      state.expandedKeys = action.payload.expandedKeys;
+      if (action.payload.expandedKeys) state.expandedKeys = action.payload.expandedKeys;
       if (action.payload.updatedGroupType != null) {
         if (state.toUpdateGroupTypes.includes(action.payload.updatedGroupType)) {
           const idx = state.toUpdateGroupTypes.indexOf(action.payload.updatedGroupType);
           state.toUpdateGroupTypes.splice(idx, 1);
         }
       }
+    },
+
+    updateBookmarksGroups: (state, action) => {
+      if (action.payload.dataGroups) state.dataGroups = action.payload.dataGroups;
     },
 
     updateGroupTypes: (state, action) => {
@@ -356,7 +360,8 @@ function filterChildrenByPath(data) {
   // 过滤并递归深拷贝子元素
   newData.children = data.children
     // .filter(child => child.path !== data.path)//过滤掉复制分组
-    .filter(child => child.id !== data.id)//过滤掉复制分组
+    // .filter(child => child.id !== data.id)//过滤掉复制分组
+    .filter(child => !child.id.endsWith('_copy'))//过滤掉复制分组
     .map(child => filterChildrenByPath(child));
   return newData;
 }
@@ -366,10 +371,20 @@ const fetchBookmarksPageData = (pageId: number) => {
   return async (dispatch) => {
     const res = await getPageTree(pageId);
     // const resss = await testData(pageId);
-
-    // console.log('--------------------fetchBookmarksPageData res', res);
-    const res1 = await getPageTreeByDate(pageId);
     const expandedKeys = res.expandedKeys || [];
+    // console.log('--------------------fetchBookmarksPageData res', res);
+    const data = res.data;
+    let tagsMap = res.tagsMap;
+    // 如果后端/DB 返回的是 Map，转换为普通对象以保证 state 可序列化
+    if (tagsMap instanceof Map) {
+      tagsMap = Object.fromEntries(tagsMap);
+    }
+
+
+    const res1 = await getPageTreeByDate(pageId);
+    const dateGroups = res1.treeData;//
+    const list1 = res1.data;//书签数据
+
     const res2 = await getPageTreeByDomain(pageId);
     // const domainGroups = res2.treeData.slice(0, 10);//
     const domainGroups = res2.treeData;//
@@ -384,17 +399,8 @@ const fetchBookmarksPageData = (pageId: number) => {
     });
     console.log('--------------------fetchBookmarksPageData res', res.data, count);
      */
-
-    const data = res.data;
-    let tagsMap = res.tagsMap;
-    // 如果后端/DB 返回的是 Map，转换为普通对象以保证 state 可序列化
-    if (tagsMap instanceof Map) {
-      tagsMap = Object.fromEntries(tagsMap);
-    }
-
     // console.log('--------------------fetchBookmarksPageData res1', res1);
-    const dateGroups = res1.treeData;//
-    const list1 = res1.data;//书签数据
+
 
     // 调试代码
     /*  let count1 = 0;
@@ -461,7 +467,7 @@ const fetchBookmarksPageData0 = (pageId: number) => {
       }));
       return res; // 直接返回整个响应对象
     } else {
-      await dispatch(updateBookmarks({ dataByGroup: [], hideGroup: false, tagsMap: [], treeData: null }));
+      await dispatch(updateBookmarks({ dataByGroup: [], dataGroups: [], hideGroup: false, tagsMap: [], treeData: null }));
       // await dispatch(updateGroupTypes({ updatedGroupType: 0 }));
       // dispatch(updateBookmarks({ dataByGroup: [], dataByDate: [], hideGroup: false, dateGroups: [], tagsMap: tagsMap, currentPage: currentPage, treeData: [] }));
       return [];
@@ -471,6 +477,26 @@ const fetchBookmarksPageData0 = (pageId: number) => {
   }
 };
 
+//仅更新默认方式分组
+const fetchBookmarksPageDataGoups = (pageId: number) => {
+  return async (dispatch) => {
+    const data = await getPageTreeGroupsData(pageId);
+    console.log('--------------------fetchBookmarksPageDataGoups res', data);
+    if (data.length > 0) {
+      // const treeData = filterChildrenArrayByPath(data);
+      dispatch(updateBookmarks({
+        dataGroups: data,
+        updatedGroupType: 0,
+      }));
+      return data; // 直接返回整个响应对象
+    } else {
+      await dispatch(updateBookmarks({ dataByGroup: [], dataGroups: [], hideGroup: false, tagsMap: [], treeData: null }));
+      return [];
+      // 处理错误情况
+      // throw new Error('请求失败');
+    }
+  }
+};
 
 
 const fetchBookmarksPageData1 = (pageId: number) => {
@@ -570,12 +596,12 @@ const loadSearchHistory = () => {
 
 // export const { updateSettings, updateUserInfo, updateHasResult, updateBookmarks } = globalSlice.actions;
 //updateSearchHistory 
-const { updateSettings, updateUserInfo, updateHasResult, updateGroupTypes, updateSearchState, updateTagsMap, updateBookmarks, setUserPages, setSearchHistory, updateActiveGroup, setLoadBookmarks } = globalSlice.actions;
+const { updateSettings, updateUserInfo, updateHasResult, updateBookmarksGroups, updateGroupTypes, updateSearchState, updateTagsMap, updateBookmarks, setUserPages, setSearchHistory, updateActiveGroup, setLoadBookmarks } = globalSlice.actions;
 export {
   updateSettings, updateUserInfo, updateHasResult, updateSearchState, updateBookmarks, updateActiveGroup,
   loadSearchHistory, updatePageBookmarkTags,
   updatePageDataState, reloadUserPages, fetchBookmarksPageData,
-  fetchBookmarksPageData0, fetchBookmarksPageData1, fetchBookmarksPageData2, fetchBookmarksPageDatas,
+  fetchBookmarksPageData0, fetchBookmarksPageData1, fetchBookmarksPageData2, fetchBookmarksPageDatas, fetchBookmarksPageDataGoups,
   loadNewAddedBookmarks
 };
 export default globalSlice.reducer;

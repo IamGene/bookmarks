@@ -8,7 +8,7 @@ import {
 import useLocale from '@/utils/useLocale';
 import styles from '../style/index.module.less';
 import { handleFile } from './parseBookmarks';
-import { savePageBookmarks, importPageJson } from '@/db/bookmarksPages';
+import { savePageBookmarks, importPageJson } from '@/db/BookmarksPages';
 
 export interface MessageItemData {
     id: string;

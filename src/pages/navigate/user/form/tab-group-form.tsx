@@ -5,7 +5,7 @@ import { Modal, Input, Cascader, Switch, Form, Message } from '@arco-design/web-
 import useLocale from '@/utils/useLocale';
 import locale from '../locale';
 import { GroupNode } from '@/store/modules/global';
-import { getPageTreeGroups, updateGroupById, saveGroup } from '@/db/bookmarksPages';
+import { getPageTreeGroups, updateGroupById, getPageTreeGroupsData, saveGroup } from '@/db/BookmarksPages';
 import { saveTagGroup } from '@/api/navigate';
 import { useSelector } from 'react-redux';
 const FormItem = Form.Item;
@@ -25,7 +25,6 @@ function App(props: GroupFormParams) {
     const { closeWithSuccess, pageId, visible, selectGroup, group } = props;
 
     // console.log('tab form group', group);
-
     const [confirmLoading, setConfirmLoading] = useState(false);
 
     const globalState = useSelector((state: any) => state.global);
@@ -45,19 +44,20 @@ function App(props: GroupFormParams) {
     const t = useLocale(locale);
 
     const processSaveSubGroup = async (data) => {
-        // console.log('group form submit before_group', data)
+        // console.log('222222222222222 group form submit before_group', data);
         //返回成功
         let groupData;
         if (group.id) {
             groupData = await updateGroupById(data);
+            // closeWithSuccess(true, data)//相当于点击取消/关闭按钮
+            closeWithSuccess(true, groupData, 1);//相当于点击取消/关闭按钮
             Message.success('修改成功');
         } else {
             groupData = await saveGroup(data);
-            closeWithSuccess(true, groupData)//相当于点击取消/关闭按钮
+            closeWithSuccess(true, groupData, 0);//相当于点击取消/关闭按钮
             Message.success('添加成功');
         }
         setConfirmLoading(false);
-        closeWithSuccess(true, data)//相当于点击取消/关闭按钮
         // 修改：pid发生变化： 锚点pid ， pid不发生变化：Tab0
         // 新增：无pid, 锚点id； 有pid，Tab
         // console.log('----------groupData', groupData);
@@ -67,8 +67,10 @@ function App(props: GroupFormParams) {
 
     async function onPageIdChange(pageIds) {
         const pageId = pageIds[0];
-        const res = await getPageTreeGroups(pageId);
-        setCascaderOptions(res);
+        const res1 = await getPageTreeGroupsData(pageId);
+        // const res = await getPageTreeGroups(pageId);
+        // console.log('xxxxxxxxxxxxxxxxxx getPageTreeGroups', res);
+        setCascaderOptions(res1);
         form.setFields({
             pId: {//如果属于当前书签页则恢复选中当前分组
                 value: group.pageId === pageId ? selectGroup : null
@@ -101,7 +103,7 @@ function App(props: GroupFormParams) {
     //点击取消==>关闭窗口
     const cancel = () => {
         // onCancelAdd(false)
-        closeWithSuccess(false)
+        closeWithSuccess(false);
     };
 
     useEffect(() => {
@@ -148,8 +150,7 @@ function App(props: GroupFormParams) {
      }, [pageId]); */
 
     function setDisabledNodes(nodes, selectNode) {
-
-        console.log('aaaaaaaaaaaaaa nodes', nodes, selectNode);
+        // console.log('aaaaaaaaaaaaaa nodes', nodes, selectNode);
         function setDisabledForGroupChldren(nodes, selectNode) {
             return nodes
                 .map(node => {

@@ -22,7 +22,7 @@ import useLocale from '../../utils/useLocale';
 import BookmarkPages, { BookmarksPagesType, MessageListType, BookmarksPageData } from './list';
 // import RenamePageForm from '@compo';
 // import { set } from 'mobx';
-import { getPages, deletePageBookmarks, exportAllPagesJson } from '@/db/bookmarksPages';
+import { getPages, deletePageBookmarks, exportAllPagesJson } from '@/db/BookmarksPages';
 import { useFetchPageData } from '@/hooks/fetchPageData';
 import { removeConfirm } from '@/pages/navigate/user/form/remove-confirm-modal';
 import RenamePageForm from '@/pages/navigate/user/form/rename_page_form';

@@ -5,7 +5,7 @@ import { Modal, Input, Cascader, Switch, Form, Message } from '@arco-design/web-
 import useLocale from '@/utils/useLocale';
 import locale from '../locale';
 import { GroupNode } from '@/store/modules/global';
-import { updateBookmarkById, renameBookmarkPageById } from '@/db/bookmarksPages';
+import { updateBookmarkById, renameBookmarkPageById } from '@/db/BookmarksPages';
 import { saveTagGroup } from '@/api/navigate';
 import { useSelector } from 'react-redux';
 const FormItem = Form.Item;

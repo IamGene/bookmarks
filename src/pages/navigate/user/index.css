@@ -97,3 +97,29 @@ html {
 .arco-menu-vertical .arco-menu-item {
     padding: 0;
 }
+
+/* card-tab */
+.arco-tabs-header-nav-card .arco-tabs-header-title,
+.arco-tabs-header-nav-card-gutter .arco-tabs-header-title {
+    padding: 0;
+}
+
+.arco-tabs-close-icon {
+    margin-left: 0;
+}
+
+.arco-tabs-header-wrapper {
+    flex: none;
+}
+
+.arco-checkbox {
+    margin-bottom: 1px;
+}
+
+label {
+    margin-bottom: 0rem;
+}
+
+.arco-tabs-header-extra {
+    margin-left: 6px;
+}

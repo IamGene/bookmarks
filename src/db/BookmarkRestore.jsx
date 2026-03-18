@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { getDB } from "./db";
 import { getPageTree } from "./restoreTree";
 import exampleData from "./exampleData";
-import { setDefaultPage, savePageBookmarks } from "./bookmarksPages";
+import { setDefaultPage, savePageBookmarks } from "./BookmarksPages";
 
 const PAGE_ID = "pageComplex";
 
