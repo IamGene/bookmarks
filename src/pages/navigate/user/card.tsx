@@ -1149,13 +1149,13 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
             setActiveMapByTreeSelected();
             setCardShow(true);//当前Card展示
 
-            if (searching) {//
-                if (dataType == 0) {
-                    if (data.searchResult.length == 0) {//无搜索结果 ok
-                        setActiveMap({ [data.id]: searchTabKey });
-                    }
-                }
-            }
+            /*  if (searching) {//
+                 if (dataType == 0) {
+                     if (data.searchResult.length == 0) {//无搜索结果 ok
+                         setActiveMap({ [data.id]: searchTabKey });
+                     }
+                 }
+             } */
             // console.log(cardData.name + ' useEffect activeCardTab', activeCardTab, lastPath)
             //如果在全局搜索模式下当前Card被tree选中且搜索结果为空 =>临时显示全部
         } else {//当前Card没有被选中了
@@ -3878,6 +3878,7 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
                         moveTabNode={moveTabNode}
                         searching={searching}
                         multiSelectMap={buildDerivedMultiSelectMap(data)}
+                        activeMap={activeMap}
                         // currentSearch={currentSearch}
                         // resort={resort}
                         // onClickSort={onClickSort}
@@ -3932,6 +3933,7 @@ function renderCard({ cardData, dataType, display, tags, treeSelectedNode, setCa
                     // cardData={cardData}
                     // currentSearch={currentSearch}
                     activeCardTab={activeCardTab}
+                    activeMap={activeMap}
                     tabMore={tabMore}
                     searchTabMore={searchTabMore}
                     showItem={showItem}

@@ -20,7 +20,7 @@ interface Props {
     WrapTabNode: any;
     moveTabNode: Function;
     onTabMouseEnter?: (child: any, e?: React.MouseEvent) => void;
-    onClickSearchMenuItem: any;
+    // onClickSearchMenuItem: any;
     searching: boolean;
     dataType: number;
     // showItem
@@ -34,6 +34,7 @@ interface Props {
     searchTabKey: any;
     multiSelectMap: Record<string, boolean>;// selectedMap: any;
     selectedMap?: Record<string, string[]>;
+    activeMap?: Record<string, string>;
     onSelectedMapChange?: (nodeKey: string, ids: string[]) => void;
     renderContent: (child: any, idx: number, operation?: string) => React.ReactNode;
     renderSearchContent: (operation?: string) => React.ReactNode;
@@ -65,7 +66,7 @@ export default function TabsContainer(props: Props) {
         tabMore,
         searchTabMore,
         searchTabKey,
-        onClickSearchMenuItem,
+        // onClickSearchMenuItem,
         // tabMouseEnter,
         renderContent,
         renderSearchContent,
@@ -183,9 +184,10 @@ export default function TabsContainer(props: Props) {
                     data={data}
                     searching={searching}
                     currentTab={currentTab}
-                    // selectedMapChange={(currentTab, ids) => onSelectedMapChange(currentTab, ids)}
-                    selectedMapChange={(ids) => onSelectedMapChange(currentTab, ids)}
+                    // forward nodeKey and ids
+                    selectedMapChange={(nodeKey: string, ids: string[]) => onSelectedMapChange && onSelectedMapChange(nodeKey, ids)}
                     selectedMap={selectedMap}
+                    activeMap={props.activeMap}
                 />
             }
         >

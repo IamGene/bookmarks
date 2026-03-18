@@ -5,8 +5,10 @@ interface Props {
     data: any;
     searching: boolean;
     currentTab: string;
-    selectedMapChange?: (ids: string[]) => void;
+    // first arg: nodeKey (the tab id to operate on), second arg: ids array
+    selectedMapChange?: (nodeKey: string, ids: string[]) => void;
     selectedMap?: Record<string, string[]>;
+    activeMap?: Record<string, string>;
 }
 
 function MultiSelectCheckBox(props: Props) {
@@ -14,57 +16,147 @@ function MultiSelectCheckBox(props: Props) {
         data,
         searching,
         currentTab,
-        selectedMapChange
+        selectedMapChange,
+        activeMap
     } = props;
 
     // selectedMap 来自父组件，onSelectedMapChange 用于通知父组件更新
     const { selectedMap } = props as any;
-    const searchTabKey = 'search-result'
+    const searchTabKey = 'search-result';
 
     return (
         <div style={{}}>
             <Checkbox
-                onChange={(checked) => {
+                onChange={(checked) => {// 全选/全不选逻辑
                     try {
-                        let ids;
-                        if (currentTab === searchTabKey) { //该(大)分组的所有搜索结果tab
-                            ids = ((searching && data.searchResult ? data.searchResult : data.bookmarks) || []).map((b: any) => String(b.id))
-                        } else {//普通分组 正常模式/搜索模式
-                            const node = data.children.find((c: any) => c.id === currentTab);
-                            ids = node ? ((searching && node.searchResult ? node.searchResult : node.bookmarks) || []).map((b: any) => String(b.id)) : [];
+                        // 计算要作用的最内层 tab id
+                        let targetNodeKey = currentTab;//currentTab:checkbox所在tabs层的activeTab
+                        if (currentTab !== searchTabKey && activeMap) {//非搜索结果tab且有activeMap时，寻找最内层activeTab
+                            // const rootId = String(data.id);
+                            //过滤出以当前tabs根节点id开头的activeMap键（即当前tabs及其子tabs的activeTab）
+                            const keys = Object.keys(activeMap || {});//.filter(k => k && k.indexOf(rootId) === 0);
+                            if (keys.length > 0) {
+                                const longest = keys.reduce((a, b) => a.length >= b.length ? a : b);
+                                const val = activeMap[longest];
+                                if (val) targetNodeKey = val;
+                            }
                         }
+
+                        // 查找目标节点（递归）
+                        const findNodeById = (root: any, id: string) => {
+                            if (!root) return null;
+                            let found = null;
+                            function dfs(n) {
+                                if (!n || found) return;
+                                if (String(n.id) === String(id)) { found = n; return; }
+                                if (Array.isArray(n.children)) {
+                                    for (const c of n.children) {
+                                        dfs(c);
+                                        if (found) return;
+                                    }
+                                }
+                            }
+                            dfs(root);
+                            return found;
+                        };
+
                         if (checked) {
-                            // console.log('xxxxxxxxxxxxxxxx', currentTab, ids);
-                            selectedMapChange && selectedMapChange(ids);
+                            let ids: string[] = [];
+                            if (targetNodeKey === searchTabKey) {
+                                ids = ((searching && data.searchResult ? data.searchResult : data.bookmarks) || []).map((b: any) => String(b.id));
+                            } else {
+                                const node = findNodeById(data, targetNodeKey);
+                                ids = node ? ((searching && node.searchResult ? node.searchResult : node.bookmarks) || []).map((b: any) => String(b.id)) : [];
+                            }
+                            selectedMapChange && selectedMapChange(targetNodeKey, ids);//全选
                         } else {
-                            selectedMapChange && selectedMapChange([]);
+                            selectedMapChange && selectedMapChange(targetNodeKey, []);//全不选
                         }
                     } catch (e) {
                         // ignore
                     }
                 }}
                 checked={(() => {
-                    let ids;
-                    if (currentTab === searchTabKey) { //该(大)分组的所有搜索结果tab
-                        ids = ((searching && data.searchResult ? data.searchResult : data.bookmarks) || []).map((b: any) => String(b.id))
-                    } else {
-                        const node = data.children.find((c: any) => c.id === currentTab);
-                        ids = node ? ((searching && node.searchResult ? node.searchResult : node.bookmarks) || []).map((b: any) => String(b.id)) : [];
+                    try {
+                        let targetNodeKey = currentTab;
+                        if (currentTab !== searchTabKey && activeMap) {
+                            // const rootId = String(data.id);
+                            const keys = Object.keys(activeMap || {});//.filter(k => k && k.indexOf(rootId) === 0);
+                            if (keys.length > 0) {
+                                const longest = keys.reduce((a, b) => a.length >= b.length ? a : b);
+                                const val = activeMap[longest];
+                                if (val) targetNodeKey = val;
+                            }
+                        }
+                        const findNodeById = (root: any, id: string) => {
+                            if (!root) return null;
+                            let found = null;
+                            function dfs(n) {
+                                if (!n || found) return;
+                                if (String(n.id) === String(id)) { found = n; return; }
+                                if (Array.isArray(n.children)) {
+                                    for (const c of n.children) {
+                                        dfs(c);
+                                        if (found) return;
+                                    }
+                                }
+                            }
+                            dfs(root);
+                            return found;
+                        };
+                        let ids = [];
+                        if (targetNodeKey === searchTabKey) {
+                            ids = ((searching && data.searchResult ? data.searchResult : data.bookmarks) || []).map((b: any) => String(b.id));
+                        } else {
+                            const node = findNodeById(data, targetNodeKey);
+                            ids = node ? ((searching && node.searchResult ? node.searchResult : node.bookmarks) || []).map((b: any) => String(b.id)) : [];
+                        }
+                        const sel = (selectedMap && selectedMap[targetNodeKey]) ? selectedMap[targetNodeKey] : [];
+                        return ids.length > 0 && sel.length === ids.length;// 全选条件：当前节点下有书签，且已选中的书签数量等于总书签数量
+                    } catch (e) {
+                        return false;
                     }
-                    //当前tab下的所有id列表
-                    const sel = (selectedMap && selectedMap[currentTab]) ? selectedMap[currentTab] : [];//当前tab已选的id列表
-                    return ids.length > 0 && sel.length === ids.length;//全选状态：当前tab有数据，且已选数量等于数据总量
                 })()}
-                indeterminate={(() => {
-                    let ids;
-                    if (currentTab === searchTabKey) { //该(大)分组的所有搜索结果tab
-                        ids = ((searching && data.searchResult ? data.searchResult : data.bookmarks) || []).map((b: any) => String(b.id))
-                    } else {
-                        const node = data.children.find((c: any) => c.id === currentTab);
-                        ids = node ? ((searching && node.searchResult ? node.searchResult : node.bookmarks) || []).map((b: any) => String(b.id)) : [];
+                indeterminate={(() => {// 半选条件：已选中的书签数量大于0且小于总书签数量
+                    try {
+                        let targetNodeKey = currentTab;
+                        if (currentTab !== searchTabKey && activeMap) {
+                            // const rootId = String(data.id);
+                            const keys = Object.keys(activeMap || {});//.filter(k => k && k.indexOf(rootId) === 0);
+                            if (keys.length > 0) {
+                                const longest = keys.reduce((a, b) => a.length >= b.length ? a : b);
+                                const val = activeMap[longest];
+                                if (val) targetNodeKey = val;
+                            }
+                        }
+                        const findNodeById = (root: any, id: string) => {
+                            if (!root) return null;
+                            let found = null;
+                            function dfs(n) {
+                                if (!n || found) return;
+                                if (String(n.id) === String(id)) { found = n; return; }
+                                if (Array.isArray(n.children)) {
+                                    for (const c of n.children) {
+                                        dfs(c);
+                                        if (found) return;
+                                    }
+                                }
+                            }
+                            dfs(root);
+                            return found;
+                        };
+                        let ids = [];
+                        if (targetNodeKey === searchTabKey) {
+                            ids = ((searching && data.searchResult ? data.searchResult : data.bookmarks) || []).map((b: any) => String(b.id));
+                        } else {
+                            const node = findNodeById(data, targetNodeKey);
+                            ids = node ? ((searching && node.searchResult ? node.searchResult : node.bookmarks) || []).map((b: any) => String(b.id)) : [];
+                        }
+                        const sel = (selectedMap && selectedMap[targetNodeKey]) ? selectedMap[targetNodeKey] : [];// 已选中的 id 数组
+                        return sel.length > 0 && sel.length < ids.length;// 部分选中
+                    } catch (e) {
+                        return false;
                     }
-                    const sel = (selectedMap && selectedMap[currentTab]) ? selectedMap[currentTab] : [];
-                    return sel.length > 0 && sel.length < ids.length;//半选状态：已选数量大于0且小于数据总量
                 })()}
             >
                 全选
@@ -74,20 +166,46 @@ function MultiSelectCheckBox(props: Props) {
                 type='primary'
                 style={{ marginLeft: '12px' }}
                 onClick={() => {
-
-                    let ids;
-                    if (currentTab === searchTabKey) { //该(大)分组的所有搜索结果tab
-                        ids = ((searching && data.searchResult ? data.searchResult : data.bookmarks) || []).map((b: any) => String(b.id))
-                    } else {
-                        const node = data.children.find((c: any) => c.id === currentTab);
-                        ids = node ? ((searching && node.searchResult ? node.searchResult : node.bookmarks) || []).map((b: any) => String(b.id)) : [];
+                    try {
+                        let targetNodeKey = currentTab;
+                        if (currentTab !== searchTabKey && activeMap) {
+                            // const rootId = String(data.id);
+                            const keys = Object.keys(activeMap || {});//.filter(k => k && k.indexOf(rootId) === 0);
+                            if (keys.length > 0) {
+                                const longest = keys.reduce((a, b) => a.length >= b.length ? a : b);
+                                const val = activeMap[longest];
+                                if (val) targetNodeKey = val;
+                            }
+                        }
+                        const findNodeById = (root: any, id: string) => {
+                            if (!root) return null;
+                            let found = null;
+                            function dfs(n) {
+                                if (!n || found) return;
+                                if (String(n.id) === String(id)) { found = n; return; }
+                                if (Array.isArray(n.children)) {
+                                    for (const c of n.children) {
+                                        dfs(c);
+                                        if (found) return;
+                                    }
+                                }
+                            }
+                            dfs(root);
+                            return found;
+                        };
+                        let ids: string[] = [];
+                        if (targetNodeKey === searchTabKey) {
+                            ids = ((searching && data.searchResult ? data.searchResult : data.bookmarks) || []).map((b: any) => String(b.id));
+                        } else {
+                            const node = findNodeById(data, targetNodeKey);
+                            ids = node ? ((searching && node.searchResult ? node.searchResult : node.bookmarks) || []).map((b: any) => String(b.id)) : [];
+                        }
+                        const sel = (selectedMap && selectedMap[targetNodeKey]) ? selectedMap[targetNodeKey] : [];
+                        const inverted = ids.filter((id: string) => !sel.includes(id));
+                        selectedMapChange && selectedMapChange(targetNodeKey, inverted);
+                    } catch (e) {
+                        // ignore
                     }
-                    // const node = data.children.find((c: any) => c.id === currentTab);
-                    // const ids = node ? ((searching && node.searchResult ? node.searchResult : node.bookmarks) || []).map((b: any) => String(b.id)) : [];
-                    const sel = (selectedMap && selectedMap[currentTab]) ? selectedMap[currentTab] : [];
-                    const inverted = ids.filter((id: string) => !sel.includes(id));
-                    // selectedMapChange && selectedMapChange(currentTab, inverted);
-                    selectedMapChange && selectedMapChange(inverted);
                 }}
             >
                 反选
