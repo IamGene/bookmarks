@@ -25,22 +25,6 @@ function DropContent({ currentPage, onTagSwitch }) {
   const [loading, setLoading] = useState(false);
   const [currentPageId, setCurrentPageId] = useState(currentPage);
   // const [addedPageIds, setAddedPageIds] = useState(newBookmarkPages);
-  // console.log("🌀 渲染 DropContent list newBookmarkPages=", newBookmarkPages);
-  const [groupData, setGroupData] = useState<{
-    [key: string]: MessageListType;
-  }>({});
-
-
-  /*  useEffect(() => {
-     // console.log('3333333333333 useEffect newBookmarkPages ', newBookmarkPages, addedPageIds);
-     // 将传入的新 id 追加到现有数组并去重，避免覆盖本地标记
-     if (Array.isArray(newBookmarkPages) && newBookmarkPages.length > 0) {
-       setAddedPageIds(prev => {
-         const merged = Array.from(new Set([...(prev || []), ...newBookmarkPages]));
-         return merged;
-       });
-     }
-   }, [newBookmarkPages]);//newBookmarkPages发生变化的时候执行 */
 
 
   const pageTab =

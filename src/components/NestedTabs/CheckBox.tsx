@@ -6,7 +6,7 @@ interface Props {
     searching: boolean;
     currentTab: string;
     // first arg: nodeKey (the tab id to operate on), second arg: ids array
-    selectedMapChange?: (nodeKey: string, ids: string[]) => void;
+    selectedMapChange?: (nodeKey: string, ids: string[], path: string) => void;
     selectedMap?: Record<string, string[]>;
     activeMap?: Record<string, string>;
 }
@@ -31,12 +31,14 @@ function MultiSelectCheckBox(props: Props) {
                     try {
                         // 计算要作用的最内层 tab id
                         let targetNodeKey = currentTab;//currentTab:checkbox所在tabs层的activeTab
+                        let path = null;
                         if (currentTab !== searchTabKey && activeMap) {//非搜索结果tab且有activeMap时，寻找最内层activeTab
                             // const rootId = String(data.id);
                             //过滤出以当前tabs根节点id开头的activeMap键（即当前tabs及其子tabs的activeTab）
                             const keys = Object.keys(activeMap || {});//.filter(k => k && k.indexOf(rootId) === 0);
                             if (keys.length > 0) {
                                 const longest = keys.reduce((a, b) => a.length >= b.length ? a : b);
+                                path = longest.replaceAll('-', ',') + ',' + currentTab;
                                 const val = activeMap[longest];
                                 if (val) targetNodeKey = val;
                             }
@@ -68,9 +70,9 @@ function MultiSelectCheckBox(props: Props) {
                                 const node = findNodeById(data, targetNodeKey);
                                 ids = node ? ((searching && node.searchResult ? node.searchResult : node.bookmarks) || []).map((b: any) => String(b.id)) : [];
                             }
-                            selectedMapChange && selectedMapChange(targetNodeKey, ids);//全选
+                            selectedMapChange && selectedMapChange(targetNodeKey, ids, path);//全选
                         } else {
-                            selectedMapChange && selectedMapChange(targetNodeKey, []);//全不选
+                            selectedMapChange && selectedMapChange(targetNodeKey, [], path);//全不选
                         }
                     } catch (e) {
                         // ignore
@@ -168,12 +170,14 @@ function MultiSelectCheckBox(props: Props) {
                 onClick={() => {
                     try {
                         let targetNodeKey = currentTab;
+                        let path = null;
                         if (currentTab !== searchTabKey && activeMap) {
                             // const rootId = String(data.id);
                             const keys = Object.keys(activeMap || {});//.filter(k => k && k.indexOf(rootId) === 0);
                             if (keys.length > 0) {
                                 const longest = keys.reduce((a, b) => a.length >= b.length ? a : b);
                                 const val = activeMap[longest];
+                                path = longest.replaceAll('-', ',') + ',' + currentTab;
                                 if (val) targetNodeKey = val;
                             }
                         }
@@ -202,7 +206,7 @@ function MultiSelectCheckBox(props: Props) {
                         }
                         const sel = (selectedMap && selectedMap[targetNodeKey]) ? selectedMap[targetNodeKey] : [];
                         const inverted = ids.filter((id: string) => !sel.includes(id));
-                        selectedMapChange && selectedMapChange(targetNodeKey, inverted);
+                        selectedMapChange && selectedMapChange(targetNodeKey, inverted, path);
                     } catch (e) {
                         // ignore
                     }

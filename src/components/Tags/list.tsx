@@ -91,14 +91,15 @@ function TagList(props: BookmarksPageProps) {
     // props.onItemClick && props.onItemClick({ key, index: -1, color: undefined, selected: false });
   }, [item]);
 
-  function onItemClick(k: any, color: string, index: number) {
+  function onItemClick(k: any, color: string, index: number, bookmarkIds: string[]) {
+    // console.log('xxxxxxxxxxxxxxx onItemClick bookmarkIds=', bookmarkIds);
     let selected = selectedTags.includes(k);//原来已/未选中
     setSelectedTags(prev => {
       if (!selected) return [...prev, k];
       return prev.filter(x => x !== k);
     });
     // props.onItemClick && props.onItemClick(k, index, !selected);
-    props.onItemClick && props.onItemClick({ key: k, index, color, selected: !selected });
+    props.onItemClick && props.onItemClick({ key: k, index, color, selected: !selected, bookmarkIds });
   }
 
   useEffect(() => {
@@ -142,7 +143,7 @@ function TagList(props: BookmarksPageProps) {
                           size="medium"
                           color={color}
                           onClick={(nextChecked) => {
-                            onItemClick(k, COLORS[idx % COLORS.length], idx);
+                            onItemClick(k, COLORS[idx % COLORS.length], idx, tagsMap[k]);
                           }}
                         >
                           {k}

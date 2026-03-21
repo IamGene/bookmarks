@@ -12,7 +12,7 @@ import { Modal, Message } from '@arco-design/web-react';
  */
 export function removeConfirm(
     // id: string,
-    id: string,
+    id: any,
     content: string,
     order: boolean,
     extra: string,

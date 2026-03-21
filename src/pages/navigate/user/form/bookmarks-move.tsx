@@ -52,7 +52,7 @@ function App(props: TagDataParams) {
         ];
 
         return (
-            <List.Item key={index} actions={actions}>
+            <List.Item key={item.id} actions={actions}>
                 <List.Item.Meta
                     avatar={<img
                         src={item.icon}
@@ -304,7 +304,7 @@ function App(props: TagDataParams) {
                         className='list-demo-actions'
                         // style={{ marginBottom: 48 }}
                         virtualListProps={{
-                            height: 290,
+                            height: 290,//可视区高度 (2.11.0 开始支持如 80% 的 string 类型)
                         }}
                         dataSource={dataSource}
                         render={render}

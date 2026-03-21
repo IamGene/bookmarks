@@ -1061,7 +1061,7 @@ export async function removeWebTags(ids: string[]): Promise<boolean> {
 }
 
 
-export async function removeWebTagsAndGroups(bookmarks: any[]): Promise<any> {
+export async function removeWebTagsAndGroups(bookmarks: any[], allGroup: boolean): Promise<any> {
     try {
         const db = await getDB();
         const ids = (Array.isArray(bookmarks) ? bookmarks.map(b => b && b.id).filter(Boolean) : []);
@@ -1091,8 +1091,10 @@ export async function removeWebTagsAndGroups(bookmarks: any[]): Promise<any> {
             deletedGroups++;
 
             // 继续向上检查父分组
-            const parentId = group.pId;
-            if (parentId) await tryDeleteGroupIfEmpty(parentId);
+            if (allGroup) {
+                const parentId = group.pId;
+                if (parentId) await tryDeleteGroupIfEmpty(parentId);
+            }
         }
 
         for (const gid of gIds) {
@@ -1118,13 +1120,14 @@ export async function getPageGroupData(groupId: string) {
 
 
 export async function testUpdate() {
+    console.log('11111111111111 testUpdate');
     const db = await getDB();
     // const group = await db.get('groups', "i1bk37x58");
     // group.pId = "95rdpjwqy";
     //ysb4ng4i9  |  qrz3nhln3,v3zlzwr2f,ysb4ng4i9  //私密
-    const group = await db.get('groups', "9cmc8u4l6");//临时
+    const group = await db.get('groups', "0halih6rr");//临时
     group.pId = null;
-    group.path = '9cmc8u4l6';
+    // group.path = ;
     // group.pageId = 1760881337215;
 
     // const group1 = await db.get('groups', "0oawbeuhz");//
@@ -1293,8 +1296,6 @@ export async function getPageTree(pageId) {
                 // node.path = currentPath;
                 let finalChildren = children;
                 let resultNode;
-
-
 
                 // 大分组存在标签，复制新的对象，作为子分组
                 if (urlList && urlList.length > 0 && children.length > 0) {

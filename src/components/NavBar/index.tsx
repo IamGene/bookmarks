@@ -362,11 +362,12 @@ function Navbar({ pageType, pageId, filterDataByTags, show, display, setNavBarKe
   const [selectedTags, setSelectedTags] = useState<any[]>([]);
   const tagsContainerRef = useRef<HTMLDivElement | null>(null);
 
-  function onTagSwitch(value: { key: string; index: number; color: string; selected: boolean }) {
+  function onTagSwitch(value: { key: string; index: number; color: string; selected: boolean, bookmarkIds: string[] }) {
     // Normalize and validate incoming value
     // console.log('sssssssssssssssssss onTagSwitch value=', value, selectedTags);
     const key = value && typeof value.key === 'string' ? value.key : null;
     const color = value && value.color ? value.color : undefined;
+    const bookmarks = value && value.bookmarkIds ? value.bookmarkIds : [];
     const index = typeof value.index === 'number' ? value.index : -1;
     const selected = !!value && !!value.selected;
     if (!key) {
@@ -382,8 +383,8 @@ function Navbar({ pageType, pageId, filterDataByTags, show, display, setNavBarKe
       if (selected) {//选中
         if (exists) return list; // already selected
         // store a normalized object to keep shape consistent
-        return [...list, { key, index, color, selected: true }];
-      } else {
+        return [...list, { key, index, color, selected: true, bookmarks }];
+      } else {//非选中
         return list.filter(x => !(x && x.key === key));
       }
       // deselect: remove any matching key
@@ -600,7 +601,6 @@ function Navbar({ pageType, pageId, filterDataByTags, show, display, setNavBarKe
             />
           </Tooltip>
         </li> */}
-
 
           {/* 显示/隐藏 */}
           {display !== null && <li>

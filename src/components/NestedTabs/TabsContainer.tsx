@@ -35,7 +35,7 @@ interface Props {
     multiSelectMap: Record<string, boolean>;// selectedMap: any;
     selectedMap?: Record<string, string[]>;
     activeMap?: Record<string, string>;
-    onSelectedMapChange?: (nodeKey: string, ids: string[]) => void;
+    onSelectedMapChange?: (nodeKey: string, ids: string[], path: string) => void;
     renderContent: (child: any, idx: number, operation?: string) => React.ReactNode;
     renderSearchContent: (operation?: string) => React.ReactNode;
 }
@@ -50,10 +50,7 @@ export default function TabsContainer(props: Props) {
         activeTab,
         level,
         activeCardTab,
-        // resort,
-        // onClickSort,
         // determinShowTabOrNot,
-        // searchResult,
         // onInputChange,
         // searchInput,
         // cardData,
@@ -185,7 +182,7 @@ export default function TabsContainer(props: Props) {
                     searching={searching}
                     currentTab={currentTab}
                     // forward nodeKey and ids
-                    selectedMapChange={(nodeKey: string, ids: string[]) => onSelectedMapChange && onSelectedMapChange(nodeKey, ids)}
+                    selectedMapChange={(nodeKey: string, ids: string[], path: string) => onSelectedMapChange && onSelectedMapChange(nodeKey, ids, path)}
                     selectedMap={selectedMap}
                     activeMap={props.activeMap}
                 />

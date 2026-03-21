@@ -12,7 +12,7 @@ import useLocale from '@/utils/useLocale';
 import styles from './style/index.module.less';
 // 导入自定义 Hook
 import { useFetchPageData } from '@/hooks/fetchPageData';
-import { setDefaultPage, getPages } from '@/db/BookmarksPages';
+import { setDefaultPage, testUpdate, getPages } from '@/db/BookmarksPages';
 import ExportModal from './exportModal';
 import { useHistory } from 'react-router-dom';
 // import { useSelector, useDispatch } from 'react-redux';

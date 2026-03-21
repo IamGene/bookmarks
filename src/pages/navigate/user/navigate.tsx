@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 
 import { Tabs, BackTop, Card, Input, Empty, Typography, Link, Grid, Button, Select, Space } from '@arco-design/web-react';
 // import { IconCaretUp } from '@arco-design/web-react/icon';
@@ -22,7 +22,7 @@ import './mock';
 const TabPane = Tabs.TabPane;
 const { Row, Col, GridItem } = Grid;
 
-function ListCard({ activeCardTab, dataType, display, setCardTabActive, keyWord, list, hasResult, loading }) {
+function ListCard({ activeCardTab, tags, dataType, display, setCardTabActive, keyWord, list, hasResult, loading }) {
   const t = useLocale(locale);
 
   // console.log('zzzzzzzzzzz  dataType', activeCardTab);
@@ -167,7 +167,7 @@ function ListCard({ activeCardTab, dataType, display, setCardTabActive, keyWord,
             setCardTabActive={setCardTabActive}
             cardData={item}
             dataType={dataType}
-            tags={null}
+            tags={tags}
             // index={index}
             // last={index == list.length - 1}
             // first={index == 0}

@@ -20,13 +20,14 @@ interface CardBlockType {
     tag: WebTag;
     select: boolean,
     no: number;
+    path: string;
     loading?: boolean;
     // parentHide?: boolean;
     selectGroup: string[];
     groupId: string;
     searching: boolean;
     editTag: Function;
-    onDeleteSuccess?: (WebTag) => void;
+    onDeleteSuccess?: (WebTag, selectGroup) => void;
     // 当复选框选中/取消时向上汇报：id, checked
     onSelectChange?: (id: string | number, checked: boolean) => void;
     // 当前是否被选中
@@ -34,7 +35,7 @@ interface CardBlockType {
 }
 
 const App = (props: CardBlockType) => {
-    const { tag, no, searching, editTag, selectGroup, onDeleteSuccess, groupId, select } = props
+    const { tag, no, searching, path, editTag, selectGroup, onDeleteSuccess, groupId, select } = props
 
     // console.log('xxxxxxxxxxxxxxxxxxxxxx', selectGroup, select);
     const [visible, setVisible] = useState(false);
@@ -59,9 +60,6 @@ const App = (props: CardBlockType) => {
             // console.log('点击了菜单,删除', key)
             // confirm(tag);
             removeConfirm(tag.id, tag.name, true, '', '标签', handleDelete);
-
-            // ssss
-
         }
     }
 
@@ -75,7 +73,8 @@ const App = (props: CardBlockType) => {
             // if (response.code === 200) {
             if (ok) {
                 // Message.success('删除成功');
-                onDeleteSuccess(tag);
+                console.log('xxxxxxxxxxxxxxxx handleDelete', selectGroup);
+                onDeleteSuccess(tag, selectGroup);
                 return tag;
             } else {
                 return null;

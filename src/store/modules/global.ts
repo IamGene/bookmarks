@@ -226,8 +226,8 @@ const globalSlice = createSlice({
         state.search.searchHistory = list;
         // console.log('🌀 updateSearchHistory state.searchHistory=', list);
       }
-      // console.log('---------------', action.payload);
       if (action.payload.searchResultNum != null) {
+        // console.log('---------------', state.search.searchResultNum, action.payload.searchResultNum);
         state.search.searchResultNum = state.search.searchResultNum + action.payload.searchResultNum;
       }
       if (action.payload.resetSearchResultNum) {
@@ -247,7 +247,8 @@ const globalSlice = createSlice({
       if (action.payload.domainGroups) state.domainGroups = action.payload.domainGroups;
       if (action.payload.currentPage) state.currentPage = action.payload.currentPage;
       if (action.payload.tagsMap) state.tagsMap = action.payload.tagsMap;
-      state.search.searchResultNum = 0;//每次更新书签数据，重置搜索结果数
+      if (action.payload.clearSearchResultNum || action.payload.clearSearchResultNum === undefined)//
+        state.search.searchResultNum = 0;//每次更新书签数据，重置搜索结果数 仅更新分组数据的时候除外
       state.hiddenGroup = action.payload.hideGroup;
       if (action.payload.expandedKeys) state.expandedKeys = action.payload.expandedKeys;
       if (action.payload.updatedGroupType != null) {
@@ -487,6 +488,7 @@ const fetchBookmarksPageDataGoups = (pageId: number) => {
       dispatch(updateBookmarks({
         dataGroups: data,
         updatedGroupType: 0,
+        clearSearchResultNum: false
       }));
       return data; // 直接返回整个响应对象
     } else {

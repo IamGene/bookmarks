@@ -268,9 +268,8 @@ function UserNavigate() {
 
   // const [filterFromAll, setFilterFromAll] = useState(groups);
   const [filterFromAll, setFilterFromAll] = useState(dataGroups);
-
-  const [bookmarkPages, setBookmarkPages] = useState([]);
-  const [currentPage, setCurrentPage] = useState(null);
+  // const [bookmarkPages, setBookmarkPages] = useState([]);
+  // const [currentPage, setCurrentPage] = useState(null);
 
   const [routes, defaultRoute] = useNavi(userInfo?.permissions);
   const defaultSelectedKeys = [currentComponent || defaultRoute];
@@ -300,7 +299,14 @@ function UserNavigate() {
 
   function onTreeTypeChange(value) {
     setDataType(value);
+    // 注意：dataType 是异步更新的，不能立刻读取它。使用传入的 value 确保正确的分支。
+    setList(value === 0 ? dataByGroup : (value === 1 ? dataByDate : dataByDomain));
   }
+
+  /*   useEffect(() => {
+      console.log('xxxxxxxxxxxxxxxxxxx useEffect list', list)
+    }, [list]); */
+
 
   // const flattenRoutes = useMemo(() => getFlattenRoutes(routes) || [], [routes]);
   // 点击(菜单)回调
@@ -355,10 +361,12 @@ function UserNavigate() {
 
   async function filterDataByTags(tags: any[]) {
     setTags(tags);
+    // console.log('xxxxxxxxxxxxxxxxxx filterDataByTags', tags)
     // console.log('user navigate filterDataByTags tags=', tags);
     if (!Array.isArray(tags) || tags.length === 0) {
       if (dataByGroup && dataByGroup.length > 0) {
-        setList(dataByGroup);
+        // setList(dataByGroup);
+        setList(dataType === 0 ? dataByGroup : (dataType === 1 ? dataByDate : dataByDomain));
       }
       return;
     }
@@ -366,6 +374,8 @@ function UserNavigate() {
 
     // 收集所有 tag.key
     const keys = tags.map(t => (t && t.key) ? String(t.key) : (typeof t === 'string' ? t : null)).filter(Boolean);
+
+    // console.log('111111111111111111 user navigate filterDataByTags tags=', tags, keys);
     // 合并 tagsMap 中对应的 id 列表
     const idSet = new Set<string>();
     if (tagsMap) {//key:[bookmarkIds]
@@ -379,123 +389,229 @@ function UserNavigate() {
 
     const ids = Array.from(idSet);
     const matchedBookmarks = await Promise.all(ids.map(id => getBookmarkById(id)));
+
+
     // console.log('2222222222222222222 matchedBookmarks', matchedBookmarks);
     // 根据 matchedBookmarks 的 gId 去重，然后逐个调用 getBookmarkGroupById
-    const gIdSet = new Set<string>();
-    (matchedBookmarks || []).forEach((b) => {
-      gIdSet.add(String(b.gId));
-    });
-    if (gIdSet.size > 0) {
-      const gIds = Array.from(gIdSet);
-      const groups = await Promise.all(gIds.map((gid) => getBookmarkGroupById(gid)));
-      const pGroups = [];
-      // 将 matchedBookmarks 分配到对应的 group.bookmarks（按 gId 匹配）
-      if (Array.isArray(groups) && groups.length > 0) {
-        groups.forEach((group) => {
-          if (!Array.isArray(group.bookmarks)) group.bookmarks = [];
-          const matched = (matchedBookmarks || []).filter((b) => b && String(b.gId) === String(group.id));
-          matched.forEach((m) => group.bookmarks.push(m));
-        });
 
-        // 构建父子分组结构：
-        // 1. 收集 groups 中所有不同的 pId（去重）
-        // 2. 对于每个 group，若 pId 为空则直接加入 pGroups；否则查询其父分组并将该 group 添加到父分组的 children
-        // 3. 向上递归，如果父分组还有 pId 则继续查询并把子分组添加到更上层的 children，直到最顶层，将最顶层加入 pGroups
-        const parentCache = new Map<string, any>();
-        // 已存在的 pGroups 变量在作用域内
-        for (const group of groups) {
-          if (!group) continue;
-          // 如果自身没有父级，直接作为顶层分组
-          if (!group.pId && group.pId !== 0) {
-            if (!pGroups.find((g) => String(g.id) === String(group.id))) pGroups.push(group);
-            continue;
-          }
+    if (dataType == 0) {
+      const gIdSet = new Set<string>();
+      (matchedBookmarks || []).forEach((b) => {
+        gIdSet.add(String(b.gId));
+      });
+      if (gIdSet.size > 0) {
+        const gIds = Array.from(gIdSet);
+        const groups = await Promise.all(gIds.map((gid) => getBookmarkGroupById(gid)));
+        const pGroups = [];
+        // 将 matchedBookmarks 分配到对应的 group.bookmarks（按 gId 匹配）
+        if (Array.isArray(groups) && groups.length > 0) {
+          groups.forEach((group) => {
+            if (!Array.isArray(group.bookmarks)) group.bookmarks = [];
+            const matched = (matchedBookmarks || []).filter((b) => b && String(b.gId) === String(group.id));
+            matched.forEach((m) => group.bookmarks.push(m));
+          });
 
-          // 查找直接父分组
-          const parentId = String(group.pId);
-          let parent = parentCache.get(parentId);
-          if (!parent) {
-            parent = await getBookmarkGroupById(parentId);
-            parentCache.set(parentId, parent);
-          }
-
-          if (parent) {
-            if (!Array.isArray(parent.children)) parent.children = [];
-            if (!parent.children.find((c) => String(c.id) === String(group.id))) parent.children.push(group);
-
-            // 向上递归把 parent 加入其上级的 children，直到最顶层
-            let ancestor = parent;
-            while (ancestor && ancestor.pId) {
-              const ancParentId = String(ancestor.pId);
-              let ancParent = parentCache.get(ancParentId);
-              if (!ancParent) {
-                ancParent = await getBookmarkGroupById(ancParentId);
-                parentCache.set(ancParentId, ancParent);
-              }
-              if (!ancParent) break;
-              if (!Array.isArray(ancParent.children)) ancParent.children = [];
-              if (!ancParent.children.find((c) => String(c.id) === String(ancestor.id))) ancParent.children.push(ancestor);
-              ancestor = ancParent;
+          // 构建父子分组结构：
+          // 1. 收集 groups 中所有不同的 pId（去重）
+          // 2. 对于每个 group，若 pId 为空则直接加入 pGroups；否则查询其父分组并将该 group 添加到父分组的 children
+          // 3. 向上递归，如果父分组还有 pId 则继续查询并把子分组添加到更上层的 children，直到最顶层，将最顶层加入 pGroups
+          const parentCache = new Map<string, any>();
+          // 已存在的 pGroups 变量在作用域内
+          for (const group of groups) {
+            if (!group) continue;
+            // 如果自身没有父级，直接作为顶层分组
+            if (!group.pId && group.pId !== 0) {
+              if (!pGroups.find((g) => String(g.id) === String(group.id))) pGroups.push(group);
+              continue;
             }
 
-            // ancestor 为最顶层（没有 pId 的分组），加入 pGroups
-            if (ancestor) {
-              if (!pGroups.find((g) => String(g.id) === String(ancestor.id))) pGroups.push(ancestor);
+            // 查找直接父分组
+            const parentId = String(group.pId);
+            let parent = parentCache.get(parentId);
+            if (!parent) {
+              parent = await getBookmarkGroupById(parentId);
+              parentCache.set(parentId, parent);
             }
-          } else {
-            // 未找到父分组时，将当前 group 作为顶层分组处理
-            if (!pGroups.find((g) => String(g.id) === String(group.id))) pGroups.push(group);
+
+            if (parent) {
+              if (!Array.isArray(parent.children)) parent.children = [];
+              if (!parent.children.find((c) => String(c.id) === String(group.id))) parent.children.push(group);
+
+              // 向上递归把 parent 加入其上级的 children，直到最顶层
+              let ancestor = parent;
+              while (ancestor && ancestor.pId) {
+                const ancParentId = String(ancestor.pId);
+                let ancParent = parentCache.get(ancParentId);
+                if (!ancParent) {
+                  ancParent = await getBookmarkGroupById(ancParentId);
+                  parentCache.set(ancParentId, ancParent);
+                }
+                if (!ancParent) break;
+                if (!Array.isArray(ancParent.children)) ancParent.children = [];
+                if (!ancParent.children.find((c) => String(c.id) === String(ancestor.id))) ancParent.children.push(ancestor);
+                ancestor = ancParent;
+              }
+
+              // ancestor 为最顶层（没有 pId 的分组），加入 pGroups
+              if (ancestor) {
+                if (!pGroups.find((g) => String(g.id) === String(ancestor.id))) pGroups.push(ancestor);
+              }
+            } else {
+              // 未找到父分组时，将当前 group 作为顶层分组处理
+              if (!pGroups.find((g) => String(g.id) === String(group.id))) pGroups.push(group);
+            }
           }
-        }
 
 
-        // 为每个顶层分组设置 tags 属性：
-        // tags 属性为传入的 tags 数组中，与该顶层分组子树内的书签存在交集的那些 tag 对象
-        if (Array.isArray(pGroups) && pGroups.length > 0 && Array.isArray(tags) && tags.length > 0) {
-          // 帮助函数：从节点子树中收集所有书签 id
-          const getBookmarkId = (b) => String(b && (b.id ?? ''));
-          const collectBookmarkIds = (root) => {
-            const idSet = new Set();
-            const dfs = (node) => {
-              if (!node) return;
-              if (Array.isArray(node.bookmarks)) {
-                node.bookmarks.forEach((bk) => {
-                  const bid = getBookmarkId(bk);
-                  if (bid) idSet.add(bid);
-                });
-              }
-              if (Array.isArray(node.children)) {
-                node.children.forEach((c) => dfs(c));
-              }
+          // 为每个顶层分组设置 tags 属性：
+          // tags 属性为传入的 tags 数组中，与该顶层分组子树内的书签存在交集的那些 tag 对象
+          if (Array.isArray(pGroups) && pGroups.length > 0 && Array.isArray(tags) && tags.length > 0) {
+            // 帮助函数：从节点子树中收集所有书签 id
+            const getBookmarkId = (b) => String(b && (b.id ?? ''));
+            const collectBookmarkIds = (root) => {
+              const idSet = new Set();
+              const dfs = (node) => {
+                if (!node) return;
+                if (Array.isArray(node.bookmarks)) {
+                  node.bookmarks.forEach((bk) => {
+                    const bid = getBookmarkId(bk);
+                    if (bid) idSet.add(bid);
+                  });
+                }
+                if (Array.isArray(node.children)) {
+                  node.children.forEach((c) => dfs(c));
+                }
+              };
+              dfs(root);
+              return idSet;
             };
-            dfs(root);
-            return idSet;
-          };
 
-          for (const p of pGroups) {
-            const bookmarkIds = collectBookmarkIds(p);//本分组中所有筛选的书签ids
-            const matchedTags = (tags || []).filter((t) => {
-              // `t` 可能是一个对象（包含 `key` 属性），也可能直接是字符串形式的 tag
-              // 优先取对象的 `key`，否则如果 `t` 本身就是字符串则当作 key
-              // const key = t && t.key ? String(t.key) : (typeof t === 'string' ? String(t) : null);
-              const key = t.key;
-              // 从全局 `tagsMap` 中获取该 tag 对应的书签 id 列表（若不存在则为空数组）
-              const idsForTag = (tagsMap && tagsMap[key]) || [];
-              // 判断该 tag 对应的任一书签 id 是否存在于当前分组的 bookmarkIds 集合中
-              return idsForTag.some((id) => bookmarkIds.has(String(id)));
-            });
-            p.tags = matchedTags;
+            for (const p of pGroups) {
+              const bookmarkIds = collectBookmarkIds(p);//本分组中所有筛选的书签ids
+              const matchedTags = (tags || []).filter((t) => {
+                // `t` 可能是一个对象（包含 `key` 属性），也可能直接是字符串形式的 tag
+                // 优先取对象的 `key`，否则如果 `t` 本身就是字符串则当作 key
+                // const key = t && t.key ? String(t.key) : (typeof t === 'string' ? String(t) : null);
+                const key = t.key;
+                // 从全局 `tagsMap` 中获取该 tag 对应的书签 id 列表（若不存在则为空数组）
+                const idsForTag = (tagsMap && tagsMap[key]) || [];
+                // 判断该 tag 对应的任一书签 id 是否存在于当前分组的 bookmarkIds 集合中
+                return idsForTag.some((id) => bookmarkIds.has(String(id)));
+              });
+              p.tags = matchedTags;
+            }
           }
+          // console.log('user navigate filterDataByTags pGroups=', pGroups);
+          setList(pGroups);
         }
-        // console.log('user navigate filterDataByTags pGroups=', pGroups);
-        setList(pGroups);
       }
-    }
+    } else if (dataType == 1) {
+      // console.log('xxxxxxxxxxxxxxxxxxx dataType 2');
+      const map = new Map();
+      // 为每个书签根据 gId 计算所在分组的祖先路径（从根到本组 id 的数组），并缓存复用
+      const pathCache = new Map(); // gId -> pathArray
+      // 收集所有不同的 gId（排除空值）
+      const uniqueGIds = Array.from(new Set(matchedBookmarks.map(b => b && b.gId).filter(Boolean)));
+      for (const gid of uniqueGIds) {
+        if (pathCache.has(gid)) continue;
+        const pathArr = [];
+        const seen = new Set();
+        let cur = gid;
+        while (cur) {
+          if (seen.has(cur)) break; // 防止循环引用导致死循环
+          seen.add(cur);
+          const group = await getBookmarkGroupById(cur);
+          if (!group) break;
+          pathArr.push(group.id);
+          if (!group.pId) break;
+          cur = group.pId;
+        }
+        // 需要从根到叶的顺序，所以反转
+        pathCache.set(gid, pathArr.reverse());
+      }
 
+      // 将计算好的 path 赋值给每个书签元素（若无 gId 则为空数组）
+      for (const u of matchedBookmarks) {
+        const gid = u && u.gId;
+        u.path = gid ? (pathCache.get(gid) || []) : [];
+      }
+      // console.log(pageId, 'getPageTreeByDate bookmarks', bookmarks.length);
+      for (const u of matchedBookmarks) {
+        const date = u.date;
+        const ym = date && date.length >= 7 ? date.slice(0, 7) : Date.now();
+        // const ym =oYearMonth1(u.date);
+        if (!map.has(ym)) map.set(ym, []);
+        map.get(ym).push(u);
+      }
+
+      // 构建数组，每项为一个月的扁平组（无嵌套）
+      const groups = Array.from(map.entries()).map(([date, items]) => {
+        // 对组内书签按时间降序排序：从晚到早
+        items.sort((a, b) => (b.addDate ?? 0) - (a.addDate ?? 0));
+        return {
+          id: date,
+          date: date,
+          name: date,
+          pageId: pageId,
+          bookmarks: items,
+          count: items.length,//个数
+          tags: [],//标签
+        };
+      });
+
+      // 分组按日期降序（最近在前）排序
+      groups.sort((a, b) => b.date.localeCompare(a.date));
+
+      // 构建二层树：年 -> 月
+      const yearMap = new Map();
+      for (const g of groups) {
+        const year = (g.date || '').split('-')[0] || g.date;
+        if (!yearMap.has(year)) yearMap.set(year, []);
+        yearMap.get(year).push(g);
+      }
+
+      if (Array.isArray(groups) && groups.length > 0 && Array.isArray(tags) && tags.length > 0) {
+        // 帮助函数：从节点子树中收集所有书签 id
+        const getBookmarkId = (b) => String(b && (b.id ?? ''));
+        const collectBookmarkIds = (root) => {
+          const idSet = new Set();
+          const dfs = (node) => {
+            if (!node) return;
+            if (Array.isArray(node.bookmarks)) {
+              node.bookmarks.forEach((bk) => {
+                const bid = getBookmarkId(bk);
+                if (bid) idSet.add(bid);
+              });
+            }
+            if (Array.isArray(node.children)) {
+              node.children.forEach((c) => dfs(c));
+            }
+          };
+          dfs(root);
+          return idSet;
+        };
+
+        for (const p of groups) {
+          const bookmarkIds = collectBookmarkIds(p);//本分组中所有筛选的书签ids
+          const matchedTags = (tags || []).filter((t) => {
+            // `t` 可能是一个对象（包含 `key` 属性），也可能直接是字符串形式的 tag
+            // 优先取对象的 `key`，否则如果 `t` 本身就是字符串则当作 key
+            // const key = t && t.key ? String(t.key) : (typeof t === 'string' ? String(t) : null);
+            const key = t.key;
+            // 从全局 `tagsMap` 中获取该 tag 对应的书签 id 列表（若不存在则为空数组）
+            const idsForTag = (tagsMap && tagsMap[key]) || [];
+            // 判断该 tag 对应的任一书签 id 是否存在于当前分组的 bookmarkIds 集合中
+            return idsForTag.some((id) => bookmarkIds.has(String(id)));
+          });
+          p.tags = matchedTags;
+        }
+      }
+      setList(groups);
+    }
 
   }
 
-  const [treeDatas, setTreeDatas] = useState(dataGroups);
+  // const [treeDatas, setTreeDatas] = useState(dataGroups);
   // 接收Tree传过来的关键词
   /*   const getTreeInputValue = (inputValue) => {
       // console.log('aaaa', inputValue);
@@ -572,6 +688,7 @@ function UserNavigate() {
     }
     // setNavbarKeyWord(keyword)
   }
+
 
   const dispatch = useDispatch();
   // 获取用户信息和标签数据
@@ -652,6 +769,7 @@ function UserNavigate() {
   }, [loadedBookmarks]);
 
 
+
   const filteredData = useMemo(() => {
     if (hiddenGroup) {//有隐藏的分组，进行过滤
       return filterHideItems(dataByGroup);
@@ -661,10 +779,10 @@ function UserNavigate() {
     return dataByGroup;
   }, [dataByGroup, hiddenGroup]);
 
-  useEffect(() => {
-    // setTreeDatas(filteredData);//TreeDatas应该从TreeData进行处理
-    setTreeDatas(dataGroups);
-  }, [dataGroups]);//
+  /*   useEffect(() => {
+      // setTreeDatas(filteredData);//TreeDatas应该从TreeData进行处理
+      setTreeDatas(dataGroups);
+    }, [dataGroups]);// */
 
   /*原来的 const filteredData = useMemo(() => {
       if (hiddenGroup) {//有隐藏的分组，进行过滤
@@ -877,7 +995,8 @@ function UserNavigate() {
                   keyWord={navbarKeyWord}
                   setCardTabActive={getCardTabActive}
                   hasResult={hasResult}
-                  list={dataType == 0 ? dataByGroup : dataType == 1 ? dataByDate : dataByDomain}
+                  list={list}
+                  tags={tags}
                   loading={loading}>
                 </Navi>
               </Content>
