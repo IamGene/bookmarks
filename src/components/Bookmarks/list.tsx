@@ -5,6 +5,7 @@ import {
   Button,
   Space,
   Result,
+  Typography,
   Badge,
   Tag,
 } from '@arco-design/web-react';
@@ -37,6 +38,7 @@ export interface BookmarksPageData {
   default: boolean
   createAt: number;
   updateAt: number;
+  bookmarksNum: number;
   new?: boolean;
   tag?: {
     text?: string;
@@ -283,26 +285,30 @@ function BookmarksPages(props: BookmarksPageProps) {
                     <Space size={4}>
                       {/* <Badge count={isContained(item.pageId) ? 1 : 0} dot> */}
                       <Badge count={isNew(item) ? 1 : 0} dot>
-                        <Button type={item.pageId === currentPage ? 'outline' : 'default'}
+                        <Button style={{ width: 175 }} type={item.pageId === currentPage ? 'outline' : 'default'}
                           onClick={e => { e.stopPropagation(); switchPage(item, index); }}
                         >
                           {item.title}
                         </Button>
+                        {/* <span style={{ position: 'absolute', left: 180, top: 21 }} >1000个书签</span> */}
+                        <Tag size='small' checkable checked={false} color='#ffffff' style={{ position: 'absolute', left: 190, top: 21, padding: 0 }} >
+                          {item.bookmarksNum}
+                        </Tag>
                       </Badge>
 
                       {/* <Typography.Text type="secondary">
-                      {item.subTitle}
+                      {item.subTitle} right: -85,
                     </Typography.Text> */}
                     </Space>
-                    <Tag color="red" onClick={e => { e.stopPropagation(); onRemovePage(item, index); }}>删除</Tag>
-                    <Tag color="orange" onClick={e => { e.stopPropagation(); onRenamePage(item, index); }}>重命名</Tag>
-                    {/* <Tag color="orange" onClick={e => { e.stopPropagation(); handleRenamePage(item, index); }}>重命名</Tag> */}
-                    <Tag color="green" onClick={e => { e.stopPropagation(); exportSelect(item, index); }}>导出</Tag>
+                    <Tag color="red" style={{ marginTop: -5 }} onClick={e => { e.stopPropagation(); onRemovePage(item, index); }}>删除</Tag>
+                    <Tag color="orange" style={{ marginTop: -5 }} onClick={e => { e.stopPropagation(); onRenamePage(item, index); }}>重命名</Tag>
+                    <Tag color="green" style={{ marginTop: -5 }} onClick={e => { e.stopPropagation(); exportSelect(item, index); }}>导出</Tag>
                     {item.default ? (
                       // <Tag icon={<IconStar />} color='arcoblue'>默认</Tag>) :
-                      <Tag color='arcoblue'>默认</Tag>) :
-                      <Tag color='gray' onClick={e => { e.stopPropagation(); handleSetDefaultPage(item, index); }}>默认</Tag>
+                      <Tag color='arcoblue' style={{ marginTop: -5 }} >默认</Tag>) :
+                      <Tag color='gray' style={{ marginTop: -5 }} onClick={e => { e.stopPropagation(); handleSetDefaultPage(item, index); }}>默认</Tag>
                     }
+
                   </div>
                 }
               />

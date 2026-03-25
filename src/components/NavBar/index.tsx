@@ -430,7 +430,7 @@ function Navbar({ pageType, pageId, filterDataByTags, show, display, setNavBarKe
           </div>
         </div>
         <ul className={styles.right} style={{ marginBottom: '0rem' }}>
-          {
+          {/*  {
             pageType === 'bookmarks' && selectedTags.length > 0 &&
             <li style={{ minWidth: 0, width: '1060px', flex: '0 0 1060px' }}>
               <div
@@ -447,9 +447,10 @@ function Navbar({ pageType, pageId, filterDataByTags, show, display, setNavBarKe
                   minWidth: 0,
                 }}
               >
-                {/* 左侧占位，用来把 tags 顶到右边 */}
-                <div style={{ flex: '1 0 auto' }} />
-                {selectedTags.map((item) => {
+              
+                  <div style={{ flex: '1 0 auto' }} />
+                  {selectedTags.map((item) => {
+                    // 左侧占位，用来把 tags 顶到右边
                   return (
                     <Tag
                       key={item.key}
@@ -473,8 +474,7 @@ function Navbar({ pageType, pageId, filterDataByTags, show, display, setNavBarKe
                 })}
               </div>
             </li>
-
-          }
+          } */}
 
           <li>
             <SearchHistory searchKeyword={searchKeyword} onClickHistory={onClickHistory} inputValue={keyword}>

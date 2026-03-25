@@ -48,10 +48,12 @@ const App = (props: CardBlockType) => {
         window.open(url, '_blank');
     }
 
+
     const onClickMenuItem = (key: string) => {
         if (key === '0') {//编辑
             let selectGroup1 = selectGroup;
-            if (selectGroup[selectGroup.length - 1].endsWith('_copy')) {
+            console.log('xxxxxxxxxxxxxxxxxxxxx onClickMenuItem 编辑', selectGroup, tag);
+            if (selectGroup[selectGroup.length - 1].endsWith('_copy')) {//数组
                 selectGroup1 = [...selectGroup.slice(0, selectGroup.length - 1)];//去掉最后一个（复制子分组）
             };//确保在编辑标签时能正确传递当前分组路径
             editTag(tag, selectGroup1, searching);

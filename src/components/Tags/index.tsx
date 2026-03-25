@@ -9,8 +9,6 @@ import {
 } from '@arco-design/web-react';
 import {
   IconFile,
-  IconDownload,
-  IconUpload,
 } from '@arco-design/web-react/icon';
 import useLocale from '../../utils/useLocale';
 import TagList, { BookmarksPagesType, MessageListType, BookmarksPageData } from './list';

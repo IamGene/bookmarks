@@ -123,3 +123,11 @@ label {
 .arco-tabs-header-extra {
     margin-left: 6px;
 }
+
+.arco-tree-node-custom-icon {
+    display: none;
+}
+
+.arco-list-item-meta {
+    padding: 8px 0;
+}

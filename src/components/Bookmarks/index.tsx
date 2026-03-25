@@ -67,6 +67,7 @@ function DropContent({ pages, currentPage, pagesChange, activeRename, activeKey 
       const confirmed = await removeConfirm(
         item.pageId,
         item.title,
+        true,
         '点击确定将删除该书签页及其所有书签',
         '书签页',
         deletePageBookmarks
@@ -283,6 +284,7 @@ function DropContent({ pages, currentPage, pagesChange, activeRename, activeKey 
 function BookmarkPageBox({ children, pages, currentPage, setCurrentPage }) {
   // 提供一个ref给DropContent
   const [popupVisible, setPopupVisible] = React.useState(false);
+
   // console.log('222222222 BookmarkPageBox', pages, currentPage);
   const [data, setData] = useState<BookmarksPagesType>(pages);
   const dispatch = useDispatch();
@@ -384,12 +386,13 @@ function BookmarkPageBox({ children, pages, currentPage, setCurrentPage }) {
       // trigger={['click']}
       clickToClose={false} // 关键属性：点击弹层内容（包括Modal）不关闭 keepPopupVisible={keepPopupVisible} 
       popupVisible={popupVisible}
+      // popupVisible={true}
       // onVisibleChange={setPopupVisible}
       onVisibleChange={(visible) => {
         handleVisibleChange(visible);
       }}
       onClickOutside={() => {
-        setPopupVisible(false);
+        setPopupVisible(false);//注释此行进行元素查看，调试
       }}
       // onVisibleChange={handleVisibleChange}
       clickOutsideToClose={false}

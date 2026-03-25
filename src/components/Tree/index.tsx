@@ -73,7 +73,6 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
     const { dateGroups, dataGroups, expandedKeys, domainGroups, toUpdateGroupTypes } = globalState;
     const dispatch = useDispatch();
 
-
     /**
      *  
      *  useMemo优化性能，避免不必要的计算和渲染
@@ -97,14 +96,9 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
             setPageId(dataGroups[0].pageId);
         }
         setTreeData(data);
+        if (groupType == 2) setTreeExpandedKeys(data.map((item) => item.id));   //切换到按域名分组 自动展开
+        // console.log('>>>>>>>>>>>>>>>>>>>>> tree组件渲染了33, dataGroups11111111111111111111111111', dataGroups);
     }, [allDataGroups]);//书签页数据发生变化
-
-    useEffect(() => {
-        /*  dataGroups.filter(g => g.id === "01xsz1ezn").map(g =>
-             console.log('>>>>>>>>>>>>>>>>>>>>> tree组件渲染了33, dataGroups11111111111111111111111111', g.children)); */
-        if (groupType === 0) setTreeData(dataGroups);
-    }, [dataGroups]);//书签页数据发生变化
-
 
     //搜索输入内容
     const [groupType, setGroupType] = useState(options[0].value);
@@ -147,9 +141,11 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
             content: `You select ${value}.`,
             showIcon: true,
         }); */
+
         setInputValue(null);
         if (toUpdateGroupTypes.length > 0) {
             if (value === 0 && toUpdateGroupTypes.includes(0)) {
+                console.log('xxxxxxxxxxxxxxxxxxx onTypeSelectChange fetchBookmarksPageData0')
                 await dispatch(fetchBookmarksPageData0(pageId));
             } else if (value === 1 && toUpdateGroupTypes.includes(1)) {
                 await dispatch(fetchBookmarksPageData1(pageId));
@@ -158,16 +154,21 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
             }
         }
 
-        setTreeData(allDataGroups.find(g => g.value === value)?.data || []);
+        const treeData = allDataGroups.find(g => g.value === value)?.data || []
+        setTreeData(treeData);
         //切换分组类型时，默认展开该分组下的所有项
         if (expand) {
             setTreeExpandedKeys(value == 0 ? (Array.isArray(expandedKeys) ? expandedKeys : []) :
-                value == 1 ? (Array.isArray(dateGroups) ? dateGroups.map((item) => item.id) : []) :
-                    (Array.isArray(domainGroups) ? domainGroups.map((item) => item.id) : [])
+                treeData.map((item) => item.id)
             );//展开时，展开所有项
         } else {
-            setTreeExpandedKeys([])//收起时，清空展开项
+            if (value == 2) {  //切换到按域名分组 自动展开
+                setExpand(true);
+                setTreeExpandedKeys(treeData.map((item) => item.id));
+            }
+            else setTreeExpandedKeys([])//收起时，清空展开项
         }
+
         dispatch(updateSearchState({ resetSearchResultNum: true }));
         setTreeType(value);
         setGroupType(value);
@@ -260,38 +261,12 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
          }
      }
     */
-    /*  useEffect(() => {
-         console.log('treeData useEffect', data, inputValue);
-         let filteredData = filterChildrenArrayByPath(data);
-         setTreeData(filteredData);
-     
-         if (!inputValue || !inputValue.trim()) {
-             setTempExpand(false);
-         }
-         else if (data.length) {
-             setTempExpand(true);
-         }
-     }, [data, inputValue]); */
-
-
-    /*   useEffect(() => {
-          // 选中节点
-          // console.log('treeSelectedKeys', treeSelectedKeys)
-          setSelectedKeys(treeSelectedKeys);
-          // 展开选中的节点
-          if (treeSelectedKeys.length) {
-              const arr = treeSelectedKeys[0].split(',');
-              const expandKeys = [arr[0] + '']
-              setTreeExpandedKeys(expandKeys)
-          }
-      }, [treeSelectedKeys]); */
-
 
 
     //入口
     function scrollToAnchor(event, id, path, list: boolean) {
         const paths = !!list ? path + ',' + id + '_copy' : path
-        console.log('111111111111111 scrollToAnchor', id, path, list, paths);
+        // console.log('111111111111111 scrollToAnchor', id, path, list, paths);
         setTreeSelected(paths);
         if (groupType === 0) {
             scrollToAnchor1(event, path);
@@ -360,7 +335,6 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
     }
 
 
-
     function onTreeSelect(value, extra) {
         console.log('onTreeSelect', value, extra);
         //回传当前选中项到父组件传递到兄弟组件展示对应的Card和Tab
@@ -386,7 +360,6 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
             });
         } */
     }
-
 
     function changeExpandedKeys(keys, extra) {
         const expanded = extra.expanded;
@@ -428,7 +401,6 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
         }
     }
 
-
     const getTree1 = (treeData) => {
         // console.log('非展开树被渲染了')
         const autoExpandParent = false;
@@ -448,16 +420,23 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
                     // setSelectedKeys(value);
                     // onTreeSelect(value, extra);
                 }}
+                virtualListProps={{ height: 780 }}
                 fieldNames={{
                     key: 'id',
                     title: 'name',
                 }}
-                renderTitle={({ id, name, pId, path, list }) => {
+                renderTitle={({ id, name, pId, path, list, icon }) => {
                     const hrefId = pId ? pId : id
                     if (inputValue) {
                         const index = name.toLowerCase().indexOf(inputValue.toLowerCase());
                         if (index === -1) {
-                            return <AnchorLink href={`#${hrefId}`} title={name} onClick={(event) => scrollToAnchor(event, `${id}`, `${path}`, list)} />;
+                            return <AnchorLink href={`#${hrefId}`} title={
+                                <>
+                                    {icon ? <img width={16} height={16} src={`${icon}`} alt="icon"></img> : ''}
+                                    <span>{name}</span>
+                                </>
+                            }
+                                onClick={(event) => scrollToAnchor(event, `${id}`, `${path}`, list)} />;
                         }
 
                         const prefix = name.substr(0, index);
@@ -465,18 +444,28 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
 
                         return (
                             // <Anchor hash={false} affix={false} animation={false} lineless >
-                            <AnchorLink href={`#${hrefId}`} onClick={(event) => scrollToAnchor(event, `${id}`, `${path}`, list)} title={<span>
-                                {prefix}
-                                {/* 匹配词高亮 */}
-                                <span style={{ color: 'var(--color-primary-light-4)' }}>
-                                    {name.substr(index, inputValue.length)}
-                                </span>
-                                {suffix}
-                            </span>} >
+                            <AnchorLink href={`#${hrefId}`} onClick={(event) => scrollToAnchor(event, `${id}`, `${path}`, list)} title=
+                                {<>
+                                    {icon ? <img width={16} height={16} src={`${icon}`} alt="icon"></img> : ''}
+                                    <span>
+                                        {prefix}
+                                        {/* 匹配词高亮 */}
+                                        <span style={{ color: 'var(--color-primary-light-4)' }}>
+                                            {name.substr(index, inputValue.length)}
+                                        </span>
+                                        {suffix}
+                                    </span>
+                                </>}
+                            >
                             </AnchorLink>
                         );
                     }
-                    return <AnchorLink href={`#${hrefId}`} title={name} onClick={(event) => scrollToAnchor(event, `${id}`, `${path}`, list)} style={{ color: 'var(--color-primary-light-4)' }} />;
+                    return <AnchorLink href={`#${hrefId}`} title={
+                        <>
+                            {icon ? <img width={16} height={16} src={`${icon}`}></img> : ''}
+                            <span> {name}  </span>
+                        </>
+                    } onClick={(event) => scrollToAnchor(event, `${id}`, `${path}`, list)} style={{ color: 'var(--color-primary-light-4)' }} />;
                     // return <AnchorLink href={`#${hrefId}`} title={name} style={{ color: 'var(--color-primary-light-4)' }} />;
                 }}
             >
@@ -495,6 +484,7 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
             </div> */}
             <div style={{ margin: '2px 0 2px 10px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Typography.Text style={{ color: 'var(--color-text-2)' }}>收起</Typography.Text>
+                {/* <Switch size='small' checked={expand} onChange={switchExpand}></Switch> */}
                 <Switch size='small' checked={expand} onChange={switchExpand}></Switch>
                 <Typography.Text style={{ color: 'var(--color-text-2)' }}>展开</Typography.Text>
                 <Select

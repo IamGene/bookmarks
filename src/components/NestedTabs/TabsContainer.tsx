@@ -22,6 +22,7 @@ interface Props {
     onTabMouseEnter?: (child: any, e?: React.MouseEvent) => void;
     // onClickSearchMenuItem: any;
     searching: boolean;
+    filterByTags: boolean;
     dataType: number;
     // showItem
     // searchResult: any[];
@@ -50,6 +51,7 @@ export default function TabsContainer(props: Props) {
         activeTab,
         level,
         activeCardTab,
+        filterByTags,
         // determinShowTabOrNot,
         // onInputChange,
         // searchInput,
@@ -130,13 +132,10 @@ export default function TabsContainer(props: Props) {
 
     // selectedMap 来自父组件，onSelectedMapChange 用于通知父组件更新
     const { selectedMap, onSelectedMapChange } = props as any;
-
     const [currentTab, setCurrentTab] = useState<string>(activeTab ? activeTab : data.children[0].id);
+    const searchingOrFilterByTags = searching || filterByTags;
 
     useEffect(() => {
-        /* if (data.id === '4hzz2ngtw') {
-            console.log('aaaaaaaaaaaaaaaaaaaaa TabsContainer useEffect, activeTab=', activeTab, ' currentTab=', currentTab, ' searchTabKey=', searchTabKey, ' searching=', searching);
-        } */
         //从非搜索切换到搜索 只有第一层tabs才有搜索结果tab
         if (searching && !data.pId) {
             setCurrentTab(searchTabKey);
@@ -147,7 +146,7 @@ export default function TabsContainer(props: Props) {
     }, [searching]);
 
 
-    const [direction, setDirection] = useState('horizontal');
+    // const [direction, setDirection] = useState('horizontal');
 
     const showExtra = () => {
         if (!!multiSelectMap[currentTab]) {//当前tab开启多选
@@ -215,8 +214,8 @@ export default function TabsContainer(props: Props) {
                     // determinShowTabOrNot(child) && (
                     //版本B:全部根据情况显示
                     //a.搜索：有结果或Tree节点选中时显示该Tab；b.非搜索：全部显示
-                    (searching && (child.totalMatchCount > 0 || activeCardTab.includes(child.id))) || !searching) &&
-                    // onMouseEnter={(e) => handleTabMouseEnter(child, e)}//鼠标移近该tab
+                    // (searching && (child.totalMatchCount > 0 || activeCardTab.includes(child.id))) || !searching) &&
+                    (searchingOrFilterByTags && (child.totalMatchCount > 0 || activeCardTab.includes(child.id))) || !searchingOrFilterByTags) &&
                     // style={{ display: 'block', width: '100%' }} style={{ display: 'inline-block' }}
                     <TabPane
                         key={child.id}
@@ -238,12 +237,9 @@ export default function TabsContainer(props: Props) {
                                         <>
                                             {tabMore(child, hoveredId === child.id)}
                                             {/* {child.id}  // : `(${child.bookmarksNum})`}*/}
-                                            {searching ? <span style={{ color: 'red' }}>{`(${child.totalMatchCount})`}</span>
+                                            {searchingOrFilterByTags ? <span style={{ color: 'red' }}>{`(${child.totalMatchCount})`}</span>
                                                 : `(${child.bookmarksNum})`}
                                             {/* : `[${child.id}](${child.path})`} */}
-
-
-
                                         </>
                                     } </WrapTabNode>
                             </span>

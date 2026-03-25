@@ -163,7 +163,7 @@ function ListCard({ activeCardTab, tags, dataType, display, setCardTabActive, ke
         {(search && hasResult && (list && list.length > 0)) && <SearchResult></SearchResult>}
 
         {list && list.length > 0 && list.map((item, index) => {
-          return <CardItem key={index}
+          return <CardItem key={item.id}
             setCardTabActive={setCardTabActive}
             cardData={item}
             dataType={dataType}

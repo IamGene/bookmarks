@@ -381,7 +381,6 @@ const fetchBookmarksPageData = (pageId: number) => {
       tagsMap = Object.fromEntries(tagsMap);
     }
 
-
     const res1 = await getPageTreeByDate(pageId);
     const dateGroups = res1.treeData;//
     const list1 = res1.data;//书签数据
@@ -443,7 +442,7 @@ const fetchBookmarksPageData = (pageId: number) => {
 const fetchBookmarksPageData0 = (pageId: number) => {
   return async (dispatch) => {
     const res = await getPageTree(pageId);
-    // console.log('--------------------fetchBookmarksPageData0 res', res);
+    console.log('--------------------fetchBookmarksPageData0 res', res);
     const data = res.data;
     let tagsMap = res.tagsMap;
     // 如果后端/DB 返回的是 Map，转换为普通对象以保证 state 可序列化

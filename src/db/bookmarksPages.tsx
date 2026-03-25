@@ -686,12 +686,12 @@ export async function exportAllPagesJson() {
         // 查询所有 nodes
         const nodes = await db.getAll('groups');
         // 查询所有 urls
-        const urls = await db.getAll('bookmarks');
+        const bookmarks = await db.getAll('bookmarks');
         // 封装为 JSON 格式
         const result = {
             pages: pages || [],
-            urls: urls || [],
-            nodes: nodes || [],
+            bookmarks: bookmarks || [],
+            groups: nodes || [],
         };
         return result;
     } catch (e) {
@@ -797,7 +797,10 @@ export async function importPageJson(jsonData) {
         const db = await getDB();
         // const { pages, nodes, urls } = jsonData;
         const { pages, groups, bookmarks } = jsonData;
-        // console.log('importPageJson jsonData', jsonData);
+        console.log('importPageJson jsonData', jsonData);
+        console.log('importPageJson pages ', pages);
+        console.log('importPageJson groups', groups);
+        console.log('importPageJson bookmarks', bookmarks);
         // if (!Array.isArray(pages) || !Array.isArray(nodes) || !Array.isArray(urls)) {
         if (!Array.isArray(pages) || !Array.isArray(groups) || !Array.isArray(bookmarks)) {
             throw new Error("导入失败：JSON 数据格式无效。");
@@ -894,6 +897,8 @@ export async function importPageJson(jsonData) {
             });
         }
 
+
+        const pageBookmarkCountMap = {}; // pageId -> count
         // 3. 遍历并保存 urls，关联到新的 pageId 和 gId
         const urlsToImport = bookmarks.filter(url => pageIdMap[url.pageId]);
         for (const url of urlsToImport) {
@@ -910,12 +915,29 @@ export async function importPageJson(jsonData) {
                 console.warn(`Group node ${url.gId} for URL ${url.id} not found in mapping.`);
             }
 
+            // ⭐ 统计数量
+            if (!pageBookmarkCountMap[newPageId]) {
+                pageBookmarkCountMap[newPageId] = 0;
+            }
+            pageBookmarkCountMap[newPageId]++;
+
             // await db.put('bookmarks', {
             await db.put('bookmarks', {
                 ...url,
                 id: uuid(),
                 pageId: newPageId,
                 gId: newGId,
+            });
+        }
+
+
+        // ⭐ 更新每个 page 的 bookmarksNum
+        for (const newPageId of newlyImportedPageIds) {
+            const page = await db.get('pages', newPageId);
+            if (!page) continue;
+            await db.put('pages', {
+                ...page,
+                bookmarksNum: pageBookmarkCountMap[newPageId] || 0,
             });
         }
 
@@ -1135,10 +1157,11 @@ export async function testUpdate() {
     // group1.path = "qrz3nhln3,v3zlzwr2f,ysb4ng4i9,0oawbeuhz";
     // const group1 = await db.get('groups', "0l5tbdjit");
     // group1.add_date = "1709921846";//其他书签 0l5tbdjit
-
     await db.put('groups', group);
     // await db.put('groups', group1);
 }
+
+
 
 export async function getPageNodesTree1(pageId, db, includeSelfAsChild = false) {
     // includeSelfAsChild: 如果为 true，则当某个分组有子分组时，
@@ -1256,13 +1279,62 @@ export async function getPageTreeGroupsData(pageId) {
     return data; // 根节点
 }
 
+async function updateBookmarksIcon(pageId, db, bookmarksNum) {
+    // console.log('11111111111111 updateBookmarksIcon');
+    // const db = await getDB();
+    /* const bookmarks = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
+    for (const bm of bookmarks) {
+        if (bm.url.startsWith('https://www.etdown.net/')) {
+            // console.log('11111111111111 updateBookmarksIcon', bm);
+            bm.icon =
+                "data:image/png;base64,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";
+            await db.put('bookmarks', bm);
+        }
+    } */
+
+
+    /* const group = await db.get('groups', "i1bk37x58");
+    group.pId = "95rdpjwqy";
+    group.pId = null;
+    await db.put('groups', group); */
+
+    const page = await db.get('pages', pageId);
+    page.bookmarksNum = bookmarksNum;
+    await db.put('pages', page);
+}
+
+async function setBookmarksGroupPath(bookmarks, db) {
+    const pathCache = new Map(); // gId -> pathArray
+    const uniqueGIds = Array.from(new Set(bookmarks.map(b => b && b.gId).filter(Boolean)));
+    for (const gid of uniqueGIds) {
+        if (pathCache.has(gid)) continue;
+        const pathArr = [];
+        const seen = new Set();
+        let cur = gid;
+        while (cur) {
+            if (seen.has(cur)) break;
+            seen.add(cur);
+            const group = await db.get('groups', cur);
+            if (!group) break;
+            pathArr.push(group.id);
+            if (!group.pId) break;
+            cur = group.pId;
+        }
+        pathCache.set(gid, pathArr.reverse());
+    }
+    for (const u of bookmarks) {
+        const gid = u && u.gId;
+        u.path = gid ? (pathCache.get(gid) || []) : [];
+    }
+}
+
 export async function getPageTree(pageId) {
 
     const db = await getDB();
     const nodes = await db.getAllFromIndex('groups', 'pageId', pageId);
     const urls = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
-    // console.log(pageId, '0000000000000000 getPageTree urls', urls.length, 'count');
-
+    // updateBookmarksIcon(pageId, db, urls.length);//测试 更新
+    const addUrls = [];
     /* const k = 'a';
     const regex = new RegExp(escapeRegExp(k), 'i');
     let count = 0;
@@ -1273,12 +1345,13 @@ export async function getPageTree(pageId) {
         const description = (navi.description || '') + '';
         if (regex.test(name) || regex.test(description)) count++;
     }
-    console.log(pageId, '0000000000000000 getPageTree urls', urls.length, 'count', count); */
+     */
 
-    const tagsMap = collectUrlTags(urls);
+    // 为每个书签根据 gId 计算所在分组的祖先路径（从根到本组 id 的数组），并缓存复用
+    setBookmarksGroupPath(urls, db);
+
     const expandedKeysSet = new Set();
     // 收集属于各分组的所有书签（展平为单个数组）
-    // const addUrls: any[] = [];
 
     function buildTree(parentId, parentPath) {
         return nodes
@@ -1290,9 +1363,9 @@ export async function getPageTree(pageId) {
                 const urlList = urls.filter(n => n.gId === node.id);
                 urlList.sort((a, b) => (a.addDate ?? 0) - (b.addDate ?? 0));
                 // 将该分组的书签加入汇总（若有）
-                /*  if (Array.isArray(urlList) && urlList.length > 0) {
-                     addUrls.push(...urlList);
-                 } */
+                if (Array.isArray(urlList) && urlList.length > 0) {
+                    addUrls.push(...urlList);
+                }
                 // node.path = currentPath;
                 let finalChildren = children;
                 let resultNode;
@@ -1358,29 +1431,60 @@ export async function getPageTree(pageId) {
     }
     // 构建树并在构建完成后打印/返回汇总的书签
     const data = buildTree(null, null);
-    return { data: data, tagsMap: tagsMap, expandedKeys: Array.from(expandedKeysSet) }; // 根节点
+
+
+    // 为每个书签设置其所在分组的 path（groupPath），使用已构建的 tree (`data`) 中的 path 值
+    const groupPathMap = new Map<string, string>();
+    function collectPaths(nodesArray) {
+        if (!Array.isArray(nodesArray)) return;
+        for (const nd of nodesArray) {
+            if (!nd) continue;
+            if (nd.id) groupPathMap.set(nd.id, nd.path || '');
+            if (Array.isArray(nd.children) && nd.children.length > 0) collectPaths(nd.children);
+        }
+    }
+    collectPaths(data);
+
+    //设置了groupPath(大分组的path)的bookmarkList
+    const bookmarkList = (Array.isArray(urls) ? urls : []).map(u => {
+        const gPath = u && u.gId ? (groupPathMap.get(u.gId) || '') : '';
+        return { ...u, groupPath: gPath };// 返回新的对象，避免与原始 urls 共用引用
+    });
+
+    const tagsMapResult = collectBookmarksTags(bookmarkList);
+    // 非空校验
+    const tagsByGroupList = (tagsMapResult && Array.isArray(tagsMapResult.tagsList)) ? tagsMapResult.tagsList : [];
+    if (tagsByGroupList.length > 0) {
+        for (const nd of data) {//按大分组id（groupPath）获取其标签数组
+            const tagsList = tagsByGroupList.filter(item => item.gId === nd.id);
+            // console.log('xxxxxxxxxxxxxxxxxxxxxxx', nd.name, tagsList);
+            nd.tagsList = tagsList;
+        }
+        // 递归将对应的 tagsList 赋给 data 的每个节点（使用节点 id 与 tagsByGidMap 的 key 对应）
+    }
 
     // console.log('collected addUrls count:', addUrls, addUrls.length);
     // 计算 urls 与 addUrls 的差集（按 id 区分，得到未被归入 addUrls 的书签）
-    /* try {
+    try {
         const addUrlsIds = new Set(addUrls.map(u => u && u.id).filter(Boolean));
         // const urlsIds = new Set(urls.map(u => u && u.id).filter(Boolean));
         const urlsNotInAddUrls = urls.filter(u => !(u && addUrlsIds.has(u.id)));
         console.log('urls not in addUrls count:', urlsNotInAddUrls.length, urlsNotInAddUrls);
     } catch (e) {
         console.error('compute diff error', e);
-    } */
+    }
+
+    return { data: data, tagsMap: (tagsMapResult && tagsMapResult.allTags) || new Map(), expandedKeys: Array.from(expandedKeysSet) }; // 根节点
 
 }
 
-
-
-
-export async function getPageTreeByDate(pageId) {
+export async function getPageTreeByDate(pageId) {//pageId
     // 新实现：按书签的 addDate（年-月）分组，返回扁平的每月组数组，
     // 每组包含字段：id, date ("YYYY-MM"), name, bookmarks: []
     const db = await getDB();
     const bookmarks = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
+
+    setBookmarksGroupPath(bookmarks, db);
     // const tagsMap = collectUrlTags(urls);
     // 将时间规范化为 "YYYY-MM"
     const map = new Map();
@@ -1411,6 +1515,10 @@ export async function getPageTreeByDate(pageId) {
         const gid = u && u.gId;
         u.path = gid ? (pathCache.get(gid) || []) : [];
     }
+
+    const seenGroupTag = new Set<string>(); // 用于去重： `${gId}:::${value}`
+    const groupTags: Array<{ gId: string | null; value: string; }> = [];
+
     // console.log(pageId, 'getPageTreeByDate bookmarks', bookmarks.length);
     for (const u of bookmarks) {
         const date = u.date;
@@ -1418,21 +1526,54 @@ export async function getPageTreeByDate(pageId) {
         // const ym =oYearMonth1(u.date);
         if (!map.has(ym)) map.set(ym, []);
         map.get(ym).push(u);
+
+        // 计算所属大分组 id：优先使用 groupPath 的第一个元素，否则回退到 gId
+        const tags = u.tags;
+        if (!tags) continue;
+        function addKey(k: string) {
+            const key = k && String(k).trim();
+            if (!key) return;
+
+            // tagsList 去重：相同 gId 下不添加相同 value
+            const gidKey = ym;
+            const uniqueKey = `${gidKey}:::${key}`;
+            if (!seenGroupTag.has(uniqueKey)) {
+                seenGroupTag.add(uniqueKey);
+                groupTags.push({ gId: ym, value: key });
+            }
+        }
+        if (Array.isArray(tags)) {
+            for (const t of tags) {
+                if (t === undefined || t === null) continue;
+                addKey(String(t));
+            }
+        } else if (typeof tags === 'string') {
+            const parts = tags.split(/[,;，；\s]+/).map(s => s.trim()).filter(Boolean);
+            for (const p of parts) addKey(p);
+        } else {
+            addKey(String(tags));
+        }
     }
+
 
     // 构建数组，每项为一个月的扁平组（无嵌套）
     const groups = Array.from(map.entries()).map(([date, items]) => {
         // 对组内书签按时间降序排序：从晚到早
         items.sort((a, b) => (b.addDate ?? 0) - (a.addDate ?? 0));
+
+        const tagsList = groupTags.length > 0 && groupTags.filter(item => item.gId === date) || [];
+
         return {
             id: date,
             date: date,
             name: date,
             pageId: pageId,
             bookmarks: items,
-            count: items.length,//个数
+            tagsList,
+            bookmarksNum: items.length,//个数
         };
     });
+
 
     // 分组按日期降序（最近在前）排序
     groups.sort((a, b) => b.date.localeCompare(a.date));
@@ -1473,17 +1614,168 @@ export async function getPageTreeByDate(pageId) {
     return { data: groups, treeData: treeData };
 }
 
+export async function getPageTreeByDomain2(pageId) {
+    const db = await getDB();
+    const bookmarks = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
 
-function escapeRegExp(str) {
-    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // console.log(pageId, 'getPageTreeByDomain bookmarks', bookmarks.length);
+
+    // ========= 1. 构建 path 缓存 =========
+    const pathCache = new Map();
+    const uniqueGIds = Array.from(new Set(bookmarks.map(b => b && b.gId).filter(Boolean)));
+
+    for (const gid of uniqueGIds) {
+        if (pathCache.has(gid)) continue;
+
+        const pathArr = [];
+        const seen = new Set();
+        let cur = gid;
+
+        while (cur) {
+            if (seen.has(cur)) break;
+            seen.add(cur);
+
+            const group = await db.get('groups', cur);
+            if (!group) break;
+
+            pathArr.push(group.id);
+
+            if (!group.pId) break;
+            cur = group.pId;
+        }
+
+        pathCache.set(gid, pathArr.reverse());
+    }
+
+    for (const u of bookmarks) {
+        const gid = u && u.gId;
+        u.path = gid ? (pathCache.get(gid) || []) : [];
+    }
+
+    // ========= 2. 提取域名 =========
+    function extractDomain(url) {
+        if (!url) return 'unknown';
+        let tmp = String(url).trim();
+
+        try {
+            if (!/^https?:\/\//i.test(tmp)) tmp = 'http://' + tmp;
+            const parsed = new URL(tmp);
+            let host = parsed.hostname || '';
+            host = host.replace(/^www\./i, '').toLowerCase();
+            return host || 'unknown';
+        } catch (e) {
+            tmp = tmp.replace(/^.*?:\/\//, '').split('/')[0];
+            tmp = tmp.replace(/^www\./i, '').toLowerCase();
+            return tmp || 'unknown';
+        }
+    }
+
+    // ========= 3. 分组 =========
+    const map = new Map();
+
+    const seenGroupTag = new Set();
+    const groupTags = [];
+
+    for (const u of bookmarks) {
+        const domain = extractDomain(u.url);
+        u.domain = domain;
+
+        if (!map.has(domain)) map.set(domain, []);
+        map.get(domain).push(u);
+
+        // ========= tags 处理 =========
+        const tags = u.tags;
+        if (!tags) continue;
+
+        function addKey(k) {
+            const key = k && String(k).trim();
+            if (!key) return;
+
+            let gidKey = (domain && domain[0]) ? domain[0].toUpperCase() : '#';
+            if (!/^[A-Z0-9]$/.test(gidKey)) gidKey = '#';
+
+            const uniqueKey = `${gidKey}:::${key}`;
+            if (!seenGroupTag.has(uniqueKey)) {
+                seenGroupTag.add(uniqueKey);
+                groupTags.push({ gId: gidKey, value: key });
+            }
+        }
+
+        if (Array.isArray(tags)) {
+            for (const t of tags) {
+                if (t !== undefined && t !== null) addKey(t);
+            }
+        } else if (typeof tags === 'string') {
+            const parts = tags.split(/[,;，；\s]+/).map(s => s.trim()).filter(Boolean);
+            for (const p of parts) addKey(p);
+        } else {
+            addKey(tags);
+        }
+    }
+
+    // ========= 4. 构建 domainGroups =========
+    const domainGroups = Array.from(map.entries()).map(([domain, items]) => {
+        items.sort((a, b) => (b.addDate ?? 0) - (a.addDate ?? 0));
+
+        // ⭐ icon 取一个 bookmark 的
+        const iconBookmark = items.find(b => b?.icon) || items[0];
+        const icon = iconBookmark?.icon || '';
+
+        return {
+            id: uuid(),
+            name: domain,
+            pageId: pageId,
+            bookmarks: items,
+            icon,
+            bookmarksNum: items.length,
+        };
+    });
+
+    domainGroups.sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+    );
+
+    // ========= 5. 生成 data（单层） =========
+    const data = domainGroups.map((m, idx) => {
+        const id = m.id || uuid();
+
+        const bookmarksWithGId1 = Array.isArray(m.bookmarks)
+            ? m.bookmarks.map(b => ({ ...b, gId1: id }))
+            : [];
+
+        let initial = (m.name && m.name[0]) ? m.name[0].toUpperCase() : '#';
+        if (!/^[A-Z0-9]$/.test(initial)) initial = '#';
+
+        return {
+            ...m,
+            id,
+            bookmarks: bookmarksWithGId1,
+            order: idx + 1,
+            path: id,
+            bookmarksNum: bookmarksWithGId1.length,
+            tagsList: groupTags.filter(item => item.gId === initial),
+        };
+    });
+
+    // ========= 6. 生成 treeData（单层树） =========
+    const treeData = data.map((c, idx) => ({
+        ...c,
+        pId: null,
+        order: idx + 1,
+        bookmarksNum: typeof c.bookmarksNum === 'number'
+            ? c.bookmarksNum
+            : (Array.isArray(c.bookmarks) ? c.bookmarks.length : 0),
+    }));
+    return { data, treeData };
 }
 
 export async function getPageTreeByDomain(pageId) {
     // 新实现：按书签链接的域名分组（不包含协议），保持返回结构与原来相同
     const db = await getDB();
     const bookmarks = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
+    setBookmarksGroupPath(bookmarks, db);
 
-
+    // console.log(pageId, 'getPageTreeByDomain bookmarks', bookmarks.length);
 
     // 为每个书签根据 gId 计算所在分组的祖先路径（从根到本组 id 的数组），并缓存复用
     const pathCache = new Map(); // gId -> pathArray
@@ -1530,23 +1822,60 @@ export async function getPageTreeByDomain(pageId) {
 
     // 按域名分组
     const map = new Map(); // domain -> bookmarks[]
+
+    const seenGroupTag = new Set<string>(); // 用于去重： `${gId}:::${value}`
+    const groupTags: Array<{ gId: string | null; value: string; }> = [];
+
     for (const u of bookmarks) {
         const domain = extractDomain(u.url);
         u.domain = domain;
         if (!map.has(domain)) map.set(domain, []);
         map.get(domain).push(u);
+
+        // 计算所属大分组 id：优先使用 groupPath 的第一个元素，否则回退到 gId
+        const tags = u.tags;
+        if (!tags) continue;
+        function addKey(k: string) {
+            const key = k && String(k).trim();
+            if (!key) return;
+
+            // tagsList 去重：相同 gId 下不添加相同 value
+            let gidKey = (domain && domain[0]) ? domain[0].toUpperCase() : '#';
+            if (!/^[A-Z0-9]$/.test(gidKey)) gidKey = '#';
+
+            const uniqueKey = `${gidKey}:::${key}`;
+            if (!seenGroupTag.has(uniqueKey)) {
+                seenGroupTag.add(uniqueKey);
+                groupTags.push({ gId: gidKey, value: key });
+            }
+        }
+        if (Array.isArray(tags)) {
+            for (const t of tags) {
+                if (t === undefined || t === null) continue;
+                addKey(String(t));
+            }
+        } else if (typeof tags === 'string') {
+            const parts = tags.split(/[,;，；\s]+/).map(s => s.trim()).filter(Boolean);
+            for (const p of parts) addKey(p);
+        } else {
+            addKey(String(tags));
+        }
     }
 
     // 构建域名层级数据（首字母 -> 域名 -> bookmarks）
     const domainGroups = Array.from(map.entries()).map(([domain, items]) => {
         items.sort((a, b) => (b.addDate ?? 0) - (a.addDate ?? 0));
+
+        // ⭐ 新增：从该域名分组中找一个有 icon 的书签
+        const iconBookmark = items.find(b => b && b.icon);
+        const icon = iconBookmark ? iconBookmark.icon : '';
+
         return {
             id: uuid(),
-            // date: domain,
             name: domain,
             pageId: pageId,
             bookmarks: items,
-            count: items.length,
+            icon,
             // 每个域名分组（子分组）自身的书签数
             bookmarksNum: Array.isArray(items) ? items.length : 0,
         };
@@ -1575,18 +1904,17 @@ export async function getPageTreeByDomain(pageId) {
             // 为该域名分组下的每个 bookmark 添加 gId1 属性，指向所属（域名）分组 id
             const bookmarksWithGId1 = Array.isArray(m.bookmarks) ? m.bookmarks.map(b => ({ ...b, gId1: childId })) : [];
             return {
+                ...m,
                 id: childId,
-                // date: m.date,
-                name: m.name,
-                pageId: m.pageId,
                 bookmarks: bookmarksWithGId1,
-                count: m.count,
                 // 子分组的书签总数
                 bookmarksNum: Array.isArray(bookmarksWithGId1) ? bookmarksWithGId1.length : 0,
                 order: idx + 1,
                 path: `${parentId},${childId}`,
             };
         });
+
+        const tagsList = groupTags.length > 0 && groupTags.filter(item => item.gId === initial) || [];
         // 父分组（首字母）没有自身书签，bookmarksNum 为其所有子分组的 bookmarksNum 之和
         const parentBookmarksNum = children.reduce((sum, ch) => sum + (typeof ch.bookmarksNum === 'number' ? ch.bookmarksNum : (Array.isArray(ch.bookmarks) ? ch.bookmarks.length : 0)), 0);
         data.push({
@@ -1597,6 +1925,7 @@ export async function getPageTreeByDomain(pageId) {
             order: 1,
             path: parentId,
             children,
+            tagsList,
             bookmarksNum: parentBookmarksNum,
         });
     }
@@ -1610,14 +1939,9 @@ export async function getPageTreeByDomain(pageId) {
         order: d.order,
         bookmarksNum: typeof d.bookmarksNum === 'number' ? d.bookmarksNum : 0,
         children: d.children.map((c, idx) => ({
-            id: c.id,
-            path: c.path,
-            date: c.date,
-            name: c.name,
+            ...c,
             pId: d.id,
-            bookmarks: c.bookmarks,
             order: idx + 1,
-            count: c.count,
             bookmarksNum: typeof c.bookmarksNum === 'number' ? c.bookmarksNum : (Array.isArray(c.bookmarks) ? c.bookmarks.length : 0),
         })),
     }));
@@ -1757,6 +2081,77 @@ export function collectUrlTags(urls?: any[]): Map<string, string[]> {
         result.set(k, Array.from(s));
     }
     return result;
+}
+
+export function collectBookmarksTags(bookmarks?: any[]): any {
+    const list = Array.isArray(bookmarks) ? bookmarks : [];
+    const tagMap = new Map<string, Set<string>>();
+
+    const seenGroupTag = new Set<string>(); // 用于去重： `${gId}:::${value}`
+    // const tagsList: Array<{ gId: string | null; value: string; index: number | null }> = [];
+    const tagsList: Array<{ gId: string | null; value: string; }> = [];
+
+    for (const item of list) {
+        if (!item) continue;
+        const tags = item.tags;
+        if (!tags) continue;
+        const itemId = item.id != null ? String(item.id) : null;
+
+        // 计算所属大分组 id：优先使用 groupPath 的第一个元素，否则回退到 gId
+        let topGId: string | null = null;
+        if (item.groupPath && item.groupPath.length > 0) {
+            const parts = item.groupPath.split(',');
+            topGId = parts && parts.length > 0 ? parts[0] : null;
+        }
+        if (!topGId && item.gId) topGId = item.gId;
+
+        function addKey(k: string) {
+            const key = k && String(k).trim();
+            if (!key) return;
+            const s = tagMap.get(key) || new Set<string>();
+            if (itemId) s.add(itemId);
+            tagMap.set(key, s);
+
+            // tagsList 去重：相同 gId 下不添加相同 value
+            const gidKey = topGId || '';
+            const uniqueKey = `${gidKey}:::${key}`;
+            if (!seenGroupTag.has(uniqueKey)) {
+                seenGroupTag.add(uniqueKey);
+                tagsList.push({ gId: topGId, value: key });
+            }
+        }
+
+        if (Array.isArray(tags)) {
+            for (const t of tags) {
+                if (t === undefined || t === null) continue;
+                addKey(String(t));
+            }
+        } else if (typeof tags === 'string') {
+            const parts = tags.split(/[,;，；\s]+/).map(s => s.trim()).filter(Boolean);
+            for (const p of parts) addKey(p);
+        } else {
+            addKey(String(tags));
+        }
+    }
+
+    // Convert Set values to arrays for easier serialization
+    const result = new Map<string, string[]>();
+    for (const [k, s] of tagMap.entries()) {
+        result.set(k, Array.from(s));
+    }
+
+    // 填充 tagsList 的 idx：标签在整体 tagMap keys 中的索引（按 insertion order）
+    /*    const allKeys = Array.from(result.keys());
+       for (const t of tagsList) {
+           const index = allKeys.indexOf(t.value);
+           t.index = index >= 0 ? index : -1;
+       } */
+
+    // console.log('1111111111111111111 collectBookmarksTags tagsList', tagsList);
+    // console.log('1111111111111111111 collectBookmarksTags  result', result);
+
+    return { allTags: result, tagsList: tagsList };
+    // return {allTags: result};
 }
 
 export async function removeGroupById(groupId) {
