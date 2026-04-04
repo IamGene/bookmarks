@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Tabs, BackTop, Card, Input, Empty, Typography, Link, Grid, Button, Select, Space } from '@arco-design/web-react';
 // import { IconCaretUp } from '@arco-design/web-react/icon';
@@ -12,24 +12,69 @@ import CardItem from './card';
 // import CardEmpty from './card-empty';
 import EmptyCard from '@/components/EmptyCard/index';
 import SearchResult from '@/components/SearchResult/index';
-// import CardEmpty from './;
+import {
+  updatePageGroupsDataByType
+} from '@/store/modules/global';
+import { useDispatch } from 'react-redux';
 // const TabPane = Tabs.TabPane;
 // import AddCard from './card-add';
 import { WebTag } from './interface';
+import { useSelector } from 'react-redux';
 import './mock';
 
 // tab标签类型
 const TabPane = Tabs.TabPane;
 const { Row, Col, GridItem } = Grid;
-
-function ListCard({ activeCardTab, tags, dataType, display, setCardTabActive, keyWord, list, hasResult, loading }) {
+// tags
+function ListCard({ activeCardTab, dataType, display, setCardTabActive, keyWord, list, hasResult, loading }) {
   const t = useLocale(locale);
 
-  // console.log('zzzzzzzzzzz  dataType', activeCardTab);
+  const searchState = useSelector((state: any) => state.global.search);
+  const { searchResultNum } = searchState;
 
+  // console.log('zzzzzzzzzzz  dataType', activeCardTab);
+  const dispatch = useDispatch();
   let search: boolean = keyWord && keyWord.length > 0;
 
   const [activeKey, setActiveKey] = useState('tags');
+  const [cardList, setCardList] = useState(list);
+
+  // console.log('1111111111111111111 list', list);
+  const removeItem = async (gId: string) => {
+    //按时间分组 删除card和子分组 gId(年-月) card只能决定月份节点的移除，
+    if (dataType == 0) {//删除大分组
+      setCardList(prev => prev.filter(item => item.id !== gId));
+      // await dispatch(updatePageGroupsDataByType({ dataType: dataType, groupId: gId, action: 'remove' }));
+    }
+    else if (dataType == 1) {
+      setCardList(prev => prev.filter(item => item.id !== gId));
+      await dispatch(updatePageGroupsDataByType({ dataType: dataType, groupId: gId, action: 'remove' }));
+    }
+    else if (dataType == 2) {
+      const parts = gId.split(',').map(s => s.trim()).filter(s => s !== '');
+      if (parts.length == 0) {//传递父分组，直接删除字母大分组Card
+        const pId = parts[0];
+        setCardList(prev => prev.filter(item => item.id !== pId));//按域名分组，删除父分组 有子分组和父分组id
+        await dispatch(updatePageGroupsDataByType({ dataType: dataType, pId: pId, groupId: null, action: 'remove' }));
+      }
+      else if (parts.length == 1) {//传递父分组，直接删除字母大分组Card
+        const pId = parts[0];
+        setCardList(prev => prev.filter(item => item.id !== pId));//按域名分组，删除父分组 有子分组和父分组id
+        await dispatch(updatePageGroupsDataByType({ dataType: dataType, pId: pId, groupId: null, action: 'remove' }));
+      } else if (parts.length == 2) {//传递子分组，仅删除子分组
+        const pId = parts[0];
+        const groupId = parts[1];
+        await dispatch(updatePageGroupsDataByType({ dataType: dataType, pId: pId, groupId: groupId, action: 'remove' }));
+      }
+    }
+    // await dispatch(updatePageGroupsDataByType({ dataType: dataType, groupId: pId, action: 'remove' }));
+    //按域名分组，先删除子分组，再根据判断是否删除父分组
+
+  };
+
+  useEffect(() => {
+    setCardList(list);
+  }, [list]);
 
   const getMockCardList = (
     list: Array<WebTag>
@@ -160,14 +205,19 @@ function ListCard({ activeCardTab, tags, dataType, display, setCardTabActive, ke
         }}
       >
 
-        {(search && hasResult && (list && list.length > 0)) && <SearchResult></SearchResult>}
+        {/* {(search && hasResult && (list && list.length > 0)) && <SearchResult></SearchResult>} */}
+        {/* {(!hasResult || (list && list.length === 0)) && <EmptyCard search={search}></EmptyCard>} */}
+        {(search && searchResultNum > 0 && (list && list.length > 0)) && <SearchResult></SearchResult>}
+        {(search && searchResultNum == 0 || (!list || list.length === 0)) && <EmptyCard search={search}></EmptyCard>}
 
-        {list && list.length > 0 && list.map((item, index) => {
+        {/* {list && list.length > 0 && list.map((item, index) => { */}
+        {cardList && cardList.length > 0 && cardList.map((item, index) => {
           return <CardItem key={item.id}
             setCardTabActive={setCardTabActive}
             cardData={item}
             dataType={dataType}
-            tags={tags}
+            // tags={tags}
+            removeCard={removeItem}
             // index={index}
             // last={index == list.length - 1}
             // first={index == 0}
@@ -181,7 +231,7 @@ function ListCard({ activeCardTab, tags, dataType, display, setCardTabActive, ke
         })}
 
         {/* {(!hasResult || (list && list.length === 0)) && <CardEmpty search={search}></CardEmpty>} */}
-        {(!hasResult || (list && list.length === 0)) && <EmptyCard search={search}></EmptyCard>}
+
 
 
         {/* <Footer /> */}

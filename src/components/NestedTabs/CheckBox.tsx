@@ -4,6 +4,7 @@ import { Checkbox, Button } from '@arco-design/web-react';
 interface Props {
     data: any;
     searching: boolean;
+    filtering: boolean;
     currentTab: string;
     // first arg: nodeKey (the tab id to operate on), second arg: ids array
     selectedMapChange?: (nodeKey: string, ids: string[], path: string) => void;
@@ -15,6 +16,7 @@ function MultiSelectCheckBox(props: Props) {
     const {
         data,
         searching,
+        filtering,
         currentTab,
         selectedMapChange,
         activeMap
@@ -23,11 +25,13 @@ function MultiSelectCheckBox(props: Props) {
     // selectedMap 来自父组件，onSelectedMapChange 用于通知父组件更新
     const { selectedMap } = props as any;
     const searchTabKey = 'search-result';
+    const searchingOrFiltering = searching || filtering;
 
     return (
         <div style={{}}>
             <Checkbox
                 onChange={(checked) => {// 全选/全不选逻辑
+                    // console.log('11111111111 点击全选/全不选', data.name, checked, activeMap);
                     try {
                         // 计算要作用的最内层 tab id
                         let targetNodeKey = currentTab;//currentTab:checkbox所在tabs层的activeTab
@@ -65,10 +69,10 @@ function MultiSelectCheckBox(props: Props) {
                         if (checked) {
                             let ids: string[] = [];
                             if (targetNodeKey === searchTabKey) {
-                                ids = ((searching && data.searchResult ? data.searchResult : data.bookmarks) || []).map((b: any) => String(b.id));
+                                ids = ((searchingOrFiltering && data.searchResult ? data.searchResult : data.bookmarks) || []).map((b: any) => String(b.id));
                             } else {
                                 const node = findNodeById(data, targetNodeKey);
-                                ids = node ? ((searching && node.searchResult ? node.searchResult : node.bookmarks) || []).map((b: any) => String(b.id)) : [];
+                                ids = node ? ((searchingOrFiltering && node.searchResult ? node.searchResult : node.bookmarks) || []).map((b: any) => String(b.id)) : [];
                             }
                             selectedMapChange && selectedMapChange(targetNodeKey, ids, path);//全选
                         } else {
@@ -79,6 +83,7 @@ function MultiSelectCheckBox(props: Props) {
                     }
                 }}
                 checked={(() => {
+                    // console.log('11111111111 全选', data.name,);
                     try {
                         let targetNodeKey = currentTab;
                         if (currentTab !== searchTabKey && activeMap) {
@@ -108,10 +113,10 @@ function MultiSelectCheckBox(props: Props) {
                         };
                         let ids = [];
                         if (targetNodeKey === searchTabKey) {
-                            ids = ((searching && data.searchResult ? data.searchResult : data.bookmarks) || []).map((b: any) => String(b.id));
+                            ids = ((searchingOrFiltering && data.searchResult ? data.searchResult : data.bookmarks) || []).map((b: any) => String(b.id));
                         } else {
                             const node = findNodeById(data, targetNodeKey);
-                            ids = node ? ((searching && node.searchResult ? node.searchResult : node.bookmarks) || []).map((b: any) => String(b.id)) : [];
+                            ids = node ? ((searchingOrFiltering && node.searchResult ? node.searchResult : node.bookmarks) || []).map((b: any) => String(b.id)) : [];
                         }
                         const sel = (selectedMap && selectedMap[targetNodeKey]) ? selectedMap[targetNodeKey] : [];
                         return ids.length > 0 && sel.length === ids.length;// 全选条件：当前节点下有书签，且已选中的书签数量等于总书签数量
@@ -120,6 +125,7 @@ function MultiSelectCheckBox(props: Props) {
                     }
                 })()}
                 indeterminate={(() => {// 半选条件：已选中的书签数量大于0且小于总书签数量
+                    // console.log('11111111111 半选', data.name);
                     try {
                         let targetNodeKey = currentTab;
                         if (currentTab !== searchTabKey && activeMap) {
@@ -149,10 +155,10 @@ function MultiSelectCheckBox(props: Props) {
                         };
                         let ids = [];
                         if (targetNodeKey === searchTabKey) {
-                            ids = ((searching && data.searchResult ? data.searchResult : data.bookmarks) || []).map((b: any) => String(b.id));
+                            ids = ((searchingOrFiltering && data.searchResult ? data.searchResult : data.bookmarks) || []).map((b: any) => String(b.id));
                         } else {
                             const node = findNodeById(data, targetNodeKey);
-                            ids = node ? ((searching && node.searchResult ? node.searchResult : node.bookmarks) || []).map((b: any) => String(b.id)) : [];
+                            ids = node ? ((searchingOrFiltering && node.searchResult ? node.searchResult : node.bookmarks) || []).map((b: any) => String(b.id)) : [];
                         }
                         const sel = (selectedMap && selectedMap[targetNodeKey]) ? selectedMap[targetNodeKey] : [];// 已选中的 id 数组
                         return sel.length > 0 && sel.length < ids.length;// 部分选中
@@ -169,6 +175,7 @@ function MultiSelectCheckBox(props: Props) {
                 style={{ marginLeft: '12px' }}
                 onClick={() => {
                     try {
+                        // console.log('11111111111 点击反选', data.name, currentTab, activeMap);
                         let targetNodeKey = currentTab;
                         let path = null;
                         if (currentTab !== searchTabKey && activeMap) {
@@ -199,10 +206,10 @@ function MultiSelectCheckBox(props: Props) {
                         };
                         let ids: string[] = [];
                         if (targetNodeKey === searchTabKey) {
-                            ids = ((searching && data.searchResult ? data.searchResult : data.bookmarks) || []).map((b: any) => String(b.id));
+                            ids = ((searchingOrFiltering && data.searchResult ? data.searchResult : data.bookmarks) || []).map((b: any) => String(b.id));
                         } else {
                             const node = findNodeById(data, targetNodeKey);
-                            ids = node ? ((searching && node.searchResult ? node.searchResult : node.bookmarks) || []).map((b: any) => String(b.id)) : [];
+                            ids = node ? ((searchingOrFiltering && node.searchResult ? node.searchResult : node.bookmarks) || []).map((b: any) => String(b.id)) : [];
                         }
                         const sel = (selectedMap && selectedMap[targetNodeKey]) ? selectedMap[targetNodeKey] : [];
                         const inverted = ids.filter((id: string) => !sel.includes(id));

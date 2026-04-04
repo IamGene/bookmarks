@@ -69,6 +69,7 @@ import defaultSettings from '../../settings.json';
 // import { getUserNaviate } from '@/api/navigate';
 import { getPageTree, getPageTreeByDate, getPages, getPageTreeGroupsData, getPageTreeByDomain, getPage, getSearchHistory } from "@/db/BookmarksPages";
 import { WebTag } from '@/pages/navigate/user/interface';
+import { set } from 'mobx';
 export interface GroupNode {
   id: string;
   name: string;
@@ -124,10 +125,13 @@ export interface GlobalState {
   pageId: number,
   currentPage: Page,
   // group1s: TagGroups;
-  hiddenGroup: boolean;
   defaultPage: number;
   pages: [];
-  tagsMap: { [key: string]: string[] } | null;
+  // tagsMap: { [key: string]: string[] } | null;
+  tags: {
+    tagsMap: { [key: string]: string[] } | null,
+    selectedTags: any[]
+  },
   activeGroup: GroupNode;
   loadedBookmarks: WebTag[];
 }
@@ -145,6 +149,7 @@ const initialState: GlobalState = {
     keyword: null,
     searchResultNum: 0,
   },
+
   // hasResult: true,
   // groups: [],//当前标签分组列表,用于新增
   dataByDate: null,//当前标签分组列表,用于新增
@@ -155,11 +160,14 @@ const initialState: GlobalState = {
   dataGroups: [],//当前标签分组列表
   expandedKeys: [],//当前标签分组列表
   toUpdateGroupTypes: [],//
-  hiddenGroup: false,//有隐藏分组
   defaultPage: null,
   currentPage: null,
   pageId: null,
-  tagsMap: null,
+  // tagsMap: null,
+  tags: {
+    tagsMap: null,
+    selectedTags: []
+  },
   pages: null,
   activeGroup: null,
   loadedBookmarks: null
@@ -237,7 +245,74 @@ const globalSlice = createSlice({
     setSearchHistory: (state, action) => {
       state.search.searchHistory = action.payload.historyWords;
     },
+    switchTagSelected: (state, action) => {
+      const tag = action.payload.switchTag;
+      // console.log('55555555555555555 switchTagSelected action.payload.selectedTags', tag);
+      if (tag.selected) {
+        state.tags.selectedTags.push(tag);
+      } else {
+        state.tags.selectedTags = state.tags.selectedTags.filter(t => t.key !== tag.key);
+      }
+    },
 
+    updatePageGroupList: (state, action) => {
+      const params = action.payload?.params || {};
+      const dataType = params.dataType;
+
+
+      if (dataType === 1) {//按时间
+        const groupId = params.groupId;
+        const idStr = String(groupId);
+        if (dataType == null || groupId == null) return;
+        // 期望 groupId 为 yyyy-MM 格式（例如 2024-04），取出年份并在 state.dateGroups 中操作
+        if (!Array.isArray(state.dateGroups)) return;
+        const monthRegex = /^\d{4}-\d{2}$/;
+        if (!monthRegex.test(idStr)) return;
+        const year = idStr.slice(0, 4);
+
+        const yearIndex = state.dateGroups.findIndex(item => String(item?.id) === year);
+        if (yearIndex === -1) return;
+        const yearNode = state.dateGroups[yearIndex];
+        if (!yearNode || !Array.isArray(yearNode.children)) return;
+        // 从 yearNode.children 中移除 id === groupId 的子元素
+
+        const remainingChildren = yearNode.children.filter(child => String(child?.id) !== idStr);
+        if (remainingChildren.length === 0) {
+          // 如果没有子元素了，移除整个年份节点
+          state.dateGroups.splice(yearIndex, 1);
+        } else {
+          // 否则更新该年份节点的 children
+          state.dateGroups[yearIndex] = { ...yearNode, children: remainingChildren } as any;
+        }
+      } else if (dataType === 2) {
+        // groupId 可能为 "p0" 或 "p0,p1" 两种形式
+        if (!Array.isArray(state.domainGroups)) return;
+        // const parts = idStr.split(',').map(s => s.trim()).filter(s => s !== '');
+        // if (parts.length === 0) return;
+        const pId = params.pId;
+        const groupId = params.groupId;
+
+        if (!groupId) {//无子节点，直接删除父节点
+          const idx = state.domainGroups.findIndex(item => String(item?.id) === pId);
+          if (idx !== -1) state.domainGroups.splice(idx, 1);
+        } else {
+          // parts.length >= 2, 只取前两个 p0,p1
+          const parentIndex = state.domainGroups.findIndex(item => String(item?.id) === pId);
+          if (parentIndex === -1) return;
+          const parent = state.domainGroups[parentIndex];
+          if (!parent || !Array.isArray(parent.children)) return;
+
+          const remaining = parent.children.filter(child => String(child?.id) !== groupId);
+          if (remaining.length === 0) {
+            // 若子节点为空，则移除父节点
+            state.domainGroups.splice(parentIndex, 1);
+          } else {
+            // 否则更新父节点的 children
+            state.domainGroups[parentIndex] = { ...parent, children: remaining } as any;
+          }
+        }
+      }
+    },
     updateBookmarks: (state, action) => {
       if (action.payload.dataGroups) state.dataGroups = action.payload.dataGroups;
       if (action.payload.dataByDate) state.dataByDate = action.payload.dataByDate;
@@ -246,10 +321,12 @@ const globalSlice = createSlice({
       if (action.payload.dateGroups) state.dateGroups = action.payload.dateGroups;
       if (action.payload.domainGroups) state.domainGroups = action.payload.domainGroups;
       if (action.payload.currentPage) state.currentPage = action.payload.currentPage;
-      if (action.payload.tagsMap) state.tagsMap = action.payload.tagsMap;
+      if (action.payload.tagsMap) state.tags.tagsMap = action.payload.tagsMap;
+      // console.log('xxxxxxxxxxxxxxxxxxx updateBookmarks', action.payload.tagsMap);
       if (action.payload.clearSearchResultNum || action.payload.clearSearchResultNum === undefined)//
         state.search.searchResultNum = 0;//每次更新书签数据，重置搜索结果数 仅更新分组数据的时候除外
-      state.hiddenGroup = action.payload.hideGroup;
+      if (action.payload.updateSelectedTags || action.payload.updateSelectedTags === undefined)//
+        state.tags.selectedTags = [];
       if (action.payload.expandedKeys) state.expandedKeys = action.payload.expandedKeys;
       if (action.payload.updatedGroupType != null) {
         if (state.toUpdateGroupTypes.includes(action.payload.updatedGroupType)) {
@@ -274,11 +351,11 @@ const globalSlice = createSlice({
       }
     },
 
-    updateTagsMap: (state, action) => {
+    updateTagsMap: (state, action) => {//更新所有书签列表
       // tagsMap now stores arrays of ids: { [tag:string]: string[] }
       const tagsUpdate = action.payload.tagsUpdate || [];
 
-      if (!state.tagsMap) state.tagsMap = {} as any;
+      if (!state.tags.tagsMap) state.tags.tagsMap = {} as any;
 
       for (const item of tagsUpdate) {
         if (!item || !item.tag) continue;
@@ -287,23 +364,31 @@ const globalSlice = createSlice({
         const add = !!item.add;
         const id = item.id != null ? String(item.id) : null;
 
-        const currentArr: string[] = Array.isArray(state.tagsMap[tagKey]) ? [...state.tagsMap[tagKey]] : [];
+        const currentArr: string[] = Array.isArray(state.tags.tagsMap[tagKey]) ? [...state.tags.tagsMap[tagKey]] : [];
 
         if (add) {//增加
           if (id) {
             if (!currentArr.includes(id)) currentArr.push(id);
-            state.tagsMap[tagKey] = currentArr;
+            state.tags.tagsMap[tagKey] = currentArr;
           } else {
-            if (!state.tagsMap[tagKey]) state.tagsMap[tagKey] = [];
+            if (!state.tags.tagsMap[tagKey]) state.tags.tagsMap[tagKey] = [];
           }
         } else {//删除
           if (id) {
             const filtered = currentArr.filter(x => x !== id);
-            if (filtered.length === 0) delete state.tagsMap[tagKey];
-            else state.tagsMap[tagKey] = filtered;
+
+            console.log('sssssssssssssssssssssssss updateTagsMap nextSelectedTags', filtered);
+            if (filtered.length === 0) {
+              delete state.tags.tagsMap[tagKey];
+              const selectedTags = state.tags.selectedTags;
+              const nextSelectedTags = selectedTags.filter(t => t.key !== tagKey);
+              // console.log('sssssssssssssssssssssssss updateTagsMap delete tagKey nextSelectedTags', nextSelectedTags);
+              state.tags.selectedTags = nextSelectedTags;
+            }
+            else state.tags.tagsMap[tagKey] = filtered;
           } else {
             // no id: remove the whole tag entry
-            delete state.tagsMap[tagKey];
+            delete state.tags.tagsMap[tagKey];
           }
         }
       }
@@ -326,6 +411,39 @@ const globalSlice = createSlice({
       state.defaultPage = action.payload.defaultPage;
       state.pages = action.payload.pages;
     },
+
+    updateUserPage: (state, action) => {
+      const updateInfo = action.payload.updateInfo;
+      const updatePage = action.payload.updatePage;
+
+      if (Array.isArray(state.pages)) {
+        if (updateInfo) {
+          state.pages = state.pages.map((page: any) => {
+            if (page?.pageId === updateInfo?.pageId) {
+              return {
+                ...page,
+                bookmarksNum: (page.bookmarksNum || 0) + (updateInfo?.addNum || 0),
+              };
+            }
+            return page;
+          }) as any;
+        }
+      }
+
+      if (updatePage) {
+        // console.log('xxxxxxxxxxxxxxxxx updatePage', updatePage);
+        state.pages = state.pages.map((page: any) => {
+          if (page?.pageId === updatePage?.pageId) {
+            return {
+              ...page,
+              bookmarksNum: updatePage?.bookmarksNum
+            };
+          }
+          return page;
+        }) as any;
+      }
+    },
+
     updateActiveGroup: (state, action) => {
       state.activeGroup = action.payload;
     },
@@ -367,14 +485,17 @@ function filterChildrenByPath(data) {
   return newData;
 }
 
-
 const fetchBookmarksPageData = (pageId: number) => {
   return async (dispatch) => {
     const res = await getPageTree(pageId);
     // const resss = await testData(pageId);
+    console.log('--------------------fetchBookmarksPageData res', res);
+
     const expandedKeys = res.expandedKeys || [];
+
     // console.log('--------------------fetchBookmarksPageData res', res);
     const data = res.data;
+    const bookmarksNum = res.bookmarksNum;
     let tagsMap = res.tagsMap;
     // 如果后端/DB 返回的是 Map，转换为普通对象以保证 state 可序列化
     if (tagsMap instanceof Map) {
@@ -390,27 +511,11 @@ const fetchBookmarksPageData = (pageId: number) => {
     const domainGroups = res2.treeData;//
     const list2 = res2.data;//书签数据
 
-    //调试代码
-    /* let count = 0;
-    res.data.forEach(item => {
-      if (item.bookmarksNum) {
-        count += item.bookmarksNum;
-      }
-    });
-    console.log('--------------------fetchBookmarksPageData res', res.data, count);
-     */
-    // console.log('--------------------fetchBookmarksPageData res1', res1);
+    // const currentPage = await getPage(pageId);
+    const currentPage = res.page;
 
+    dispatch(updateUserPage({ updatePage: { pageId, bookmarksNum } }));
 
-    // 调试代码
-    /*  let count1 = 0;
-     list1.forEach(item => {
-       if (item.bookmarks) {
-         count1 += item.bookmarks.length;
-       }
-     });
-     console.log('--------------------fetchBookmarksPageData1 res1', res1.data, count1); */
-    const currentPage = await getPage(pageId);
     if (data.length > 0) {
       //list: 分组书签（全字段）
       const list = data;
@@ -429,6 +534,9 @@ const fetchBookmarksPageData = (pageId: number) => {
         tagsMap: tagsMap,
         currentPage: currentPage,
       }));
+
+
+
       return res; // 直接返回整个响应对象
     } else {
       dispatch(updateBookmarks({ dataByGroup: [], dataByDate: [], hideGroup: false, dateGroups: [], tagsMap: tagsMap, currentPage: currentPage, dataGroups: [] }));
@@ -439,11 +547,28 @@ const fetchBookmarksPageData = (pageId: number) => {
   }
 };
 
+
+/* const updatePageSelectedTags = (selectedTags: any[]) => {
+  return (dispatch) => {
+    dispatch(setSelectedTags({ selectedTags: selectedTags }));
+  }
+}; */
+
+const oneTagSelectedSwitch = (tag: any) => {
+  return (dispatch) => {
+    dispatch(switchTagSelected({ switchTag: tag }));
+  }
+};
+
+
+//更新按默认分组数据
 const fetchBookmarksPageData0 = (pageId: number) => {
   return async (dispatch) => {
     const res = await getPageTree(pageId);
     console.log('--------------------fetchBookmarksPageData0 res', res);
     const data = res.data;
+    const bookmarksNum = res.bookmarksNum;
+    dispatch(updateUserPage({ updatePage: { pageId, bookmarksNum } }));
     let tagsMap = res.tagsMap;
     // 如果后端/DB 返回的是 Map，转换为普通对象以保证 state 可序列化
     if (tagsMap instanceof Map) {
@@ -463,9 +588,10 @@ const fetchBookmarksPageData0 = (pageId: number) => {
         hideGroup: hideGroup,
         tagsMap: tagsMap,
         updatedGroupType: 0,
+        updateSelectedTags: false,
         // currentPage: currentPage
       }));
-      return res; // 直接返回整个响应对象
+      return res.data; // 直接返回整个响应对象
     } else {
       await dispatch(updateBookmarks({ dataByGroup: [], dataGroups: [], hideGroup: false, tagsMap: [], treeData: null }));
       // await dispatch(updateGroupTypes({ updatedGroupType: 0 }));
@@ -481,12 +607,13 @@ const fetchBookmarksPageData0 = (pageId: number) => {
 const fetchBookmarksPageDataGoups = (pageId: number) => {
   return async (dispatch) => {
     const data = await getPageTreeGroupsData(pageId);
-    console.log('--------------------fetchBookmarksPageDataGoups res', data);
+    // console.log('--------------------fetchBookmarksPageDataGoups res', data);
     if (data.length > 0) {
       // const treeData = filterChildrenArrayByPath(data);
       dispatch(updateBookmarks({
         dataGroups: data,
         updatedGroupType: 0,
+        updateSelectedTags: false,//不更新标签选中状态
         clearSearchResultNum: false
       }));
       return data; // 直接返回整个响应对象
@@ -499,17 +626,32 @@ const fetchBookmarksPageDataGoups = (pageId: number) => {
   }
 };
 
+const updatePageGroupsDataByType = (params) => {
+  return async (dispatch) => {
+    // const data = await getPageTreeGroupsData(pageId);
+    console.log('--------------------updatePageGroupsDataByType', params);
+    // const treeData = filterChildrenArrayByPath(data);
+    dispatch(updatePageGroupList({
+      params: params
+    }));
+    return true; //
+  }
+};
+
 
 const fetchBookmarksPageData1 = (pageId: number) => {
   return async (dispatch) => {
     const res1 = await getPageTreeByDate(pageId);
     const dateGroups = res1.treeData;//
     // console.log('999999999999 fetchBookmarksPageData1 treeData', res1);
+    const bookmarksNum = res1.bookmarksNum;
+    dispatch(updateUserPage({ updatePage: { pageId, bookmarksNum } }));
+
     const list1 = res1.data;//书签数据
     if (list1.length > 0) {
       await dispatch(updateBookmarks({ dataByDate: list1, dateGroups: dateGroups, updatedGroupType: 1 }));
       // await dispatch(updateGroupTypes({  }));
-      return res1; // 直接返回整个响应对象
+      return res1.data; // 直接返回整个响应对象
     } else {
       dispatch(updateBookmarks({ dataByDate: [], hideGroup: false, dateGroups: [], treeData: [] }));
       return [];
@@ -524,11 +666,15 @@ const fetchBookmarksPageData2 = (pageId: number) => {
   return async (dispatch) => {
     const res1 = await getPageTreeByDomain(pageId);
     const domainGroups = res1.treeData;//
+
     const list1 = res1.data;//书签数据
     const currentPage = await getPage(pageId);
+
+    const bookmarksNum = res1.bookmarksNum;
+    dispatch(updateUserPage({ updatePage: { pageId, bookmarksNum } }));
     if (list1.length > 0) {
       dispatch(updateBookmarks({ dataByDomain: list1, domainGroups: domainGroups, currentPage: currentPage }));
-      return res1; // 直接返回整个响应对象
+      return res1.data; // 直接返回整个响应对象
     } else {
       dispatch(updateBookmarks({ dataByDomain: [], hideGroup: false, domainGroups: [], currentPage: currentPage, treeData: [] }));
       return [];
@@ -536,19 +682,7 @@ const fetchBookmarksPageData2 = (pageId: number) => {
   }
 };
 
-
-/* const fetchBookmarksPageData012 = (pageId: number) => {
-  console.log('sssssssssssss fetchBookmarksPageData012 pageId', pageId);
-  return async (dispatch) => {
-    dispatch(updateGroupTypes({ toUpdateGroupTypes: [0, 1, 2] }));
-  };
-};
-const fetchBookmarksPageData12 = (pageId: number) => {
-  return async (dispatch) => {
-    dispatch(updateGroupTypes({ toUpdateGroupTypes: [1, 2] }));
-  };
-}; */
-
+//哪种分组方式的书签页列表数据待更新
 const fetchBookmarksPageDatas = (types: number[]) => {
   // console.log('sssssssssssss fetchBookmarksPageDatas types', types);
   return async (dispatch) => {
@@ -565,6 +699,7 @@ const updatePageDataState = (pageData: any[]) => {
 };
 
 const updatePageBookmarkTags = (tagsUpdate: any[]) => {
+  // console.log('11111111111111111 updatePageBookmarkTags');
   return async (dispatch) => {
     dispatch(updateTagsMap({ tagsUpdate: tagsUpdate }));
   };
@@ -586,6 +721,12 @@ const reloadUserPages = () => {
   }
 };
 
+const updateBookmarksPage = (info: any) => {
+  return async (dispatch) => {
+    dispatch(updateUserPage({ updateInfo: info }));
+  }
+};
+
 const loadSearchHistory = () => {
   return async (dispatch) => {
     const historyWords = await getSearchHistory();
@@ -597,13 +738,17 @@ const loadSearchHistory = () => {
 
 // export const { updateSettings, updateUserInfo, updateHasResult, updateBookmarks } = globalSlice.actions;
 //updateSearchHistory 
-const { updateSettings, updateUserInfo, updateHasResult, updateBookmarksGroups, updateGroupTypes, updateSearchState, updateTagsMap, updateBookmarks, setUserPages, setSearchHistory, updateActiveGroup, setLoadBookmarks } = globalSlice.actions;
+const { updateSettings, updateUserInfo, updateHasResult, switchTagSelected,
+  updateGroupTypes, updateSearchState, updatePageGroupList,
+  updateUserPage, updateTagsMap, updateBookmarks, setUserPages,
+  setSearchHistory,
+  updateActiveGroup, setLoadBookmarks } = globalSlice.actions;
 export {
   updateSettings, updateUserInfo, updateHasResult, updateSearchState, updateBookmarks, updateActiveGroup,
-  loadSearchHistory, updatePageBookmarkTags,
+  loadSearchHistory, updatePageBookmarkTags, oneTagSelectedSwitch,
   updatePageDataState, reloadUserPages, fetchBookmarksPageData,
-  fetchBookmarksPageData0, fetchBookmarksPageData1, fetchBookmarksPageData2, fetchBookmarksPageDatas, fetchBookmarksPageDataGoups,
-  loadNewAddedBookmarks
+  fetchBookmarksPageData0, fetchBookmarksPageData1, fetchBookmarksPageData2, updateBookmarksPage, fetchBookmarksPageDatas, fetchBookmarksPageDataGoups,
+  loadNewAddedBookmarks, updatePageGroupsDataByType
 };
 export default globalSlice.reducer;
-// export { dispatchTagGroupsData };
+// export { dispatchTagGroupsData }; updatePageSelectedTags

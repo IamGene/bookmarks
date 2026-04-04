@@ -17,7 +17,7 @@ export function removeConfirm(
     order: boolean,
     extra: string,
     type: string,
-    onOk: (id: string, params?: any) => Promise<boolean>,
+    onOk: (id: string, params?: any) => Promise<any>,
     params?: any,
     other?: string,
 ): Promise<any> {

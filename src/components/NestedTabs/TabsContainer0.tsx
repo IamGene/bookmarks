@@ -102,7 +102,7 @@ export default function TabsContainer(props: Props) {
                 (searching && (child.totalMatchCount > 0 || activeCardTab.includes(child.id))) || !searching) &&
                 <TabPane key={child.id}
                     title={
-                        <span onMouseEnter={() => handleTabMouseEnter(child, true)} onMouseLeave={() => handleTabMouseEnter(child, false)}>
+                        <span style={{ display: 'block', padding: '4px 16px' }} onMouseEnter={() => handleTabMouseEnter(child, true)} onMouseLeave={() => handleTabMouseEnter(child, false)}>
                             <WrapTabNode key={child.id} index={idx} node={child} moveTabNode={moveTabNode}>{
                                 //搜索模式：有结果或Tree节点选中
                                 // searching && (child.totalMatchCount !== 0) ?

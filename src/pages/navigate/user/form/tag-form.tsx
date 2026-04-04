@@ -48,14 +48,21 @@ function App(props: TagDataParams) {
     const processAddSaveTag = async (tag: WebTag) => {
         // console.log('form data', tag);
         const newTag = await addBookmark(tag);
-
+        // const newTag = await addNewBookmark(tag);
         // 安全赋值：仅在 data 存在且 newTag 存在时才赋值，避免空属性报错
         if (data?.gId1 != null) newTag.gId1 = data.gId1;
         if (data?.path != null) newTag.path = data.path;
         Message.success('Success !');
+
         // setConfirmLoading(false);
         closeWithSuccess(true, newTag, data, 2);//相当于点击取消/关闭按钮 true:新增；false:更新
+
+        //处理新增书签页的书签数量更新
+        // console.log('xxxxxxxxxxxxxxxxxxxxxxx processAddSaveTag newTag', newTag)
     }
+
+
+
 
     const processUpdateSaveTag = async (tag: WebTag) => {
         // const group = await submitTagData(tag)
@@ -107,6 +114,7 @@ function App(props: TagDataParams) {
                 return;
             } else {
                 processAddSaveTag(res);
+
                 // console.log('11111111111111s processAddSaveTag res', res);
                 return;
             }
@@ -276,6 +284,8 @@ function App(props: TagDataParams) {
         return newBookmark;
     }
 
+
+    //添加书签，删除书签，插件保存书签，删除多条书签/分组，移动分组到其他书签页
     const addBookmark = async (tag: WebTag): Promise<any> => {
         const newBookmark = await addNewBookmark(tag);
         return newBookmark;
@@ -480,7 +490,7 @@ function App(props: TagDataParams) {
                         <Select
                             mode='multiple'
                             allowCreate
-                            placeholder='请选择或输入标签'
+                            placeholder='请输入标签按Enter确认'
                             options={keys}
                         // options={[]}
                         />

@@ -20,10 +20,10 @@ interface CardBlockType {
     tag: WebTag;
     select: boolean,
     no: number;
-    path: string;
+    // path: string;
     loading?: boolean;
     // parentHide?: boolean;
-    selectGroup: string[];
+    // selectGroup: string[];
     groupId: string;
     searching: boolean;
     editTag: Function;
@@ -35,38 +35,35 @@ interface CardBlockType {
 }
 
 const App = (props: CardBlockType) => {
-    const { tag, no, searching, path, editTag, selectGroup, onDeleteSuccess, groupId, select } = props
+    const { tag, no, searching, editTag, onDeleteSuccess, groupId, select } = props
 
-    // console.log('xxxxxxxxxxxxxxxxxxxxxx', selectGroup, select);
+    // if (tag.id === 'zb5hn8jz9') console.log('xxxxxxxxxxxxxxxxxxxxxx', selectGroup, tag);
     const [visible, setVisible] = useState(false);
     //配置编辑表单展示与否
     const [editVisible, setEditVisible] = useState(false);
-    const [status, setStatus] = useState(tag.status);
     const [loading, setLoading] = useState(props.loading);
     const dispatch = useDispatch();
-    function openUrl(url: string) {
-        window.open(url, '_blank');
-    }
-
 
     const onClickMenuItem = (key: string) => {
         if (key === '0') {//编辑
-            let selectGroup1 = selectGroup;
-            console.log('xxxxxxxxxxxxxxxxxxxxx onClickMenuItem 编辑', selectGroup, tag);
-            if (selectGroup[selectGroup.length - 1].endsWith('_copy')) {//数组
-                selectGroup1 = [...selectGroup.slice(0, selectGroup.length - 1)];//去掉最后一个（复制子分组）
+            let selectGroup1 = tag.path;
+            // console.log('xxxxxxxxxxxxxxxxxxxxx onClickMenuItem 编辑', tag);
+            if (selectGroup1[selectGroup1.length - 1].endsWith('_copy')) {//数组
+                selectGroup1 = [...selectGroup1.slice(0, selectGroup1.length - 1)];//去掉最后一个（复制子分组）
             };//确保在编辑标签时能正确传递当前分组路径
             editTag(tag, selectGroup1, searching);
         } else if (key === '1') {//删除
             //弹出确认框
             // console.log('点击了菜单,删除', key)
             // confirm(tag);
-            removeConfirm(tag.id, tag.name, true, '', '标签', handleDelete);
+            // removeConfirm(tag.id, tag.name, true, '', '书签', handleDelete);
+            removeConfirm(tag.id, tag.name, true, '', '书签', handleDelete);
+
         }
     }
 
-
-    const handleDelete = async () => {
+    async function handleDelete(id) {
+        // const handleDelete = async () => {
         try {
             // const response = await removeWebTag(tag.id);
             // const response = await removeWebTag(tag.id);
@@ -75,9 +72,10 @@ const App = (props: CardBlockType) => {
             // if (response.code === 200) {
             if (ok) {
                 // Message.success('删除成功');
-                console.log('xxxxxxxxxxxxxxxx handleDelete', selectGroup);
-                onDeleteSuccess(tag, selectGroup);
+                // console.log('xxxxxxxxxxxxxxxx handleDelete', tag.path);
+                onDeleteSuccess(tag, tag.path);
                 return tag;
+                // return tag;
             } else {
                 return null;
             }

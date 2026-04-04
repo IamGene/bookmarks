@@ -89,22 +89,24 @@ export async function updateGroupById(group) {
             console.error(`Group with id ${group.id} not found.`);
             return null;
         }
-
         //切换了书签页
         if (existingGroup.pageId !== group.pageId) {
-            //查出该分组下的所有子分组和书签
+            //查出该分组下的所有子分组和书签 扁平化数据结构
             const groupData = await getPageGroupData1(group);
-            const groupList = groupData.bookmarkGroupList;
+            const groupList = groupData.groupList;
             const bookmarkList = groupData.bookmarkList;
-            for (let i = 0; i < bookmarkList.length; i++) {
-                const bookmark = bookmarkList[i];
-                // bookmark.pageId = group.pageId;
+            // console.log('--------------- updateGroupById getPageGroupData1,groupData', groupData);
+            // console.log('--------------- updateGroupById getPageGroupData1,groupList', groupList);
+            // console.log('--------------- updateGroupById getPageGroupData1,bookmarkList', bookmarkList);
+            // console.log('--------------- updateGroupById getPageGroupData1,bookmarkList。length', bookmarkList.length);
+            for (const bookmark of bookmarkList) {
                 // 这样可以保留 'addDate' 等不在表单中的字段
+                console.log('--------------- updateGroupById updateBookmark', bookmark);
                 const updateBookmark = {
                     ...bookmark,
                     pageId: group.pageId,
                 };
-                await db.put('bookmarks', updateBookmark);
+                await db.put('bookmarks', updateBookmark);//?????????????????????????
             }
             for (let i = 0; i < groupList.length; i++) {
                 const group1 = groupList[i];
@@ -112,7 +114,7 @@ export async function updateGroupById(group) {
                     ...group1,
                     pageId: group.pageId,
                 };
-                await db.put('groups', updateGroup);
+                await db.put('groups', updateGroup);//?????????????????????????
             }
             group.path = await getNodePath(group);
             return group;
@@ -322,7 +324,8 @@ export async function getPages() {
 
 export async function getPage(pageId) {
     const db = await getDB();
-    const page = await db.get('pages', pageId);
+    const page = await db.get('pages', pageId); 7
+
     if (!page) {
         console.error(`BookmarkPage with pageId ${pageId} not found.`);
         return null;
@@ -484,7 +487,8 @@ export async function saveBookmarkToDB(urlData) {
             name: title,
             description: title,
             type: "bookmark",
-            url: url
+            url: url,
+            // tags: ['xxxx']
         };
         await db.put('bookmarks', saveData);
         // await tx.done; // 确保事务完成
@@ -702,6 +706,48 @@ export async function exportAllPagesJson() {
 
 
 //获取整个大分组的数据(包括子分组和书签)
+export async function getAllBookmarksByGroupId(groupId) {
+    try {
+        let allBookmarks = 0;
+        const toRemoveTags = [];
+
+        // console.log('ssssssssssssssss removeGroupById groupId', groupId);
+        const db = await getDB();
+        const root = await db.get('groups', groupId);
+        if (!root) return { success: false, bookmarksNum: 0, toRemoveTags };;
+
+        // const seenGroupTag = new Set<string>(); // 用于去重： `${gId}:::${value}`
+
+        // 递归深度优先删除：先遍历子分组，再当前分组及其书签
+        async function getByGroupAndChildren(id) {
+            const children = await db.getAllFromIndex('groups', 'pId', id);
+            for (const child of children) {
+                await getByGroupAndChildren(child.id);
+            }
+
+            const urls = await db.getAllFromIndex('bookmarks', 'gId', id);
+            if (urls && urls.length > 0) {
+                for (const url of urls) {
+                    allBookmarks++;
+                    // bookmarkList.push(url);
+                    const tags = url.tags;
+                    if (Array.isArray(tags) && tags.length > 0) {
+                        // const newTags = tags.map(t => String(t).trim()).filter(Boolean);
+                        for (const t of tags) toRemoveTags.push({ tag: t, add: false, id: url.id });
+                    }
+                }
+            }
+        }
+
+        await getByGroupAndChildren(groupId);
+        // return allBookmarks;
+        return { success: true, bookmarksNum: allBookmarks, toRemoveTags };
+    } catch (e) {
+        return { success: false, bookmarksNum: 0, toRemoveTags: [] };
+    }
+}
+
+//获取整个大分组的数据(包括子分组和书签)
 export async function getBookmarksGroupById(groupId) {
 
     // 递归查找目标分组
@@ -757,6 +803,7 @@ export async function addBookmarksPage(title) {
             default: false, // 导入的页面不设为默认
             createdAt: newPageId,
             updatedAt: newPageId,
+            bookmarksNum: 0,
         };
         await db.put('pages', newPageData);
         return newPageData; // 返回所有新页面的 ID
@@ -1279,31 +1326,9 @@ export async function getPageTreeGroupsData(pageId) {
     return data; // 根节点
 }
 
-async function updateBookmarksIcon(pageId, db, bookmarksNum) {
-    // console.log('11111111111111 updateBookmarksIcon');
-    // const db = await getDB();
-    /* const bookmarks = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
-    for (const bm of bookmarks) {
-        if (bm.url.startsWith('https://www.etdown.net/')) {
-            // console.log('11111111111111 updateBookmarksIcon', bm);
-            bm.icon =
-                "data:image/png;base64,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";
-            await db.put('bookmarks', bm);
-        }
-    } */
 
 
-    /* const group = await db.get('groups', "i1bk37x58");
-    group.pId = "95rdpjwqy";
-    group.pId = null;
-    await db.put('groups', group); */
-
-    const page = await db.get('pages', pageId);
-    page.bookmarksNum = bookmarksNum;
-    await db.put('pages', page);
-}
-
-async function setBookmarksGroupPath(bookmarks, db) {
+/* async function setBookmarksGroupPath(bookmarks, db) {
     const pathCache = new Map(); // gId -> pathArray
     const uniqueGIds = Array.from(new Set(bookmarks.map(b => b && b.gId).filter(Boolean)));
     for (const gid of uniqueGIds) {
@@ -1325,14 +1350,106 @@ async function setBookmarksGroupPath(bookmarks, db) {
     for (const u of bookmarks) {
         const gid = u && u.gId;
         u.path = gid ? (pathCache.get(gid) || []) : [];
+        // console.log('path', u.name, u.path)
     }
+} */
+
+async function setBookmarksGroupPath(bookmarks, db) {
+    const pathCache = new Map();
+
+    const uniqueGIds = Array.from(
+        new Set(bookmarks.map(b => b?.gId).filter(Boolean))
+    );
+
+    for (const gid of uniqueGIds) {
+        if (pathCache.has(gid)) continue;
+
+        const pathArr = [];
+        const seen = new Set();
+        let cur = gid;
+
+        while (cur) {
+            if (seen.has(cur)) break;
+            seen.add(cur);
+
+            const group = await db.get('groups', cur);
+            if (!group) break;
+
+            pathArr.push(group.id);
+            cur = group.pId;
+        }
+
+        pathCache.set(gid, pathArr.reverse());
+    }
+
+
+    // ✅ 👉 （函数最后 return）
+    const result = bookmarks.map(u => {
+        const gid = u?.gId;
+        return {
+            ...u,
+            path: gid ? (pathCache.get(gid) || []) : []
+        };
+    });
+    // console.log('11111111111111111111111 pathCache', pathCache, result);
+    return result;
 }
+
+export async function testUpdateData(pageId) {
+    console.log('11111111111111 testUpdateData');
+    const db = await getDB();
+    const bookmarks = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
+    for (const bm of bookmarks) {
+        if (bm.url.startsWith('https://www.etdown.net/')) {
+            console.log('11111111111111 updateBookmarksIcon', bm);
+            bm.icon =
+                "data:image/png;base64,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";
+            await db.put('bookmarks', bm);
+        }
+    }
+
+    /* const group = await db.get('groups', "fvyj4l5j1");
+    group.pId = "95rdpjwqy";
+    group.pId = null;
+    await db.put('groups', group); */
+    /*  const db = await getDB();
+     const page = await db.get('pages', 1774634741310);
+     page.bookmarksNum = 167;
+     await db.put('pages', page); */
+
+
+    // console.log('11111111111111 bookmarks ', bookmarks);
+    // console.log('------------------------------------------------------------ ');
+    /* const page = await db.get('pages', pageId);
+    page.bookmarksNum = bookmarksNum;
+    await db.put('pages', page); */
+    /*  const db = await getDB();
+     const pId = '01xsz1ezn';
+     const children = await db.getAllFromIndex('groups', 'pId', pId);
+     console.log('11111111111111 updateData ............', children);
+     for (const nd of children) {
+         const bookmarks = await db.getAllFromIndex('bookmarks', 'gId', nd.id);
+         for (const bookmark of bookmarks) {
+             // const bookmark = await db.get('bookmarks', "01xsz1ezn");
+             bookmark.pageId = 1774634741310;
+             await db.put('bookmarks', bookmark);
+         }
+         // console.log('11111111111111 bookmarks ', bookmarks);
+         // console.log('------------------------------------------------------------ ');
+     } */
+    //
+}
+
 
 export async function getPageTree(pageId) {
 
     const db = await getDB();
     const nodes = await db.getAllFromIndex('groups', 'pageId', pageId);
-    const urls = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
+    const bookmarks = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
+    // testUpdateData(pageId);
+    const page = await db.get('pages', pageId);
+    page.bookmarksNum = bookmarks.length;
+    db.put('pages', page);
     // updateBookmarksIcon(pageId, db, urls.length);//测试 更新
     const addUrls = [];
     /* const k = 'a';
@@ -1348,7 +1465,7 @@ export async function getPageTree(pageId) {
      */
 
     // 为每个书签根据 gId 计算所在分组的祖先路径（从根到本组 id 的数组），并缓存复用
-    setBookmarksGroupPath(urls, db);
+    const urls = await setBookmarksGroupPath(bookmarks, db);
 
     const expandedKeysSet = new Set();
     // 收集属于各分组的所有书签（展平为单个数组）
@@ -1474,7 +1591,7 @@ export async function getPageTree(pageId) {
         console.error('compute diff error', e);
     }
 
-    return { data: data, tagsMap: (tagsMapResult && tagsMapResult.allTags) || new Map(), expandedKeys: Array.from(expandedKeysSet) }; // 根节点
+    return { page: page, data: data, tagsMap: (tagsMapResult && tagsMapResult.allTags) || new Map(), bookmarksNum: urls.length, expandedKeys: Array.from(expandedKeysSet) }; // 根节点
 
 }
 
@@ -1482,43 +1599,13 @@ export async function getPageTreeByDate(pageId) {//pageId
     // 新实现：按书签的 addDate（年-月）分组，返回扁平的每月组数组，
     // 每组包含字段：id, date ("YYYY-MM"), name, bookmarks: []
     const db = await getDB();
-    const bookmarks = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
+    const bookmarks1 = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
 
-    setBookmarksGroupPath(bookmarks, db);
-    // const tagsMap = collectUrlTags(urls);
-    // 将时间规范化为 "YYYY-MM"
-    const map = new Map();
-    // 为每个书签根据 gId 计算所在分组的祖先路径（从根到本组 id 的数组），并缓存复用
-    const pathCache = new Map(); // gId -> pathArray
-    // 收集所有不同的 gId（排除空值）
-    const uniqueGIds = Array.from(new Set(bookmarks.map(b => b && b.gId).filter(Boolean)));
-    for (const gid of uniqueGIds) {
-        if (pathCache.has(gid)) continue;
-        const pathArr = [];
-        const seen = new Set();
-        let cur = gid;
-        while (cur) {
-            if (seen.has(cur)) break; // 防止循环引用导致死循环
-            seen.add(cur);
-            const group = await db.get('groups', cur);
-            if (!group) break;
-            pathArr.push(group.id);
-            if (!group.pId) break;
-            cur = group.pId;
-        }
-        // 需要从根到叶的顺序，所以反转
-        pathCache.set(gid, pathArr.reverse());
-    }
-
-    // 将计算好的 path 赋值给每个书签元素（若无 gId 则为空数组）
-    for (const u of bookmarks) {
-        const gid = u && u.gId;
-        u.path = gid ? (pathCache.get(gid) || []) : [];
-    }
+    const bookmarks = await setBookmarksGroupPath(bookmarks1, db);
 
     const seenGroupTag = new Set<string>(); // 用于去重： `${gId}:::${value}`
     const groupTags: Array<{ gId: string | null; value: string; }> = [];
-
+    const map = new Map();
     // console.log(pageId, 'getPageTreeByDate bookmarks', bookmarks.length);
     for (const u of bookmarks) {
         const date = u.date;
@@ -1611,7 +1698,7 @@ export async function getPageTreeByDate(pageId) {//pageId
     });
 
     // return { data: groups, treeData: treeData, tagsMap: tagsMap };
-    return { data: groups, treeData: treeData };
+    return { data: groups, treeData: treeData, bookmarksNum: bookmarks.length };
 }
 
 export async function getPageTreeByDomain2(pageId) {
@@ -1619,7 +1706,7 @@ export async function getPageTreeByDomain2(pageId) {
     const bookmarks = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
 
     // console.log(pageId, 'getPageTreeByDomain bookmarks', bookmarks.length);
-
+    setBookmarksGroupPath(bookmarks, db);
     // ========= 1. 构建 path 缓存 =========
     const pathCache = new Map();
     const uniqueGIds = Array.from(new Set(bookmarks.map(b => b && b.gId).filter(Boolean)));
@@ -1772,35 +1859,13 @@ export async function getPageTreeByDomain2(pageId) {
 export async function getPageTreeByDomain(pageId) {
     // 新实现：按书签链接的域名分组（不包含协议），保持返回结构与原来相同
     const db = await getDB();
-    const bookmarks = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
-    setBookmarksGroupPath(bookmarks, db);
-
+    const oriBookmarks = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
+    // await setBookmarksGroupPath(bookmarks, db);
+    const bookmarks = await setBookmarksGroupPath(oriBookmarks, db);
     // console.log(pageId, 'getPageTreeByDomain bookmarks', bookmarks.length);
 
     // 为每个书签根据 gId 计算所在分组的祖先路径（从根到本组 id 的数组），并缓存复用
-    const pathCache = new Map(); // gId -> pathArray
-    const uniqueGIds = Array.from(new Set(bookmarks.map(b => b && b.gId).filter(Boolean)));
-    for (const gid of uniqueGIds) {
-        if (pathCache.has(gid)) continue;
-        const pathArr = [];
-        const seen = new Set();
-        let cur = gid;
-        while (cur) {
-            if (seen.has(cur)) break;
-            seen.add(cur);
-            const group = await db.get('groups', cur);
-            if (!group) break;
-            pathArr.push(group.id);
-            if (!group.pId) break;
-            cur = group.pId;
-        }
-        pathCache.set(gid, pathArr.reverse());
-    }
-
-    for (const u of bookmarks) {
-        const gid = u && u.gId;
-        u.path = gid ? (pathCache.get(gid) || []) : [];
-    }
+    // console.log('222222222222222 getPageTreeByDomain', bookmarks);
 
     // 域名提取器：去掉协议，去掉 www. 前缀，返回小写主机名
     function extractDomain(url) {
@@ -1827,10 +1892,12 @@ export async function getPageTreeByDomain(pageId) {
     const groupTags: Array<{ gId: string | null; value: string; }> = [];
 
     for (const u of bookmarks) {
+
         const domain = extractDomain(u.url);
         u.domain = domain;
         if (!map.has(domain)) map.set(domain, []);
         map.get(domain).push(u);
+
 
         // 计算所属大分组 id：优先使用 groupPath 的第一个元素，否则回退到 gId
         const tags = u.tags;
@@ -1946,39 +2013,54 @@ export async function getPageTreeByDomain(pageId) {
         })),
     }));
 
-    return { data: data, treeData: treeData };
+    console.log('000000000000000 getPageTreeByDomain result', data);
+    return { data: data, treeData: treeData, bookmarksNum: bookmarks.length };
 }
+
 
 export async function getPageGroupData1(group) {
     const db = await getDB();
-    const bookmarkList = [];
-    const bookmarkGroupList = [];
 
-    async function getChildrenData(group, bookmarkList, bookmarkGroupList) {
-        const gId = group.id;
+    const bookmarkList: any[] = [];
+    const groupList: any[] = [];
 
+    // 👇 核心递归函数
+    async function getChildrenData(currentGroup) {
+        const gId = currentGroup.id;
+
+        // 1️⃣ 获取当前分组下的书签
         const bookmarks = await db.getAllFromIndex('bookmarks', 'gId', gId);
-        if (bookmarks.length > 0) {
+        if (bookmarks?.length) {
             bookmarkList.push(...bookmarks);
         }
 
-        bookmarkGroupList.push(group);
-        const children = await db.getAllFromIndex('groups', 'pId', gId);
-        children.forEach(child => {
-            // bookmarkGroupList.push(child);
-            getChildrenData(child, bookmarkList, bookmarkGroupList);
-        });
+        // 2️⃣ 收集分组
+        groupList.push(currentGroup);
 
+        // 3️⃣ 获取子分组
+        const children = await db.getAllFromIndex('groups', 'pId', gId);
+
+        if (!children?.length) return;
+
+        // 👉 ✅ 推荐：顺序递归（稳定、不会有并发问题）
+        for (const child of children) {
+            await getChildrenData(child);
+        }
+
+        // 👉 ❗ 如果你想用并发（可替换上面 for）
+        // await Promise.all(children.map(child => getChildrenData(child)));
     }
 
-    await getChildrenData(group, bookmarkList, bookmarkGroupList); // 根节点
-    // console.log(bookmarkList);
-    // console.log(bookmarkList[0]);
+    // 4️⃣ 从根节点开始
+    await getChildrenData(group);
+
+    console.log('✅ bookmarkList:', bookmarkList);
+    console.log('✅ groupList:', groupList);
+
     return {
         bookmarkList,
-        bookmarkGroupList
-    }
-    // console.log('getPageGroupData1 groupList', bookmarkGroupList);
+        groupList
+    };
 }
 
 /**
@@ -2089,8 +2171,10 @@ export function collectBookmarksTags(bookmarks?: any[]): any {
 
     const seenGroupTag = new Set<string>(); // 用于去重： `${gId}:::${value}`
     // const tagsList: Array<{ gId: string | null; value: string; index: number | null }> = [];
-    const tagsList: Array<{ gId: string | null; value: string; }> = [];
+    // const tagsList: Array<{ gId: string | null; value: string; }> = [];
+    const tagsList: Array<{ gId: string | null; value: string; num: number }> = [];
 
+    const groupTagCount = new Map<string, number>();
     for (const item of list) {
         if (!item) continue;
         const tags = item.tags;
@@ -2105,19 +2189,40 @@ export function collectBookmarksTags(bookmarks?: any[]): any {
         }
         if (!topGId && item.gId) topGId = item.gId;
 
+        /*  function addKey(k: string) {
+             const key = k && String(k).trim();
+             if (!key) return;
+             const s = tagMap.get(key) || new Set<string>();
+             if (itemId) s.add(itemId);
+             tagMap.set(key, s);
+ 
+             // tagsList 去重：相同 gId 下不添加相同 value
+             const gidKey = topGId || '';
+             const uniqueKey = `${gidKey}:::${key}`;
+             if (!seenGroupTag.has(uniqueKey)) {
+                 seenGroupTag.add(uniqueKey);
+                 tagsList.push({ gId: topGId, value: key });
+             }
+         } */
+
         function addKey(k: string) {
             const key = k && String(k).trim();
             if (!key) return;
+
             const s = tagMap.get(key) || new Set<string>();
             if (itemId) s.add(itemId);
             tagMap.set(key, s);
 
-            // tagsList 去重：相同 gId 下不添加相同 value
             const gidKey = topGId || '';
             const uniqueKey = `${gidKey}:::${key}`;
+
+            // ✅ 统计数量
+            groupTagCount.set(uniqueKey, (groupTagCount.get(uniqueKey) || 0) + 1);
+
+            // ✅ 去重 + 初始化 num
             if (!seenGroupTag.has(uniqueKey)) {
                 seenGroupTag.add(uniqueKey);
-                tagsList.push({ gId: topGId, value: key });
+                tagsList.push({ gId: topGId, value: key, num: 0 });
             }
         }
 
@@ -2134,35 +2239,55 @@ export function collectBookmarksTags(bookmarks?: any[]): any {
         }
     }
 
+    for (const item of tagsList) {
+        const gidKey = item.gId || '';
+        const uniqueKey = `${gidKey}:::${item.value}`;
+        item.num = groupTagCount.get(uniqueKey) || 0;
+    }
+
     // Convert Set values to arrays for easier serialization
     const result = new Map<string, string[]>();
     for (const [k, s] of tagMap.entries()) {
         result.set(k, Array.from(s));
     }
 
-    // 填充 tagsList 的 idx：标签在整体 tagMap keys 中的索引（按 insertion order）
-    /*    const allKeys = Array.from(result.keys());
-       for (const t of tagsList) {
-           const index = allKeys.indexOf(t.value);
-           t.index = index >= 0 ? index : -1;
-       } */
-
     // console.log('1111111111111111111 collectBookmarksTags tagsList', tagsList);
-    // console.log('1111111111111111111 collectBookmarksTags  result', result);
+    // console.log('1111111111111111111 collectBookmarksTags  allTags', result);
 
     return { allTags: result, tagsList: tagsList };
-    // return {allTags: result};
+}
+
+// 填充 tagsList 的 idx：标签在整体 tagMap keys 中的索引（按 insertion order）
+/*    const allKeys = Array.from(result.keys());
+   for (const t of tagsList) {
+       const index = allKeys.indexOf(t.value);
+       t.index = index >= 0 ? index : -1;
+   } */
+
+
+export async function updatePageBookmarksNum(pageId, num) {
+    try {
+        console.log('ssssssssssssssss updatePageBookmarksNum ', num);
+        const db = await getDB();
+        const page = await db.get('pages', pageId);
+        if (!page) return false;
+        page.bookmarksNum = page.bookmarksNum + num;
+        await db.put('pages', page);
+        return true;
+    } catch (e) {
+        return false;
+    }
 }
 
 export async function removeGroupById(groupId) {
     try {
-        console.log('ssssssssssssssss removeGroupById groupId', groupId);
+        // console.log('ssssssssssssssss removeGroupById groupId', groupId);
         const db = await getDB();
         const root = await db.get('groups', groupId);
         if (!root) return { success: false, error: 'group not found' };
 
         let deletedBookmarks = 0;
-
+        const toRemoveTags = [];
         // 递归深度优先删除：先删除子分组，再删除当前分组及其书签
         async function deleteGroupAndChildren(id) {
             const children = await db.getAllFromIndex('groups', 'pId', id);
@@ -2175,13 +2300,17 @@ export async function removeGroupById(groupId) {
                 for (const url of urls) {
                     await db.delete('bookmarks', url.id);
                     deletedBookmarks++;
+                    const tags = url.tags;
+                    if (Array.isArray(tags) && tags.length > 0) {
+                        for (const t of tags) toRemoveTags.push({ tag: t, add: false, id: url.id });
+                    }
                 }
             }
             await db.delete('groups', id);
         }
 
         await deleteGroupAndChildren(groupId);
-        return { success: true, deletedBookmarks: deletedBookmarks };
+        return { success: true, deletedBookmarks: deletedBookmarks, toRemoveTags: toRemoveTags };
     } catch (e) {
         return { success: false, error: e };
     }
@@ -2194,16 +2323,20 @@ export async function removeCopyGroupById(groupId) {
         const db = await getDB();
         const root = await db.get('groups', groupId);
         if (!root) return { success: false, error: 'group not found' };
-
+        const toRemoveTags = [];
         let deletedBookmarks = 0;
         const urls = await db.getAllFromIndex('bookmarks', 'gId', groupId);
         if (urls && urls.length > 0) {
             for (const url of urls) {
+                const tags = url.tags;
+                if (Array.isArray(tags) && tags.length > 0) {
+                    for (const t of tags) toRemoveTags.push({ tag: t, add: false, id: url.id });
+                }
                 await db.delete('bookmarks', url.id);
                 deletedBookmarks++;
             }
         }
-        return { success: true, deletedBookmarks: deletedBookmarks };
+        return { success: true, deletedBookmarks: deletedBookmarks, toRemoveTags: toRemoveTags };
     } catch (e) {
         return { success: false, error: e };
     }

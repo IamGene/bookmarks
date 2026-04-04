@@ -3,13 +3,13 @@ import { Tree, Switch, Input, Typography, Anchor, Select, Message, Space } from 
 import { RootState } from '@/store';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchBookmarksPageData0, fetchBookmarksPageData1, updateSearchState, fetchBookmarksPageData2 } from '@/store/modules/global';
+import { testUpdateData } from '@/db/BookmarksPages';
 const AnchorLink = Anchor.Link;
 const TreeNode = Tree.Node;
 
-
 const Option = Select.Option;
 const options = [
-    { label: '按分组', value: 0 },
+    { label: '按名称', value: 0 },
     { label: '按时间', value: 1 },
     { label: '按域名', value: 2 },
 ];
@@ -110,6 +110,7 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
     const [treeExpandedKeys, setTreeExpandedKeys] = useState([]);
 
     const switchExpand = () => {
+        // testUpdateData();
         if (expand) { //当前是展开，切换为收起
             setTreeExpandedKeys([])//收起时，清空展开项
         } else {
@@ -145,7 +146,7 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
         setInputValue(null);
         if (toUpdateGroupTypes.length > 0) {
             if (value === 0 && toUpdateGroupTypes.includes(0)) {
-                console.log('xxxxxxxxxxxxxxxxxxx onTypeSelectChange fetchBookmarksPageData0')
+                console.log('xxxxxxxxxxxxxxxxxxx tree onTypeSelectChange fetchBookmarksPageData0')
                 await dispatch(fetchBookmarksPageData0(pageId));
             } else if (value === 1 && toUpdateGroupTypes.includes(1)) {
                 await dispatch(fetchBookmarksPageData1(pageId));
@@ -314,12 +315,13 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
                     setTreeExpandedKeys(prev => {
                         const merged = Array.from(new Set(prev.filter(item => item !== path)));
                         return merged;
-                    })
+                    });
                 }
             }
             // const expandedKeys = getExpandedKeys(path.split(',').map(s => s.trim()));
             // setExpandedKeys(expandedKeys);
         }
+
     }
 
     //按分组
@@ -396,7 +398,7 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
         const targetElement = document.getElementById(targetId);
         if (targetElement) {
             targetElement.scrollIntoView({
-                behavior: 'smooth' // 可选：平滑滚动
+                // behavior: 'smooth' // 可选：平滑滚动
             });
         }
     }

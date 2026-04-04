@@ -15,10 +15,10 @@ import { GlobalContext } from './context';
 import Login from './pages/login';
 import changeTheme from './utils/changeTheme';
 import useStorage from './utils/useStorage';
-import { getCollectPageGroups, saveBookmarkToDB, saveBookmarksToDB, getBookmarkById, getPages } from './db/BookmarksPages';
+import { getCollectPageGroups, saveBookmarkToDB, updatePageBookmarksNum, saveBookmarksToDB, getBookmarkById, getPages } from './db/BookmarksPages';
 // import { useDispatch, useSelector } from 'react-redux'
 // import { RootState } from '@/store';
-import { fetchBookmarksPageData, loadNewAddedBookmarks, reloadUserPages, loadSearchHistory } from '@/store/modules/global'; // 确保路径正确
+import { fetchBookmarksPageData, loadNewAddedBookmarks, updateBookmarksPage, reloadUserPages, loadSearchHistory } from '@/store/modules/global'; // 确保路径正确
 import './mock';
 import store from './store';
 
@@ -162,6 +162,10 @@ function Index() {
             event.source.postMessage({
               type: 'SAVE_TO_DB_RESPONSE', ok: true, data: saveBookMark
             }, event.origin);
+
+            const res: boolean = await updatePageBookmarksNum(dbBookmark.pageId, 1);
+            store.dispatch(updateBookmarksPage({ pageId: dbBookmark.pageId, addNum: 1 }));
+
           } catch (e) {
             // console.error("A.com 主线程: 写入书签到 IndexedDB 失败:", e);
             event.source.postMessage({
@@ -189,6 +193,10 @@ function Index() {
         event.source.postMessage({
           type: 'SAVE_TO_DB_RESPONSE', ok: true, data: bookmarks
         }, event.origin);
+
+        const res: boolean = await updatePageBookmarksNum(bookmarks[0].pageId, bookmarks.length);
+        store.dispatch(updateBookmarksPage({ pageId: bookmarks[0].pageId, addNum: bookmarks.length }));
+
         console.log("A.com 主线程: 检查书签数组是否已存在 IndexedDB:", bookmarks);
         if (window.location.pathname === '/bookmarks' && currentPageId === bookmarks[0].pageId) {
           store.dispatch(fetchBookmarksPageData(bookmarks[0].pageId));

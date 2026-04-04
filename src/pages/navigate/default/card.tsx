@@ -1769,6 +1769,7 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
                     // onTabChange={TabChange}
                     activeTab={getActiveForPath(currentPath)}
                     onInputChange={onInputChange}
+                    onTabChange={TabChange}
                     searchInput={searchInput}
                     // globalActiveTabId={globalActiveTabId}
                     // resort={resort}

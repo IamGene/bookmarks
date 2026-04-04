@@ -39,13 +39,12 @@ import {
   IconLoading,
 } from '@arco-design/web-react/icon';
 import { useSelector, useDispatch } from 'react-redux';
-import { useFetchPageData } from '@/hooks/fetchPageData';
+// import { useFetchPageData } from '@/hooks/fetchPageData';
 // import { GlobalState } from '@/info';
 import { GlobalContext } from '@/context';
 import useLocale from '@/utils/useLocale';
 import Logo from '@/assets/logo.svg';
 import Plugins from '@/components/Icons';
-import MessageBox from '@/components/MessageBox';
 import Bookmarks from '@/components/Bookmarks';
 import SearchHistory from '@/components/SearchHistory';
 import Tags from '@/components/Tags';
@@ -59,22 +58,23 @@ import { generatePermission } from '@/routes';
 import { removeToken } from '@/utils1/auth';
 import { useStore } from '@/store1';
 import CreatePageGroup from '@/pages/navigate/user/form/add_page_group';
-import { reloadUserPages, fetchBookmarksPageData } from '@/store/modules/global';
-// const api = import.meta.env.VITE_REACT_APP_BASE_API;
+import { reloadUserPages, oneTagSelectedSwitch, fetchBookmarksPageData } from '@/store/modules/global';
+// const api = import.meta.env.VITE_REACT_APP_BASE_API; updatePageSelectedTags
 import { useHistory } from 'react-router-dom';
-
-function Navbar({ pageType, pageId, filterDataByTags, show, display, setNavBarKey, setAllDisplay }) {
+// filterDataByTags
+function Navbar({ pageType, show, display, setNavBarKey, setAllDisplay }) {
 
   const t = useLocale();
   const dispatch = useDispatch();
   // const [bookmarkPages, setBookmarkPages] = useState(pages);
   const [bookmarkPages, setBookmarkPages] = useState([]);
   const globalState = useSelector((state: any) => state.global);
-  const { userInfo, userLoading, pages, tagsMap, currentPage } = globalState;
+  const { userInfo, userLoading, pages, currentPage } = globalState;
   const history = useHistory();
   const [currentPageId, setCurrentPageId] = useState(null);//pageNo
   const [keyword, setKeyword] = useState(null);
   const [searchKeyword, setSearchKeyword] = useState(undefined);
+
   function setCurrentPage(pageId) {
     setCurrentPageId(pageId);
     // setSelectedTags([]);
@@ -86,25 +86,20 @@ function Navbar({ pageType, pageId, filterDataByTags, show, display, setNavBarKe
       const defaultPage = pages.find(page => page.default === true);
       const pageId = defaultPage ? defaultPage.pageId : pages[0].pageId;//获取默认展示的书签页
       setCurrentPage(pageId);
+      // console.log('xxxxxxxxxxxxxxxxxxxx setDefaultPageBookmarksData');
       const data: any = await dispatch(fetchBookmarksPageData(pageId));//获取当前书签页的分组和书签数据
-      // setList(data);//Card 全部的
-      // setHideGroup(hiddenGroup)//这个不能变->NavBar展示开关
-      // setLoading(false);
     }
+
     //没有缓存到localStorage中
     // if (!pages) { console.log('------------->pages 未加载', pages);
     /*  const pages1: any = await dispatch(reloadUserPages());//加载所有书签页->Redux
      setBookmarkPages(pages1);
     */
 
-    /*  } else {//
-       console.log('-------------<<< 已加载 pages', pages);
-     } */
 
   };
 
   // const { userInfo, userLoading } = useSelector((state: GlobalState) => state);
-
   // console.log(" ===================currentPage=", currentPage);
 
   const [_, setUserStatus] = useStorage('userStatus');
@@ -120,18 +115,13 @@ function Navbar({ pageType, pageId, filterDataByTags, show, display, setNavBarKe
     removeToken();
     const res = await userStore.LogOut();
     // window.location.href = '/login';
-    history.replace('/login');//navigate
+    history.replace('/login');
   }
-
-  /*   useEffect(() => {
-      setCurrentPageId(pageNo);
-    }, [pageNo]); */
 
   useEffect(() => {
     setBookmarkPages(pages);
-    setDefaultPageBookmarksData(pages);
+    if (!currentPage) setDefaultPageBookmarksData(pages);//初始化默认书签页数据
   }, [pages]);
-
 
   // 监听搜索框输入变化
   const onInputChange = (key: string) => {
@@ -304,7 +294,7 @@ function Navbar({ pageType, pageId, filterDataByTags, show, display, setNavBarKe
         // switchPageId(pageId);
       } else { //添加书签分组->刷新页面数据
         // switchPageId(pageId);
-        // console.log('xxxxxxxxxxxxxxxxxx', currentPageId, pageId);
+        // console.log('xxxxxxxxxxxxxxxxxx closeAddModal', currentPageId, pageId);
         if (currentPage.pageId === pageId) {
           await dispatch(fetchBookmarksPageData(pageId));//获取当前书签页的分组和书签数据
         } else {//非当前书签页
@@ -335,14 +325,6 @@ function Navbar({ pageType, pageId, filterDataByTags, show, display, setNavBarKe
        } */
 
   let timeoutId; // 用于存储 setTimeout 返回的标识符
-  async function getGroupData() {
-    try {
-      const data: any = await dispatch(fetchBookmarksPageData(pageNo));
-      return data;
-    } catch (error) {
-      return false;
-    }
-  }
 
   // 使用共享的 TagContext（不要在组件内重新创建）
   const [unselectedTag, setUnselectedTag] = useState<any>(null);
@@ -350,14 +332,6 @@ function Navbar({ pageType, pageId, filterDataByTags, show, display, setNavBarKe
     window.location.href = '/plugin-add2Bookmarks-v1.0.zip';
   }
 
-  function onTagClose(item) {
-    // const key = item && item.key ? item.key : (typeof item === 'string' ? item : null);
-    setUnselectedTag(item.key);
-    setSelectedTags(prev => {
-      const list = Array.isArray(prev) ? prev : [];
-      return list.filter(x => !(x && x.key === item.key));
-    });
-  }
 
   const [selectedTags, setSelectedTags] = useState<any[]>([]);
   const tagsContainerRef = useRef<HTMLDivElement | null>(null);
@@ -375,7 +349,9 @@ function Navbar({ pageType, pageId, filterDataByTags, show, display, setNavBarKe
       return;
     }
 
-    setSelectedTags(prev => {
+    dispatch(oneTagSelectedSwitch({ key, index, color, selected: selected, bookmarks }));//获取当前书签页的分组和书签数据
+
+    /* setSelectedTags(prev => {
       // Ensure prev is an array
       const list = Array.isArray(prev) ? prev : [];
       const exists = list.some(x => x && x.key === key);
@@ -388,16 +364,17 @@ function Navbar({ pageType, pageId, filterDataByTags, show, display, setNavBarKe
         return list.filter(x => !(x && x.key === key));
       }
       // deselect: remove any matching key
-
-    });
+    }); */
   }
 
   useEffect(() => {
-    // console.log("ssssssssssssssssssss NavBar selectedTags=", selectedTags);
     if (pageType === 'bookmarks') {
-      filterDataByTags(selectedTags);
+      // filterDataByTags(selectedTags);
+      // updatePageSelectedTags(selectedTags);
+      console.log("66666666666666666 NavBar selectedTags=", selectedTags);
+      // dispatch(updatePageSelectedTags(selectedTags));//获取当前书签页的分组和书签数据
     }
-  }, [selectedTags]);
+  }, [selectedTags]);//当选中标签发生变化时，传递到主页面组件
 
   // When tags change, scroll the tags container to the rightmost edge
   useEffect(() => {

@@ -269,6 +269,7 @@ function BookmarksPages(props: BookmarksPageProps) {
             style={{
               // opacity: item.status ? 0.5 : 1,//0.5:半透明
               opacity: 1,
+              padding: '11px 20px'
             }}
           >
             <div
@@ -280,6 +281,7 @@ function BookmarksPages(props: BookmarksPageProps) {
               }}
             >
               <List.Item.Meta
+
                 title={
                   <div className={styles['message-title']}>
                     <Space size={4}>

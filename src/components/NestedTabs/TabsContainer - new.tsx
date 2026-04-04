@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Tabs, Dropdown, Grid } from '@arco-design/web-react';
+import { Tabs, Dropdown, Menu, Checkbox, Button, Grid } from '@arco-design/web-react';
 import MultiSelectCheckBox from './CheckBox';
 import { IconSelectAll } from '@arco-design/web-react/icon';
+import styles from './style/index.module.less';
 const TabPane = Tabs.TabPane;
 
 interface Props {
@@ -30,12 +31,10 @@ interface Props {
     // cardData: any;
     // currentSearch: any;
     activeCardTab: string[];
-    // tabMore: Function;
-    // searchTabMore: Function;
+    tabMore: Function;
     tabMoreMenus: Function;
-    searchTabMoreMenus: Function;
+    searchTabMore: Function;
     showItem: boolean;
-    treeSelected: boolean;
     searchTabKey: any;
     multiSelectMap: Record<string, boolean>;// selectedMap: any;
     selectedMap?: Record<string, string[]>;
@@ -50,14 +49,12 @@ export default function TabsContainer(props: Props) {
     const {
         data,
         handleAddTab,
-        treeSelected,
         onTabChange,
         multiSelectMap,
         activeTab,
         level,
         activeCardTab,
         filterByTags,
-        searchTabMoreMenus,
         // determinShowTabOrNot,
         // onInputChange,
         // searchInput,
@@ -68,10 +65,10 @@ export default function TabsContainer(props: Props) {
         moveTabNode,
         searching,
         dataType,
+        tabMore,
         tabMoreMenus,
-        // searchTabMore,
+        searchTabMore,
         searchTabKey,
-        // tabMore,
         // onClickSearchMenuItem,
         // tabMouseEnter,
         renderContent,
@@ -155,11 +152,6 @@ export default function TabsContainer(props: Props) {
 
     useEffect(() => {
         //从非搜索切换到搜索 只有第一层tabs才有搜索结果tab
-        console.log('---------------------- activeTab change', activeTab)
-    }, [activeTab]);
-
-    useEffect(() => {
-        //从非搜索切换到搜索 只有第一层tabs才有搜索结果tab
         if (filterByTags && !data.pId) {
             const tabs = data.children.filter(c => c.totalMatchCount > 0);
             setCurrentTab(activeTab || (tabs.length > 0 && tabs[0].id));
@@ -239,7 +231,6 @@ export default function TabsContainer(props: Props) {
                     (searchingOrFilterByTags && (child.totalMatchCount > 0 || activeCardTab.includes(child.id))) || !searchingOrFilterByTags) &&
                     // style={{ display: 'block', width: '100%' }} style={{ display: 'inline-block' }}
                     <TabPane
-                        style={{ backgroundColor: treeSelected && activeCardTab.length > 0 && child.id == activeCardTab[activeCardTab.length - 1] ? 'aliceblue' : '' }}
                         key={child.id}
                         title={
                             <Dropdown
@@ -261,19 +252,14 @@ export default function TabsContainer(props: Props) {
                                         </WrapTabNode>
                                     </span> */}
 
-                                    <span style={{
-                                        display: 'block', padding: '4px 16px',
-                                        backgroundColor: treeSelected && activeCardTab.length > 0 && activeCardTab.includes(child.id) ? 'aliceblue' : ''
-                                    }}
+                                    <span style={{ display: 'block', padding: '4px 16px' }}
                                     >
                                         <WrapTabNode key={child.id} index={idx} node={child} moveTabNode={moveTabNode} >
                                             {!!multiSelectMap[child.id] && <IconSelectAll></IconSelectAll>}  {/* 全选图标 */}
                                             {child.name}
-                                            {/* <span style={{ color: 'rgb(var(--arcoblue-6))' }}>({child.id})</span> */}
                                             {searchingOrFilterByTags ?
                                                 <span style={{ color: 'red' }}>({child.totalMatchCount})</span>
-                                                // : <span style={{ color: 'rgb(var(--arcoblue-6))' }}>({child.bookmarksNum})</span>
-                                                : <span style={{ color: 'rgb(var(--arcoblue-6))' }}>({child.bookmarksNum})</span>
+                                                : <span style={{ color: 'blue' }}>({child.bookmarksNum})</span>
                                             }
                                         </WrapTabNode>
                                     </span>
@@ -293,52 +279,22 @@ export default function TabsContainer(props: Props) {
                         }>
                         {renderContent(processBeforeRender(child), idx)}
                         {/* {renderContent(processed, idx, op)} */}
-                    </TabPane >
+                    </TabPane>
                 )
             }
 
             {
                 searching && level <= 0 && (
-                    /*  <TabPane key={searchTabKey}
-                         title={
-                             <span style={{ display: 'block', padding: '4px 16px' }} onMouseEnter={(e) => handleTabMouseEnter(data.searchResult, true, e)} onMouseLeave={(e) => handleTabMouseEnter(data.searchResult, false, e)}>
-                                 {searchTabMore(data.searchResult, hoveredId === 'searchResultTab')}
-                             </span>
-                         }
-                     >
-                         {renderSearchContent(undefined)}
+                    /*  <TabPane key={searchTabKey} title={<span style={{ color: 'red' }}>{`搜索结果(${props.showSearchResult ? props.showSearchResult.length : 0})`}</span>}>
+                         {renderSearchContent()}
                      </TabPane> */
-
-                    <TabPane
-                        key={searchTabKey}
+                    <TabPane key={searchTabKey}
                         title={
-                            <Dropdown
-                                trigger='contextMenu'
-                                position='bl'
-                                droplist={//tabMoreMenus
-                                    searchTabMoreMenus(data.searchResult)
-                                }
-                            >
-                                <Grid.Row
-                                    style={{
-                                        color: 'var(--color-text-1)',
-                                    }}
-                                >
-                                    {/* <span style={{ display: 'block', padding: '4px 16px' }}
-                                        onMouseEnter={(e) => handleTabMouseEnter(child, true, e)} onMouseLeave={(e) => handleTabMouseEnter(child, false, e)}>
-                                        <WrapTabNode key={child.id} index={idx} node={child} moveTabNode={moveTabNode} >
-                                            {tabMore(child, hoveredId === child.id)}
-                                        </WrapTabNode>
-                                    </span> */}
-
-                                    <span style={{ display: 'block', padding: '4px 16px' }}>
-                                        {!!multiSelectMap[searchTabKey] && <IconSelectAll></IconSelectAll>}
-                                        <span style={{ color: 'red' }}> {`${filterByTags ? '筛选' : '搜索'}结果(${data.searchResult.length})`}
-                                        </span>
-                                    </span>
-                                </Grid.Row>
-                            </Dropdown>
-                        }>
+                            <span style={{ display: 'block', padding: '4px 16px' }} onMouseEnter={(e) => handleTabMouseEnter(data.searchResult, true, e)} onMouseLeave={(e) => handleTabMouseEnter(data.searchResult, false, e)}>
+                                {searchTabMore(data.searchResult, hoveredId === 'searchResultTab')}
+                            </span>
+                        }
+                    >
                         {renderSearchContent(undefined)}
                     </TabPane>
                 )
