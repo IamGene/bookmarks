@@ -9,6 +9,8 @@ import locale from './locale';
 import styles from './style/index.module.less';
 import CardBlock1 from './card-block1';
 import CardItem from './card';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 // import CardEmpty from './card-empty';
 // import EmptyCard from '@/components/EmptyCard/index';
 import EmptyCard from '@/components/EmptyCard/index';
@@ -160,21 +162,25 @@ function ListCard({ activeCardTab, display, setCardTabActive, keyWord, list, has
         }}
       >
 
-        {list && list.length > 0 && list.map((item, index) => {
-          return <CardItem key={index}
-            setCardTabActive={setCardTabActive}
-            cardData={item}
-            // index={index}
-            // last={index == list.length - 1}
-            // first={index == 0}
-            // activeGroup={activeGroup}
-            display={display}
-            treeSelectedNode={activeCardTab}
-            keyWord={keyWord}
-            hasResult={hasResult}
-          >
-          </CardItem>
-        })}
+        {list && list.length > 0 && (
+          <DndProvider backend={HTML5Backend}>
+            {list.map((item, index) => {
+              return <CardItem key={index}
+                setCardTabActive={setCardTabActive}
+                cardData={item}
+                // index={index}
+                // last={index == list.length - 1}
+                // first={index == 0}
+                // activeGroup={activeGroup}
+                display={display}
+                treeSelectedNode={activeCardTab}
+                keyWord={keyWord}
+                hasResult={hasResult}
+              >
+              </CardItem>
+            })}
+          </DndProvider>
+        )}
 
         {/* {(!hasResult || (list && list.length === 0)) && <EmptyCard search={search}></EmptyCard>} */}
         {!hasResult && search && <EmptyCard search={search}></EmptyCard>}

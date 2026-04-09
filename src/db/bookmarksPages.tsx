@@ -346,6 +346,17 @@ export async function setDefaultPage(pageId) {
     await tx.done; // 确保事务完成
 }
 
+export async function setCurrentPageId(pageId) {
+    const db = await getDB();
+    const tx = db.transaction('pages', 'readwrite');
+    const store = tx.objectStore('pages');
+    const allPages = await store.getAll();
+    for (const page of allPages) {
+        page.current = (page.pageId === pageId);
+        await store.put(page);
+    }
+    await tx.done; // 确保事务完成
+}
 
 /**
  * 批量保存书签数组到 DB

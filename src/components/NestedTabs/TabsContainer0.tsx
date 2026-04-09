@@ -1,6 +1,5 @@
 import React, { Children, useState, useEffect } from 'react';
-import { HTML5Backend } from 'react-dnd-html5-backend';
-import { DndProvider } from 'react-dnd';
+// Note: DndProvider should be provided once at a higher level; removed unused imports
 import { Tabs, Input, Dropdown, Menu } from '@arco-design/web-react';
 import { IconCheck } from '@arco-design/web-react/icon';
 const TabPane = Tabs.TabPane;

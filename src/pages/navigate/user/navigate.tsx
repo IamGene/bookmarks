@@ -9,6 +9,8 @@ import locale from './locale';
 import styles from './style/index.module.less';
 import CardBlock1 from './card-block1';
 import CardItem from './card';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 // import CardEmpty from './card-empty';
 import EmptyCard from '@/components/EmptyCard/index';
 import SearchResult from '@/components/SearchResult/index';
@@ -26,7 +28,7 @@ import './mock';
 const TabPane = Tabs.TabPane;
 const { Row, Col, GridItem } = Grid;
 // tags
-function ListCard({ activeCardTab, dataType, display, setCardTabActive, keyWord, list, hasResult, loading }) {
+function ListCard({ activeCardTab, dataType, setCardTabActive, keyWord, list, hasResult, loading }) {
   const t = useLocale(locale);
 
   const searchState = useSelector((state: any) => state.global.search);
@@ -211,24 +213,27 @@ function ListCard({ activeCardTab, dataType, display, setCardTabActive, keyWord,
         {(search && searchResultNum == 0 || (!list || list.length === 0)) && <EmptyCard search={search}></EmptyCard>}
 
         {/* {list && list.length > 0 && list.map((item, index) => { */}
-        {cardList && cardList.length > 0 && cardList.map((item, index) => {
-          return <CardItem key={item.id}
-            setCardTabActive={setCardTabActive}
-            cardData={item}
-            dataType={dataType}
-            // tags={tags}
-            removeCard={removeItem}
-            // index={index}
-            // last={index == list.length - 1}
-            // first={index == 0}
-            // activeGroup={activeGroup}
-            display={display}
-            treeSelectedNode={activeCardTab}
-            keyWord={keyWord}
-          // hasResult={hasResult}
-          >
-          </CardItem>
-        })}
+        {cardList && cardList.length > 0 && (
+          <DndProvider backend={HTML5Backend}>
+            {cardList.map((item, index) => {
+              return <CardItem key={item.id}
+                setCardTabActive={setCardTabActive}
+                cardData={item}
+                dataType={dataType}
+                // tags={tags}
+                removeCard={removeItem}
+                // index={index}
+                // last={index == list.length - 1}
+                // first={index == 0}
+                // activeGroup={activeGroup}
+                treeSelectedNode={activeCardTab}
+                keyWord={keyWord}
+              // hasResult={hasResult}
+              >
+              </CardItem>
+            })}
+          </DndProvider>
+        )}
 
         {/* {(!hasResult || (list && list.length === 0)) && <CardEmpty search={search}></CardEmpty>} */}
 

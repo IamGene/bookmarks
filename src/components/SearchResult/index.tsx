@@ -1,5 +1,5 @@
 import { Card, Avatar, Link, Typography, Space } from '@arco-design/web-react';
-import { useSelector } from 'react-redux'
+import { useSelector } from 'react-redux';
 
 
 const Content = ({ children }) => {

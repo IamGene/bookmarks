@@ -12,8 +12,7 @@ import styles from './style/index.module.less';
 import { removeGroup, saveTagGroup, moveGroupTopBottom } from '@/api/navigate';
 import { useDispatch } from 'react-redux'
 import { fetchBookmarksPageData, updateActiveGroup } from '@/store/modules/global';
-import { DndProvider, useDrag, useDrop } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
+import { useDrag, useDrop } from 'react-dnd';
 import TabsContainer from '../../../components/NestedTabs/TabsContainer0';
 import { sortGroup } from '@/api/navigate';
 const TabPane = Tabs.TabPane;
@@ -1806,10 +1805,7 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
 
     // 返回结果
     return (
-        <DndProvider backend={HTML5Backend}>
-            {cardShow && RenderNode(data, data.id, 0)}
-            {/* 添加或编辑标签、分组 */}
-        </DndProvider>
+        <>{cardShow && RenderNode(data, data.id, 0)}</>
     )
 
 }

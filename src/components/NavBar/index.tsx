@@ -62,14 +62,14 @@ import { reloadUserPages, oneTagSelectedSwitch, fetchBookmarksPageData } from '@
 // const api = import.meta.env.VITE_REACT_APP_BASE_API; updatePageSelectedTags
 import { useHistory } from 'react-router-dom';
 // filterDataByTags
-function Navbar({ pageType, show, display, setNavBarKey, setAllDisplay }) {
+function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
 
   const t = useLocale();
   const dispatch = useDispatch();
   // const [bookmarkPages, setBookmarkPages] = useState(pages);
   const [bookmarkPages, setBookmarkPages] = useState([]);
   const globalState = useSelector((state: any) => state.global);
-  const { userInfo, userLoading, pages, currentPage } = globalState;
+  const { userInfo, userLoading, pages, tags, currentPage } = globalState;
   const history = useHistory();
   const [currentPageId, setCurrentPageId] = useState(null);//pageNo
   const [keyword, setKeyword] = useState(null);
@@ -81,12 +81,12 @@ function Navbar({ pageType, show, display, setNavBarKey, setAllDisplay }) {
   }
 
 
-  const setDefaultPageBookmarksData = async (pages) => {
+  const setCurrentPageBookmarksData = async (pages) => {
     if (pages && pages.length > 0 && pageType === 'bookmarks') {//只有用户存在标签数据才能查询
-      const defaultPage = pages.find(page => page.default === true);
-      const pageId = defaultPage ? defaultPage.pageId : pages[0].pageId;//获取默认展示的书签页
+      // const defaultPage = pages.find(page => page.default === true);
+      const currentPage = pages.find(page => page.current === true);
+      const pageId = currentPage ? currentPage.pageId : pages[0].pageId;//获取默认展示的书签页
       setCurrentPage(pageId);
-      // console.log('xxxxxxxxxxxxxxxxxxxx setDefaultPageBookmarksData');
       const data: any = await dispatch(fetchBookmarksPageData(pageId));//获取当前书签页的分组和书签数据
     }
 
@@ -96,11 +96,10 @@ function Navbar({ pageType, show, display, setNavBarKey, setAllDisplay }) {
      setBookmarkPages(pages1);
     */
 
-
   };
 
   // const { userInfo, userLoading } = useSelector((state: GlobalState) => state);
-  // console.log(" ===================currentPage=", currentPage);
+  console.log(" ===================currentPage=", currentPage);
 
   const [_, setUserStatus] = useStorage('userStatus');
   const [role, setRole] = useStorage('userRole', 'admin');
@@ -120,7 +119,7 @@ function Navbar({ pageType, show, display, setNavBarKey, setAllDisplay }) {
 
   useEffect(() => {
     setBookmarkPages(pages);
-    if (!currentPage) setDefaultPageBookmarksData(pages);//初始化默认书签页数据
+    if (!currentPage) setCurrentPageBookmarksData(pages);//初始化默认书签页数据
   }, [pages]);
 
   // 监听搜索框输入变化
@@ -328,6 +327,7 @@ function Navbar({ pageType, show, display, setNavBarKey, setAllDisplay }) {
 
   // 使用共享的 TagContext（不要在组件内重新创建）
   const [unselectedTag, setUnselectedTag] = useState<any>(null);
+
   function downloadPlugin() {
     window.location.href = '/plugin-add2Bookmarks-v1.0.zip';
   }
@@ -338,7 +338,7 @@ function Navbar({ pageType, show, display, setNavBarKey, setAllDisplay }) {
 
   function onTagSwitch(value: { key: string; index: number; color: string; selected: boolean, bookmarkIds: string[] }) {
     // Normalize and validate incoming value
-    // console.log('sssssssssssssssssss onTagSwitch value=', value, selectedTags);
+    console.log('sssssssssssssssssss onTagSwitch state.tags.toBeUnselectedNextTime.=', tags.toBeUnselectedNextTime);
     const key = value && typeof value.key === 'string' ? value.key : null;
     const color = value && value.color ? value.color : undefined;
     const bookmarks = value && value.bookmarkIds ? value.bookmarkIds : [];
@@ -580,7 +580,7 @@ function Navbar({ pageType, show, display, setNavBarKey, setAllDisplay }) {
         </li> */}
 
           {/* 显示/隐藏 */}
-          {display !== null && <li>
+          {/*   {display !== null && <li>
             <Tooltip
               content={
                 tagsShow ? t['settings.tags.hide'] : t['settings.tags.show']
@@ -593,7 +593,7 @@ function Navbar({ pageType, show, display, setNavBarKey, setAllDisplay }) {
               />
             </Tooltip>
           </li>
-          }
+          } */}
 
           <Settings />
           {/* 头像 */}

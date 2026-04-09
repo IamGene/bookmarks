@@ -130,7 +130,10 @@ export interface GlobalState {
   // tagsMap: { [key: string]: string[] } | null;
   tags: {
     tagsMap: { [key: string]: string[] } | null,
-    selectedTags: any[]
+    selectedTags: any[],
+    groupUnselectedTags: any[],
+    toBeUnselectedNextTime: any[],
+    groupUnselectedTag: any,
   },
   activeGroup: GroupNode;
   loadedBookmarks: WebTag[];
@@ -166,7 +169,10 @@ const initialState: GlobalState = {
   // tagsMap: null,
   tags: {
     tagsMap: null,
-    selectedTags: []
+    selectedTags: [],
+    groupUnselectedTags: [],
+    toBeUnselectedNextTime: [],
+    groupUnselectedTag: null,
   },
   pages: null,
   activeGroup: null,
@@ -247,6 +253,14 @@ const globalSlice = createSlice({
     },
     switchTagSelected: (state, action) => {
       const tag = action.payload.switchTag;
+      if (state.tags.toBeUnselectedNextTime.length > 0) {
+        // console.log('xxxxxxxxxxxxxxxxxxxx switchTagSelected toBeUnselectedNextTime', state.tags.toBeUnselectedNextTime);
+        const keysToRemove = Array.from(new Set(state.tags.toBeUnselectedNextTime.map(item => String(item.key))));
+        if (keysToRemove.length > 0 && Array.isArray(state.tags.selectedTags)) {
+          state.tags.selectedTags = state.tags.selectedTags.filter(t => !keysToRemove.includes(String(t.key)));
+          state.tags.toBeUnselectedNextTime = [];
+        }
+      }
       // console.log('55555555555555555 switchTagSelected action.payload.selectedTags', tag);
       if (tag.selected) {
         state.tags.selectedTags.push(tag);
@@ -254,11 +268,79 @@ const globalSlice = createSlice({
         state.tags.selectedTags = state.tags.selectedTags.filter(t => t.key !== tag.key);
       }
     },
+    updateTagSelected: (state, action) => {
+      const tag = action.payload.unselectedTag;
+      if (!tag) return;
+
+      const idx = state.tags.groupUnselectedTags.findIndex(t => String(t.value) === String(tag.value));
+      if (idx === -1) {
+        const existing = Array.isArray(tag?.bookmarks) ? [...tag.bookmarks] : [];
+
+        const idx1 = state.tags.selectedTags.findIndex(t => String(t.key) === String(tag.value));
+        if (idx1 === -1) return;
+        const selectedTag = state.tags.selectedTags[idx1];
+
+        // 更新 state 中的 groupUnselectedTags 对象
+        const selLen = Array.isArray(selectedTag?.bookmarks) ? selectedTag.bookmarks.length : 0;
+        if (existing.length === selLen) {//全部已取消
+          state.tags.groupUnselectedTag = tag;
+          const alreadyExists = state.tags.toBeUnselectedNextTime.some(t => String(t.key) === String(selectedTag.key));
+          if (!alreadyExists) {
+            state.tags.toBeUnselectedNextTime.push(selectedTag);
+          }
+          if (state.tags.toBeUnselectedNextTime.length == state.tags.selectedTags.length) {
+            state.tags.selectedTags = [];
+            state.tags.toBeUnselectedNextTime = [];
+          }
+        } else {
+          state.tags.groupUnselectedTags.push(tag);
+        }
+      } else {
+
+        const groupUnselectedTag = state.tags.groupUnselectedTags[idx];
+        const idx1 = state.tags.selectedTags.findIndex(t => String(t.key) === String(tag.value));
+        if (idx1 === -1) return;
+        const selectedTag = state.tags.selectedTags[idx1];
+
+        // 将 tag.bookmarks 的所有元素添加到 groupUnselectedTag.bookmarks 中（去重），
+        // 若添加后 groupUnselectedTag.bookmarks.length == selectedTag.bookmarks.length 则设置 state.tags.groupUnselectedTag = tag
+        const existing = Array.isArray(groupUnselectedTag?.bookmarks) ? [...groupUnselectedTag.bookmarks] : [];
+        const toAdd = Array.isArray(tag?.bookmarks) ? tag.bookmarks.map(String) : [];
+
+        const existingSet = new Set(existing.map(String));
+        for (const b of toAdd) {
+          if (!existingSet.has(String(b))) {
+            existing.push(b);
+            existingSet.add(String(b));
+          }
+        }
+
+        // 更新 state 中的 groupUnselectedTags 对象
+        state.tags.groupUnselectedTags[idx] = { ...groupUnselectedTag, bookmarks: existing } as any;
+        const selLen = Array.isArray(selectedTag?.bookmarks) ? selectedTag.bookmarks.length : 0;
+        if (existing.length === selLen) {
+          const alreadyExists = state.tags.toBeUnselectedNextTime.some(t => String(t.key) === String(selectedTag.key));
+          if (!alreadyExists) {
+            state.tags.toBeUnselectedNextTime.push(selectedTag);
+          }
+          console.log('xxxxxxxxxxxxxxxxxxxxx toBeUnselectedNextTime 全部已取消筛选', state.tags.toBeUnselectedNextTime.length == state.tags.selectedTags.length);
+          state.tags.groupUnselectedTag = tag;//用于更新tags popUp组件选中状态
+          // 从 groupUnselectedTags 中移除已被激活为 groupUnselectedTag 的项
+          state.tags.groupUnselectedTags.splice(idx, 1);//移除，以免影响下次操作
+
+          //
+          if (state.tags.toBeUnselectedNextTime.length == state.tags.selectedTags.length) {//所有已取消
+            state.tags.selectedTags = [];
+            state.tags.toBeUnselectedNextTime = [];
+          }
+        }
+      }
+
+    },
 
     updatePageGroupList: (state, action) => {
       const params = action.payload?.params || {};
       const dataType = params.dataType;
-
 
       if (dataType === 1) {//按时间
         const groupId = params.groupId;
@@ -376,8 +458,7 @@ const globalSlice = createSlice({
         } else {//删除
           if (id) {
             const filtered = currentArr.filter(x => x !== id);
-
-            console.log('sssssssssssssssssssssssss updateTagsMap nextSelectedTags', filtered);
+            // console.log('sssssssssssssssssssssssss updateTagsMap nextSelectedTags', filtered);
             if (filtered.length === 0) {
               delete state.tags.tagsMap[tagKey];
               const selectedTags = state.tags.selectedTags;
@@ -705,7 +786,18 @@ const updatePageBookmarkTags = (tagsUpdate: any[]) => {
   };
 };
 
-
+const groupTagUnselected = (tag: any) => {
+  // console.log('11111111111111111 groupTagUnselected', tag);
+  return (dispatch) => {
+    dispatch(updateTagSelected({ unselectedTag: tag }));
+  };
+};
+const groupTagSelected = (tag: any) => {
+  console.log('2222222222 groupTagSelected', tag);
+  return (dispatch) => {
+    // dispatch(updateTagSelected({ unselectedTag: tag }));
+  };
+};
 const loadNewAddedBookmarks = (bookmarks: WebTag[]) => {
   // console.log('2222222222 loadNewAddedBookmarks action', bookmarks);
   return async (dispatch) => {
@@ -739,7 +831,7 @@ const loadSearchHistory = () => {
 // export const { updateSettings, updateUserInfo, updateHasResult, updateBookmarks } = globalSlice.actions;
 //updateSearchHistory 
 const { updateSettings, updateUserInfo, updateHasResult, switchTagSelected,
-  updateGroupTypes, updateSearchState, updatePageGroupList,
+  updateGroupTypes, updateSearchState, updatePageGroupList, updateTagSelected,
   updateUserPage, updateTagsMap, updateBookmarks, setUserPages,
   setSearchHistory,
   updateActiveGroup, setLoadBookmarks } = globalSlice.actions;
@@ -748,7 +840,7 @@ export {
   loadSearchHistory, updatePageBookmarkTags, oneTagSelectedSwitch,
   updatePageDataState, reloadUserPages, fetchBookmarksPageData,
   fetchBookmarksPageData0, fetchBookmarksPageData1, fetchBookmarksPageData2, updateBookmarksPage, fetchBookmarksPageDatas, fetchBookmarksPageDataGoups,
-  loadNewAddedBookmarks, updatePageGroupsDataByType
+  loadNewAddedBookmarks, updatePageGroupsDataByType, groupTagUnselected, groupTagSelected
 };
 export default globalSlice.reducer;
 // export { dispatchTagGroupsData }; updatePageSelectedTags

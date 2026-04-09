@@ -13,7 +13,7 @@ import useLocale from '@/utils/useLocale';
 import styles from './style/index.module.less';
 // 导入自定义 Hook
 import { useFetchPageData } from '@/hooks/fetchPageData';
-import { setDefaultPage, testUpdate, getPages } from '@/db/BookmarksPages';
+import { setDefaultPage, testUpdate, getPages, setCurrentPageId } from '@/db/BookmarksPages';
 import ExportModal from './exportModal';
 import { useHistory } from 'react-router-dom';
 // import { useSelector, useDispatch } from 'react-redux';
@@ -95,11 +95,12 @@ function BookmarksPages(props: BookmarksPageProps) {
 
   useEffect(() => {
     setCurrentPage(currentPageId);
+    // setDefaultPage(currentPageId);
     // console.log('useEffect currentPageId', currentPageId)
   }, [currentPageId]);
 
-  useEffect(() => {
-  }, [localPages]);
+  /*   useEffect(() => {
+    }, [localPages]); */
 
 
   async function handleSetDefaultPage(item: BookmarksPageData, index: number) {
@@ -110,6 +111,11 @@ function BookmarksPages(props: BookmarksPageProps) {
     // console.log('newPages', newPages);
     // 假设有 localPages 作为本地状态
     setLocalPages(newPages);
+  }
+
+  async function handleSetCurrentPage(item: BookmarksPageData, index: number) {
+    // 设置为当前书签页
+    await setCurrentPageId(item.pageId);
   }
 
   /*  async function removePage(item: BookmarksPageData, index: number) {
@@ -239,6 +245,7 @@ function BookmarksPages(props: BookmarksPageProps) {
     }
     if (currentPage !== item.pageId) {
       switchPageId(item.pageId);//切换显示数据
+      handleSetCurrentPage(item, index);
     }
   }
 
@@ -318,7 +325,6 @@ function BookmarksPages(props: BookmarksPageProps) {
           </List.Item>
         ))}
       </List>
-
 
       <ExportModal
         visible={exportModalVisible}

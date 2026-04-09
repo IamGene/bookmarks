@@ -23,24 +23,43 @@ const easingTypes = [
     'bounceOut',
     'bounceInOut',
 ];
-function BackToTopButton() {
+function BackToTopButton({ container, threshold = 100 }: { container?: HTMLElement | null; threshold?: number }) {
     const [showButton, setShowButton] = useState(false);
 
     useEffect(() => {
+        const target: any = container || window;
         const handleScroll = () => {
-            // setShowButton(window.scrollY > 100);
-            setShowButton(window.scrollY > 200);
+            try {
+                if (container) {
+                    const el = container as HTMLElement;
+                    const hasScrollbar = el.scrollHeight > el.clientHeight;
+                    setShowButton(hasScrollbar && el.scrollTop > (threshold || 100));
+                } else {
+                    setShowButton((window && window.scrollY) ? window.scrollY > (threshold || 100) : false);
+                }
+            } catch (e) {
+                setShowButton(false);
+            }
         };
 
-        window.addEventListener('scroll', handleScroll);
+        target.addEventListener('scroll', handleScroll, { passive: true });
+        handleScroll();
 
         return () => {
-            window.removeEventListener('scroll', handleScroll);
+            target.removeEventListener('scroll', handleScroll as EventListener);
         };
-    }, []);
+    }, [container, threshold]);
 
     const handleClick = () => {
         // behavior: 'smooth'
+        if (container) {
+            try {
+                (container as HTMLElement).scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+            } catch (e) {
+                // fallback to window
+            }
+        }
         window.scrollTo({ top: 0, behavior: 'smooth' });
         /*  // 使用可控动画实现更快的回到顶部
          const start = window.scrollY || window.pageYOffset;
@@ -87,10 +106,10 @@ function BackToTopButton() {
             style={{
                 width: 40, height: 40,
                 position: 'fixed',
-                bottom: '10px',
+                bottom: '15px',//10
                 backgroundColor: '#6aa1ff',
                 // backgroundColor: '#94bfff',
-                right: '10px',
+                right: '20px',//50
                 overflow: 'hide',
                 // right: '0',
                 zIndex: 999,

@@ -34,7 +34,7 @@ import { isArray } from '@/utils/is';
 import useLocale from '@/utils/useLocale';
 import getUrlParams from '@/utils/getUrlParams';
 import { RootState } from '@/store';
-import { updateUserInfo, updateSearchState, fetchBookmarksPageData0, fetchBookmarksPageData1, fetchBookmarksPageData2 } from '@/store/modules/global';
+import { updateUserInfo, updateSearchState } from '@/store/modules/global';
 import { generatePermission } from '@/routes';
 import Navi from './navigate';
 import { getPages, saveSearchHistory, getBookmarkById, getBookmarkGroupById } from "@/db/BookmarksPages";
@@ -173,67 +173,6 @@ function getFlattenRoutes(routes) {
 }
 
 
-function searchData(inputValue, treeData) {
-  const loop = (data) => {
-    const result = [];
-    data.forEach((item) => {
-      if (item.name.toLowerCase().indexOf(inputValue.toLowerCase()) > -1) {
-        result.push({ ...item });
-      } else if (item.children) {
-        const filterData = loop(item.children);
-        if (filterData.length) {
-          result.push({ ...item, children: filterData });
-        }
-      }
-    });
-    return result;
-  };
-  return loop(treeData);
-}
-
-//过滤隐藏的项
-function filterHideItems(treeData) {
-  const filter = (data) => {
-    const result = [];
-    data.forEach((item) => {
-      if (!item.hide) {
-        //有子分组
-        if (item.children && item.children.length > 0) {
-          const filterData = filter(item.children);
-          if (filterData.length) {
-            result.push({ ...item, children: filterData });
-          }
-        } else {
-          result.push({ ...item });
-        }
-      }
-    });
-    return result;
-  };
-  return filter(treeData);
-}
-
-function searchAndFilterData(inputValue, treeData, display) {
-  const loop = (data) => {
-    const result = [];
-    data.forEach((item) => {
-      if ((!inputValue || !inputValue.trim()) && item.name.toLowerCase().indexOf(inputValue.toLowerCase()) > -1) {
-        result.push({ ...item });
-      } else if (item.children) {
-        const filterData = loop(item.children);
-
-        if (filterData.length) {
-          result.push({ ...item, children: filterData });
-        }
-      }
-    });
-    return result;
-  };
-
-  //如果搜索词为空且不过滤隐藏
-  if ((!inputValue || !inputValue.trim()) && display) return treeData;
-  return loop(treeData);
-}
 
 function UserNavigate() {
 
@@ -264,7 +203,6 @@ function UserNavigate() {
   } = useSelector(
     (state: RootState) => ({
       settings: state.global.settings,
-      // userLoading: state.global.userLoading,
       // userInfo: state.global.userInfo,
       dataByGroup: state.global.dataByGroup,
       dataByDate: state.global.dataByDate,
@@ -291,7 +229,7 @@ function UserNavigate() {
 
   useEffect(() => {
     const data = group3Bookmarks.find(g => g.value === dataType)?.data || [];
-    console.log('1111111111111111 useEffect group3Bookmarks group3Bookmarks', dataType, group3Bookmarks);
+    // console.log('1111111111111111 useEffect group3Bookmarks group3Bookmarks', dataType, group3Bookmarks);
     setList(data);
     group3Ref.current = group3Bookmarks;
   }, [group3Bookmarks]);//书签页数据发生变化
@@ -322,13 +260,8 @@ function UserNavigate() {
   const [dataType, setDataType] = useState(0);//数据组织类型：0：按分组；1：按时间
 
   const [hasResult, setHasResult] = useState(true);
-  const [display, setDisplay] = useState(!hiddenGroup);//false
-
-  const [hideGroup, setHideGroup] = useState(hiddenGroup);
   // const [data, setData] = useState(hiddenGroup ? filterHideItems(groups) : groups);
-  const [data, setData] = useState();
 
-  const [searchFromAll, setSearchFromAll] = useState(data);
   // const [filterFromAll, setFilterFromAll] = useState(hiddenGroup ? filterHideItems(groups) : groups);
   // const [filterFromAll, setFilterFromAll] = useState(groups);
   // const [filterFromAll, setFilterFromAll] = useState(dataGroups);
@@ -393,10 +326,11 @@ function UserNavigate() {
   const paddingStyle = { ...paddingLeft, ...paddingTop };
   const [loading, setLoading] = useState(true);
 
+  const contentWrapperRef = useRef<HTMLDivElement | null>(null);
+
   const [treeSelected, setTreeSelected] = useState([]);
   const [treeSelectedKeys, setTreeSelectedKeys] = useState([]);
   // const [treeInputValue, setTreeInputValue] = useState('');
-  const [filterTags, setFilterTags] = useState([]);
 
   // 接收Tree传过来的选中项
   const getTreeSelect = (selected) => {
@@ -408,40 +342,9 @@ function UserNavigate() {
     setTreeSelected(activeCardTab);
   }
 
-  // 接收Tree传过来的关键词过滤后的数据
 
-
-
-  // const [treeDatas, setTreeDatas] = useState(dataGroups);
-  // 接收Tree传过来的关键词
-  /*   const getTreeInputValue = (inputValue) => {
-      // console.log('aaaa', inputValue);
-      setTreeInputValue(inputValue);
-      if (!inputValue || !inputValue.trim()) {//搜索词为空
-        if (display) {//显示隐藏
-          // setData(list);
-          // setTreeDatas(list);
-          setTreeDatas(treeData);
-        } else {//显示已过滤隐藏
-          setTreeDatas(filterFromAll);//在搜索结果上显示隐藏的
-        }
-      } else {//搜索词不为空
-        // const result = searchData(inputValue.trim(), list);
-        const result = searchData(inputValue.trim(), treeData);
-        setSearchFromAll(result);//
-        // console.log('getTreeInputValue', list, inputValue, result);
-        if (display) {//在全部数据的基础上搜索
-          // console.log('33333 getTreeInputValue', inputValue, result);
-          setTreeDatas(result);
-        } else {//在有隐藏项的基础上搜索
-          const result = searchData(inputValue.trim(), data);
-          setTreeDatas(result);
-        }
-      }
-    }
-   */
   // 接受NavBar传过来的切换隐藏/显示
-  const getAllDisplay = (display) => {
+  const getAllDisplay = () => {
     // console.log('user navigate getAllDisplay', display);
     /*  setDisplay(display);//用于传递(卡片?)切换显示/隐藏
      //显示
@@ -518,25 +421,6 @@ function UserNavigate() {
         .finally(() => setLoading(false));
     }; */
 
-  /*  const fetchBookmarksData = async (page: number) => {
-     // const { groups, hiddenGroup } = globalState;
-     // console.log('pages', pages);
-     if (!groups || groups.length === 0) {//没有缓存到localStorage中
-       //如果Redux中没有数据才进行获取,localStorage中没有？
-       // 刷新时defaultPage变为空
-       // if (page || defaultPage) {//只有用户存在标签数据才能查询
-       const pages = await getPages();
-       setBookmarkPages(pages);
-       if (pages.length > 0) {//只有用户存在标签数据才能查询
-         // const data: any = await dispatch(fetchTagGroupsData(defaultPage ? defaultPage : page));
-         const defaultPage = pages.find(page => page.default === true);
-         const pageId = defaultPage ? defaultPage.pageId : pages[0].pageId;
-         setCurrentPage(pageId);
-         const data: any = await dispatch(fetchBookmarksPageData(pageId));
-         setLoading(false);
-       }
-     }
-   }; */
 
 
   /*   const fetchDefaultPageBookmarksData = async () => {
@@ -553,8 +437,6 @@ function UserNavigate() {
         setLoading(false);
       }
     }; */
-
-
 
 
   useEffect(() => {
@@ -703,7 +585,7 @@ function UserNavigate() {
         {/* filterDataByTags={filterDataByTags} */}
         {/* num={groups.length} */}
         {/* pageNo={currentPage} */}
-        <Navbar show={showNavbar} pageType={'bookmarks'} display={hideGroup ? hiddenGroup : null} setNavBarKey={getNavBarKey} setAllDisplay={getAllDisplay} />
+        <Navbar show={showNavbar} pageType={'bookmarks'} setNavBarKey={getNavBarKey} setAllDisplay={getAllDisplay} />
 
       </div>
       {userLoading ? (
@@ -753,7 +635,7 @@ function UserNavigate() {
             </Sider>
           )}
           <Layout className={styles['layout-content']} style={paddingStyle}>
-            <div className={styles['layout-content-wrapper']}>
+            <div ref={contentWrapperRef} className={styles['layout-content-wrapper']}>
               {!!breadcrumb.length && (
                 <div className={styles['layout-breadcrumb']}>
                   <Breadcrumb>
@@ -768,7 +650,6 @@ function UserNavigate() {
               <Content>
                 <Navi activeCardTab={treeSelected}
                   dataType={dataType}
-                  display={display}
                   keyWord={navbarKeyWord}
                   setCardTabActive={getCardTabActive}
                   hasResult={hasResult}
@@ -778,10 +659,10 @@ function UserNavigate() {
                   loading={loading}>
                 </Navi>
               </Content>
-            </div>
-            {showFooter && <Footer />}
 
-            <BackToTop></BackToTop>
+              {showFooter && <Footer />}
+            </div>
+            {/* <BackToTop></BackToTop> */}
 
             {/* <div
               style={{
@@ -792,8 +673,11 @@ function UserNavigate() {
               }}>
               <AnchorLink href={`#27`} title={'回到顶部'}> <IconCaretUp /></AnchorLink>
             </div> */}
+            <BackToTop container={contentWrapperRef.current} threshold={200}></BackToTop>
           </Layout>
         </Layout>
+
+
       )
       }
     </Layout >

@@ -75,34 +75,47 @@ function TagList(props: BookmarksPageProps) {
 
   const globalState = useSelector((state: any) => state.global);
   const { tags, currentPage } = globalState;
-  const tagsMap = tags.tagsMap;
+  // const tagsMap = tags.tagsMap;
+  // const groupUnselectedTag = tags.groupUnselectedTag; selectedTags
+  const { tagsMap, groupUnselectedTag, selectedTags } = tags;
 
   // console.log("BookmarksPages currentPageId=", tags, tagsMap);
   // const { currentPageId } = props;
   const keys = tagsMap ? Array.from(new Set(Object.keys(tagsMap))) : [];
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedTagList, setSelectedTagList] = useState<string[]>([]);
 
   const item = useContext(TagContext);
-  // debug: console.log('3333333333333 TagList item=', item);
+  // debug: console.log('3333333333333 TagList TagContext=', TagContext, item);
+
+  useEffect(() => {
+    if (!groupUnselectedTag) return;
+    // console.log('3333333333333 groupUnselectedTag selectedTags=', groupUnselectedTag, selectedTags);
+    console.log('3333333333333  selectedTags groupUnselectedTag', selectedTags, groupUnselectedTag);
+    setSelectedTagList(prev => {
+      return prev.filter(x => x !== groupUnselectedTag.value);
+    });
+    // props.onItemClick && props.onItemClick({ key, index: -1, color: undefined, selected: false });
+  }, [groupUnselectedTag]);
+
 
   // 当外部通过 TagContext 传入要取消/选择的 tag 时作出响应
   useEffect(() => {
     if (!item) return;
-    // debug: console.log('3333333333333 TagList item=', item);
+    debug: console.log('3333333333333 TagList item=', item);
     // 如果外部要求取消选中，则从 selectedTags 中移除
-    setSelectedTags(prev => prev.filter(x => x !== item));
+    setSelectedTagList(prev => prev.filter(x => x !== item));//本组件中用的参数 selectedTags
     // 同步触发父回调，通知外部该 tag 已取消选中
     // props.onItemClick && props.onItemClick({ key, index: -1, color: undefined, selected: false });
   }, [item]);
 
   useEffect(() => {
-    setSelectedTags([]);
+    setSelectedTagList([]);
   }, [currentPage]);//切换书签页时清空已选项
 
   function onItemClick(k: any, color: string, index: number, bookmarkIds: string[]) {
     // console.log('xxxxxxxxxxxxxxx onItemClick bookmarkIds=', bookmarkIds);
-    let selected = selectedTags.includes(k);//原来已/未选中
-    setSelectedTags(prev => {
+    let selected = selectedTagList.includes(k);//原来已/未选中
+    setSelectedTagList(prev => {
       if (!selected) return [...prev, k];
       return prev.filter(x => x !== k);
     });
@@ -110,9 +123,9 @@ function TagList(props: BookmarksPageProps) {
     props.onItemClick && props.onItemClick({ key: k, index, color, selected: !selected, bookmarkIds });
   }
 
-  useEffect(() => {
-    // console.log('useEffect currentPageId', currentPageId)
-  }, [selectedTags]);
+  /*   useEffect(() => {
+      // console.log('useEffect currentPageId', currentPageId)
+    }, [selectedTags]); */
 
   return (
     keys.length === 0 ?
@@ -141,7 +154,7 @@ function TagList(props: BookmarksPageProps) {
                 <div className={styles['message-title']}>
                   <Space size={4} wrap>
                     {keys.map((k, idx) => {
-                      const checked = selectedTags.includes(k);
+                      const checked = selectedTagList.includes(k);
                       const color = checked ? COLORS[idx % COLORS.length] : undefined;
                       return (
                         <Tag
