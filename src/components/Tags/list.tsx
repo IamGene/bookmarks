@@ -77,7 +77,7 @@ function TagList(props: BookmarksPageProps) {
   const { tags, currentPage } = globalState;
   // const tagsMap = tags.tagsMap;
   // const groupUnselectedTag = tags.groupUnselectedTag; selectedTags
-  const { tagsMap, groupUnselectedTag, selectedTags } = tags;
+  const { tagsMap, groupSwitchTag, selectedTags } = tags;
 
   // console.log("BookmarksPages currentPageId=", tags, tagsMap);
   // const { currentPageId } = props;
@@ -88,14 +88,18 @@ function TagList(props: BookmarksPageProps) {
   // debug: console.log('3333333333333 TagList TagContext=', TagContext, item);
 
   useEffect(() => {
-    if (!groupUnselectedTag) return;
+    if (!groupSwitchTag) return;
     // console.log('3333333333333 groupUnselectedTag selectedTags=', groupUnselectedTag, selectedTags);
-    console.log('3333333333333  selectedTags groupUnselectedTag', selectedTags, groupUnselectedTag);
+    // console.log('3333333333333  selectedTags groupUnselectedTag', selectedTags, groupSwitchTag);
     setSelectedTagList(prev => {
-      return prev.filter(x => x !== groupUnselectedTag.value);
+      if (groupSwitchTag.checked) {
+        return prev.includes(groupSwitchTag.value) ? prev : [...prev, groupSwitchTag.value];
+      } else {
+        return prev.filter(x => x !== groupSwitchTag.value);
+      }
     });
     // props.onItemClick && props.onItemClick({ key, index: -1, color: undefined, selected: false });
-  }, [groupUnselectedTag]);
+  }, [groupSwitchTag]);
 
 
   // 当外部通过 TagContext 传入要取消/选择的 tag 时作出响应

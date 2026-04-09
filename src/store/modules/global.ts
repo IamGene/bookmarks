@@ -133,7 +133,7 @@ export interface GlobalState {
     selectedTags: any[],
     groupUnselectedTags: any[],
     toBeUnselectedNextTime: any[],
-    groupUnselectedTag: any,
+    groupSwitchTag: any,
   },
   activeGroup: GroupNode;
   loadedBookmarks: WebTag[];
@@ -172,7 +172,7 @@ const initialState: GlobalState = {
     selectedTags: [],
     groupUnselectedTags: [],
     toBeUnselectedNextTime: [],
-    groupUnselectedTag: null,
+    groupSwitchTag: null,
   },
   pages: null,
   activeGroup: null,
@@ -253,89 +253,104 @@ const globalSlice = createSlice({
     },
     switchTagSelected: (state, action) => {
       const tag = action.payload.switchTag;
-      if (state.tags.toBeUnselectedNextTime.length > 0) {
-        // console.log('xxxxxxxxxxxxxxxxxxxx switchTagSelected toBeUnselectedNextTime', state.tags.toBeUnselectedNextTime);
-        const keysToRemove = Array.from(new Set(state.tags.toBeUnselectedNextTime.map(item => String(item.key))));
+      if (Array.isArray(state.tags.toBeUnselectedNextTime) && state.tags.toBeUnselectedNextTime.length > 0) {
+        // 仅移除那些临时结果中已经被完全清空的项
+        const keysToRemove = Array.from(new Set(state.tags.toBeUnselectedNextTime
+          .filter(item => !Array.isArray(item.updateBookmarks) || item.updateBookmarks.length === 0)
+          .map(item => String(item.key))));
         if (keysToRemove.length > 0 && Array.isArray(state.tags.selectedTags)) {
           state.tags.selectedTags = state.tags.selectedTags.filter(t => !keysToRemove.includes(String(t.key)));
-          state.tags.toBeUnselectedNextTime = [];
         }
+        // 保留仍有 updateBookmarks 的 pending 项
+        state.tags.toBeUnselectedNextTime = state.tags.toBeUnselectedNextTime.filter(item => Array.isArray(item.updateBookmarks) && item.updateBookmarks.length > 0);
       }
-      // console.log('55555555555555555 switchTagSelected action.payload.selectedTags', tag);
-      if (tag.selected) {
+
+      if (tag && tag.selected) {
         state.tags.selectedTags.push(tag);
-      } else {
+      } else if (tag) {
         state.tags.selectedTags = state.tags.selectedTags.filter(t => t.key !== tag.key);
       }
     },
-    updateTagSelected: (state, action) => {
+
+    updateTagUnSelected: (state, action) => {
       const tag = action.payload.unselectedTag;
       if (!tag) return;
 
-      const idx = state.tags.groupUnselectedTags.findIndex(t => String(t.value) === String(tag.value));
-      if (idx === -1) {
-        const existing = Array.isArray(tag?.bookmarks) ? [...tag.bookmarks] : [];
+      const tagKey = String(tag.value);
+      const bookmarksToRemove = Array.isArray(tag.bookmarks) ? tag.bookmarks.map(String) : [];
 
-        const idx1 = state.tags.selectedTags.findIndex(t => String(t.key) === String(tag.value));
-        if (idx1 === -1) return;
-        const selectedTag = state.tags.selectedTags[idx1];
+      // 查找是否已有 pending 条目
+      if (!Array.isArray(state.tags.toBeUnselectedNextTime)) state.tags.toBeUnselectedNextTime = [];
+      const pendingIdx = state.tags.toBeUnselectedNextTime.findIndex(t => String(t.key) === tagKey);
 
-        // 更新 state 中的 groupUnselectedTags 对象
-        const selLen = Array.isArray(selectedTag?.bookmarks) ? selectedTag.bookmarks.length : 0;
-        if (existing.length === selLen) {//全部已取消
-          state.tags.groupUnselectedTag = tag;
-          const alreadyExists = state.tags.toBeUnselectedNextTime.some(t => String(t.key) === String(selectedTag.key));
-          if (!alreadyExists) {
-            state.tags.toBeUnselectedNextTime.push(selectedTag);
-          }
-          if (state.tags.toBeUnselectedNextTime.length == state.tags.selectedTags.length) {
-            state.tags.selectedTags = [];
-            state.tags.toBeUnselectedNextTime = [];
-          }
-        } else {
-          state.tags.groupUnselectedTags.push(tag);
-        }
+      // 找到对应的 selectedTag（来自 state.tags.selectedTags）作为基准
+      const selIdx = state.tags.selectedTags.findIndex(t => String(t.key) === tagKey);
+      if (selIdx === -1) return;
+      const selectedTag = state.tags.selectedTags[selIdx];
+
+      if (pendingIdx === -1) {
+        // 新建 pending，基于 selectedTag.bookmarks 的副本并删除 bookmarksToRemove
+        const base = Array.isArray(selectedTag?.bookmarks) ? selectedTag.bookmarks.map(String) : [];
+        const set = new Set(base);
+        for (const b of bookmarksToRemove) set.delete(String(b));
+        const updateBookmarks = Array.from(set);
+        const pending = { ...selectedTag, updateBookmarks } as any;
+        state.tags.toBeUnselectedNextTime.push(pending);
+
+        if (updateBookmarks.length === 0) state.tags.groupSwitchTag = tag;
       } else {
+        // 已有 pending，基于其 updateBookmarks 做移除
+        const pending = state.tags.toBeUnselectedNextTime[pendingIdx];
+        const set = new Set(pending.updateBookmarks.map(String));
+        for (const b of bookmarksToRemove) set.delete(String(b));
+        pending.updateBookmarks = Array.from(set);
 
-        const groupUnselectedTag = state.tags.groupUnselectedTags[idx];
-        const idx1 = state.tags.selectedTags.findIndex(t => String(t.key) === String(tag.value));
-        if (idx1 === -1) return;
-        const selectedTag = state.tags.selectedTags[idx1];
-
-        // 将 tag.bookmarks 的所有元素添加到 groupUnselectedTag.bookmarks 中（去重），
-        // 若添加后 groupUnselectedTag.bookmarks.length == selectedTag.bookmarks.length 则设置 state.tags.groupUnselectedTag = tag
-        const existing = Array.isArray(groupUnselectedTag?.bookmarks) ? [...groupUnselectedTag.bookmarks] : [];
-        const toAdd = Array.isArray(tag?.bookmarks) ? tag.bookmarks.map(String) : [];
-
-        const existingSet = new Set(existing.map(String));
-        for (const b of toAdd) {
-          if (!existingSet.has(String(b))) {
-            existing.push(b);
-            existingSet.add(String(b));
-          }
-        }
-
-        // 更新 state 中的 groupUnselectedTags 对象
-        state.tags.groupUnselectedTags[idx] = { ...groupUnselectedTag, bookmarks: existing } as any;
-        const selLen = Array.isArray(selectedTag?.bookmarks) ? selectedTag.bookmarks.length : 0;
-        if (existing.length === selLen) {
-          const alreadyExists = state.tags.toBeUnselectedNextTime.some(t => String(t.key) === String(selectedTag.key));
-          if (!alreadyExists) {
-            state.tags.toBeUnselectedNextTime.push(selectedTag);
-          }
-          console.log('xxxxxxxxxxxxxxxxxxxxx toBeUnselectedNextTime 全部已取消筛选', state.tags.toBeUnselectedNextTime.length == state.tags.selectedTags.length);
-          state.tags.groupUnselectedTag = tag;//用于更新tags popUp组件选中状态
-          // 从 groupUnselectedTags 中移除已被激活为 groupUnselectedTag 的项
-          state.tags.groupUnselectedTags.splice(idx, 1);//移除，以免影响下次操作
-
-          //
-          if (state.tags.toBeUnselectedNextTime.length == state.tags.selectedTags.length) {//所有已取消
-            state.tags.selectedTags = [];
-            state.tags.toBeUnselectedNextTime = [];
-          }
-        }
+        if (pending.updateBookmarks.length === 0) state.tags.groupSwitchTag = tag;   // 用于 UI 更新
+        state.tags.toBeUnselectedNextTime[pendingIdx] = { ...pending } as any;
       }
 
+      const emptys = state.tags.toBeUnselectedNextTime.filter(item => item.updateBookmarks.length == 0);//全部为空
+      if (emptys.length == state.tags.selectedTags.length && emptys.length == state.tags.toBeUnselectedNextTime.length) {
+        state.tags.selectedTags = [];
+        // state.tags.toBeUnselectedNextTime = [];
+      }
+
+    },
+
+    updateTagSelected: (state, action) => {
+      const tag = action.payload.selectedTag;
+      if (!tag) return;
+
+      const tagKey = String(tag.value);
+      const bookmarksToAdd = Array.isArray(tag.bookmarks) ? tag.bookmarks.map(String) : [];
+
+      if (!Array.isArray(state.tags.toBeUnselectedNextTime)) state.tags.toBeUnselectedNextTime = [];
+      const pendingIdx = state.tags.toBeUnselectedNextTime.findIndex(t => String(t.key) === tagKey);
+
+      const selIdx = state.tags.selectedTags.findIndex(t => String(t.key) === tagKey);
+      const selectedTag = selIdx !== -1 ? state.tags.selectedTags[selIdx] : null;
+
+      if (pendingIdx === -1) {
+        // 新建 pending，基于 selectedTag 或 tag 的 bookmarks
+        const base = Array.isArray(selectedTag?.bookmarks) ? selectedTag.bookmarks.map(String) : (Array.isArray(tag.bookmarks) ? tag.bookmarks.map(String) : []);
+        const set = new Set(base);
+        for (const b of bookmarksToAdd) set.add(String(b));
+        const updateBookmarks = Array.from(set);
+        const pending = (selectedTag ? { ...selectedTag } : { key: tagKey, bookmarks: base }) as any;
+        pending.updateBookmarks = updateBookmarks;
+        state.tags.toBeUnselectedNextTime.push(pending);
+      } else {
+        const pending = state.tags.toBeUnselectedNextTime[pendingIdx];
+        if (!Array.isArray(pending.updateBookmarks)) {
+          pending.updateBookmarks = Array.isArray(selectedTag?.bookmarks) ? selectedTag.bookmarks.map(String) : [];
+        }
+        const set = new Set(pending.updateBookmarks.map(String));
+        for (const b of bookmarksToAdd) set.add(String(b));
+        pending.updateBookmarks = Array.from(set);
+        state.tags.toBeUnselectedNextTime[pendingIdx] = { ...pending } as any;
+      }
+
+      state.tags.groupSwitchTag = tag;
     },
 
     updatePageGroupList: (state, action) => {
@@ -780,26 +795,26 @@ const updatePageDataState = (pageData: any[]) => {
 };
 
 const updatePageBookmarkTags = (tagsUpdate: any[]) => {
-  // console.log('11111111111111111 updatePageBookmarkTags');
   return async (dispatch) => {
     dispatch(updateTagsMap({ tagsUpdate: tagsUpdate }));
   };
 };
 
+
 const groupTagUnselected = (tag: any) => {
   // console.log('11111111111111111 groupTagUnselected', tag);
   return (dispatch) => {
-    dispatch(updateTagSelected({ unselectedTag: tag }));
+    dispatch(updateTagUnSelected({ unselectedTag: tag }));
   };
 };
 const groupTagSelected = (tag: any) => {
-  console.log('2222222222 groupTagSelected', tag);
+  // console.log('2222222222 groupTagSelected', tag);
   return (dispatch) => {
-    // dispatch(updateTagSelected({ unselectedTag: tag }));
+    dispatch(updateTagSelected({ selectedTag: tag }));
   };
 };
+
 const loadNewAddedBookmarks = (bookmarks: WebTag[]) => {
-  // console.log('2222222222 loadNewAddedBookmarks action', bookmarks);
   return async (dispatch) => {
     dispatch(setLoadBookmarks(bookmarks));
   }
@@ -831,7 +846,7 @@ const loadSearchHistory = () => {
 // export const { updateSettings, updateUserInfo, updateHasResult, updateBookmarks } = globalSlice.actions;
 //updateSearchHistory 
 const { updateSettings, updateUserInfo, updateHasResult, switchTagSelected,
-  updateGroupTypes, updateSearchState, updatePageGroupList, updateTagSelected,
+  updateGroupTypes, updateSearchState, updatePageGroupList, updateTagSelected, updateTagUnSelected,
   updateUserPage, updateTagsMap, updateBookmarks, setUserPages,
   setSearchHistory,
   updateActiveGroup, setLoadBookmarks } = globalSlice.actions;
@@ -844,3 +859,4 @@ export {
 };
 export default globalSlice.reducer;
 // export { dispatchTagGroupsData }; updatePageSelectedTags
+

@@ -882,19 +882,24 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         });
         setFilterTags(next);
 
-        if (!checked) {
-            const bookmarkIds = data.searchResult.map(item => item.id);
-            if (bookmarkIds.length > 0) {
-                const newBookmarks = item.bookmarks.filter(b => bookmarkIds.includes(b));
-                // console.log('xxxxxxxxxxxxxxxxxxxx handleTagOncheck 取消筛选', item, bookmarkIds, newBookmarks);
-                const unSelectedTag = { ...item, bookmarks: newBookmarks };
-                // console.log('xxxxxxxxxxxxxxxxxxxx handleTagOncheck 取消筛选 unSelectedTag', unSelectedTag, selectedTags);
-                dispatch(groupTagUnselected(unSelectedTag));
+        //card中标签选中与否不会改变state中selectedTags的数据，只会更新popUp组件中展示的tags选中状态
+        //并且将未选中标签暂存到state.tags.toBeUnselectedNextTime中，待popUp中标签选中或非选导致selectedTags变化时一齐更新
+
+        const bookmarkIds = data.searchResult.map(item => item.id);
+        if (bookmarkIds.length > 0) {
+            const newBookmarks = item.bookmarks.filter(b => bookmarkIds.includes(b));
+            // console.log('xxxxxxxxxxxxxxxxxxxx handleTagOncheck 取消筛选', item, bookmarkIds, newBookmarks);
+            const theTag = { ...item, bookmarks: newBookmarks, checked: checked };
+
+            if (checked) {
+                //从item中过滤搜索结果中的
+                dispatch(groupTagSelected(theTag));
+            } else {
+                dispatch(groupTagUnselected(theTag));
             }
-            //从item中过滤搜索结果中的
-        } else {
-            dispatch(groupTagSelected(item));
+            // console.log('xxxxxxxxxxxxxxxxxxxx handleTagOncheck 取消筛选 unSelectedTag', unSelectedTag, selectedTags);
         }
+
 
         //取消选中 且仅剩一个标签被选中
         if (!checked && checkedItems.length === 1 && checkedItems[0].value === item.value) {
@@ -904,7 +909,6 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
             if (searchInput) {//有关键词搜索
                 onKeywordChange(searchInput, false);
             } else {//清空筛选
-                // console.log('xxxxxxxxxxxxxxxxxxxx handleTagOncheck 清空筛选', data.name);
                 const last = getThroughChildFirst(data);
                 setActiveMap(buildActiveMap(last.path));
             }
