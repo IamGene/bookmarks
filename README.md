@@ -311,6 +311,15 @@ npm run build
 跨组件共享数据Context Tag 
 /components/Bookmarks/list,  NavBar.index: <TagContext.Provider value={unselectedTag}>
 
+## 坑
+git 默认不会检测到文件名的大小写变化，比如a.tsx改为A.tsx，导致上传到github的源码文件还是原来的a.tsx
+然后在vercel部署时，会因为找不到A.tsx而构建失败。所以如果修改了文件名大小写，需要用git临时修改文件名后提交文件名来更新仓库
+`
+git mv src/db/bookmarksPages.tsx src/db/BookmarksPages_temp.tsx
+git commit -m "temp rename to force case change"
+git mv src/db/BookmarksPages_temp.tsx src/db/BookmarksPages.tsx
+git commit -m "fix filename case: BookmarksPages.tsx"
+git push`
 ---
 
 ## 书签管理器插件使用提示
