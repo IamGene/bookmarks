@@ -941,7 +941,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
     const latestSelectedTagsRef = useRef(selectedTags);
     // 容器 ref：用于在卡片被激活时滚动到该卡片顶部
     const containerRef = useRef<HTMLDivElement | null>(null);
-    //now2
+    //now 1111
 
     useEffect(() => {
         // 确保在主动用最新的 newGroupData 更新组件时，
@@ -3671,7 +3671,6 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
              }
          } */
 
-        // const tabMoreMenus = (subGroup) => {
         function tabMoreMenus(subGroup) {
             // 创建自定义事件并分发
             // const bookmarksAndChildren = !!subGroup.list;
@@ -5387,6 +5386,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                         activeCardTab={activeCardTab}
                         treeSelected={treeSelected}
                         tabMoreMenus={tabMoreMenus}
+                        tabMore={tabMore}
                         searchTabMoreMenus={searchTabMoreMenus}
                         showItem={showItem}
                         searchTabKey={searchTabKey}

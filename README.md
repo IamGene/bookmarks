@@ -202,10 +202,11 @@ npm run build
 - [x] 按时间分组，点击树状列表节点，无筛选结果的tab应隐藏 04.03
 - [x] 按域名分组，点击树状列表节点，无筛选结果的tab应隐藏 04.03
 - [ ] 按时间分组，多选/删除功能
-- [ ] 搜索切换到标签筛选时，不应展示搜索结果数
+- [x] 搜索切换到标签筛选时，不应展示搜索结果数
+- [ ] 导航主页的样式问题 04.09
 - [x] 解决多个书签页时html5 backend 存在多个WrapTabNode导致报错的问题 04.09
 - [x] card的标签选中状态与NavBar中的筛选标签的同步选中状态 04.09
-- [ ] 导航主页的样式问题 04.09
+- [x] 解决vercel部署构建报错的问题 git忽略文件大小写文件找不到 04.10
 - [x] 点击树列表节点，对应的card-tab显示背景色 ok
 - [x] 导入json书签的修复，检查导入时有无统计书签个数的问题 04.03
 - [x] 按时间分组，点击无搜索结果的树状列表节点，没有滚动到顶部的问题 04.03
@@ -320,6 +321,18 @@ git commit -m "temp rename to force case change"
 git mv src/db/BookmarksPages_temp.tsx src/db/BookmarksPages.tsx
 git commit -m "fix filename case: BookmarksPages.tsx"
 git push`
+
+## 代码块/react
+
+-  字符串非空
+`const isEmpty = !keyWord?.trim();`
+
+- 减少重复渲染
+`
+ useMemo(() => {
+    const isEmpty = !keyWord?.trim();
+    setSearch(!isEmpty);
+  }, [keyWord]);`
 ---
 
 ## 书签管理器插件使用提示

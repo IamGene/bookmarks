@@ -207,6 +207,8 @@ function BookmarksPages(props: BookmarksPageProps) {
 
   function switchPage(item: BookmarksPageData, index: number) {
     setCurrentPage(item.pageId);
+
+    console.log("---------->switchPage", item);
     // onSwitchPage(item);
     // testUpdate();
     // const path = await getNodePath({ id: '3ve0wr3tn', pId: 'voqqcfkih' })
@@ -226,7 +228,7 @@ function BookmarksPages(props: BookmarksPageProps) {
       pathname = pathname.replace('/bookmarksPro', '');
       // console.log('-------------->>>>>', '/bookmarksPro')
     }
-    if (pathname.indexOf('/bookmarks') === -1) {
+    if (pathname.indexOf('/bookmarks') == -1) {
       // if (window.location.pathname.indexOf('/bookmarks') === -1) {
       history.replace('/bookmarks');
     }

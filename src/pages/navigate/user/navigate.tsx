@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 
 import { Tabs, BackTop, Card, Input, Empty, Typography, Link, Grid, Button, Select, Space } from '@arco-design/web-react';
 // import { IconCaretUp } from '@arco-design/web-react/icon';
@@ -28,20 +28,35 @@ import './mock';
 const TabPane = Tabs.TabPane;
 const { Row, Col, GridItem } = Grid;
 // tags
-function ListCard({ activeCardTab, dataType, setCardTabActive, keyWord, list, hasResult, loading }) {
+function ListCard({ activeCardTab, dataType, setCardTabActive, keyWord, list, loading }) {
   const t = useLocale(locale);
 
   const searchState = useSelector((state: any) => state.global.search);
+  const selectedTags = useSelector((state: any) => state.global.tags.selectedTags);
   const { searchResultNum } = searchState;
 
-  // console.log('zzzzzzzzzzz  dataType', activeCardTab);
   const dispatch = useDispatch();
-  let search: boolean = keyWord && keyWord.length > 0;
+  const [search, setSearch] = useState(false);
 
-  const [activeKey, setActiveKey] = useState('tags');
+  useMemo(() => {
+    const isEmpty = !keyWord?.trim();
+    setSearch(!isEmpty);
+    // console.log('zzzzzzzzzzzzzzzzzzzzzzzzzzz  keyWord search searchResultNum', keyWord, searchResultNum);
+  }, [keyWord]);
+
+  useEffect(() => {
+    // const isEmpty = !keyWord?.trim();
+    setSearch(selectedTags.length > 0 ? false : !(!keyWord?.trim()));
+  }, [selectedTags]);
+
+
+
   const [cardList, setCardList] = useState(list);
+  useEffect(() => {
+    setCardList(list);
+  }, [list]);
+  // `search` 由 `selectedTags` 和 `keyWord` 派生，避免额外 setState 导致重复渲染
 
-  // console.log('1111111111111111111 list', list);
   const removeItem = async (gId: string) => {
     //按时间分组 删除card和子分组 gId(年-月) card只能决定月份节点的移除，
     if (dataType == 0) {//删除大分组
@@ -74,9 +89,7 @@ function ListCard({ activeCardTab, dataType, setCardTabActive, keyWord, list, ha
 
   };
 
-  useEffect(() => {
-    setCardList(list);
-  }, [list]);
+
 
   const getMockCardList = (
     list: Array<WebTag>
@@ -94,10 +107,6 @@ function ListCard({ activeCardTab, dataType, setCardTabActive, keyWord, list, ha
   };
 
   const renderMockCard = (data, index) => {
-    const onTabChange = (key: string) => {
-      // console.log('activeKey', key)
-      setActiveKey(activeKey)
-    }
 
     return (
       <Card key={index}
@@ -110,11 +119,9 @@ function ListCard({ activeCardTab, dataType, setCardTabActive, keyWord, list, ha
 
         <Tabs
           type="card-gutter"
-          onChange={onTabChange}
           extra={
             <Input.Search
               style={{ width: '240px' }}
-              placeholder={t[`cardList.tab.${activeKey}.placeholder`]}
             />
           }
         >
@@ -132,35 +139,6 @@ function ListCard({ activeCardTab, dataType, setCardTabActive, keyWord, list, ha
       </Card >
     )
   }
-
-  /*  const getCardItems = (list) => {
- 
-     const result = [];
- 
-     list.map((item, index) => {
-       //显示(不隐藏) 
-       // let eachDisplay = display && hasResult;
-       result.push(<CardItem key={index}
-         setCardTabActive={setCardTabActive}
-         cardData={item}
-         index={index}
-         last={index == list.length - 1}
-         first={index == 0}
-         // display={display}
-         display={display}
-         activeCardTab={activeCardTab}
-         keyWord={keyWord}
-         hasResult={hasResult}
-         activeGroup={activeGroup}
-       // pageNo={pageNo}
-       >
-       </CardItem>)
-     })
-     return result;
-   } 
-  
-   const result = getCardItems(list);
-   */
 
 
   /*  return (
@@ -220,15 +198,9 @@ function ListCard({ activeCardTab, dataType, setCardTabActive, keyWord, list, ha
                 setCardTabActive={setCardTabActive}
                 cardData={item}
                 dataType={dataType}
-                // tags={tags}
                 removeCard={removeItem}
-                // index={index}
-                // last={index == list.length - 1}
-                // first={index == 0}
-                // activeGroup={activeGroup}
                 treeSelectedNode={activeCardTab}
                 keyWord={keyWord}
-              // hasResult={hasResult}
               >
               </CardItem>
             })}
@@ -236,8 +208,6 @@ function ListCard({ activeCardTab, dataType, setCardTabActive, keyWord, list, ha
         )}
 
         {/* {(!hasResult || (list && list.length === 0)) && <CardEmpty search={search}></CardEmpty>} */}
-
-
 
         {/* <Footer /> */}
         {/* 三 */}

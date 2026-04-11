@@ -652,7 +652,6 @@ function UserNavigate() {
                   dataType={dataType}
                   keyWord={navbarKeyWord}
                   setCardTabActive={getCardTabActive}
-                  hasResult={hasResult}
                   list={list}
                   // tags={tags}
                   // tags={filterTags}

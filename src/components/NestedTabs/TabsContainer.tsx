@@ -30,9 +30,9 @@ interface Props {
     // cardData: any;
     // currentSearch: any;
     activeCardTab: string[];
-    // tabMore: Function;
     // searchTabMore: Function;
     tabMoreMenus: Function;
+    tabMore: Function;
     searchTabMoreMenus: Function;
     showItem: boolean;
     treeSelected: boolean;
@@ -70,9 +70,9 @@ export default function TabsContainer(props: Props) {
         searching,
         dataType,
         tabMoreMenus,
+        tabMore,
         // searchTabMore,
         searchTabKey,
-        // tabMore,
         // onClickSearchMenuItem,
         // tabMouseEnter,
         renderContent,
@@ -100,8 +100,9 @@ export default function TabsContainer(props: Props) {
     }
 
     // const multiSelect = !!multiSelectMap[node.id];
+    // now  1111
     const children = [...data.children];
-    console.log('TabsContainer render, data.name=', data.name, ' activeCardTab=', activeCardTab);
+    // console.log('TabsContainer render, data.name=', data.name, ' activeCardTab=', activeCardTab);
     if (children.length > 0 && !searching) {//非搜索，按原始顺序，排序，保持稳定性；搜索时有结果的排在前面，方便选择activeTab
         children.sort((a, b) => ((a.order ?? a.addDate ?? 0) - (b.order ?? b.addDate ?? 0)));
     }

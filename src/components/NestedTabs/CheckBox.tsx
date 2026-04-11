@@ -221,7 +221,16 @@ function MultiSelectCheckBox(props: Props) {
             >
                 反选
             </Button>
-            {/* 全不选 操作已合并到上方 Checkbox 的取消动作，所以移除独立按钮 */}
+
+            <Button
+                size='mini'
+                type='primary'
+                style={{ marginLeft: '12px' }}
+                onClick={() => {
+                }}
+            >
+                取消
+            </Button>
         </div>
     );
 }
