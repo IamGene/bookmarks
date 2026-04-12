@@ -13,10 +13,12 @@ import useLocale from '@/utils/useLocale';
 import styles from './style/index.module.less';
 // 导入自定义 Hook
 import { useFetchPageData } from '@/hooks/fetchPageData';
-import { setDefaultPage, testUpdate, getPages, setCurrentPageId } from '@/db/BookmarksPages';
+import { setDefaultPage, testUpdate, getPages, setCurrentPage } from '@/db/BookmarksPages';
 import ExportModal from './exportModal';
 import { useHistory } from 'react-router-dom';
 // import { useSelector, useDispatch } from 'react-redux';
+import { RootState } from '@/store';
+import { useSelector, shallowEqual } from 'react-redux';
 
 export interface MessageItemData {
   id: string;
@@ -49,10 +51,9 @@ export interface BookmarksPageData {
 export type MessageListType = MessageItemData[];
 export type BookmarksPagesType = BookmarksPageData[];
 
-
 interface BookmarksPageProps {
   data: BookmarksPageData[];
-  currentPageId: number;
+  // currentPageId: number;
   // addedPageIds: number[];
   onItemClick?: (item: BookmarksPageData, index: number) => void;
   onAllBtnClick?: (data: BookmarksPageData[]) => void;
@@ -64,34 +65,36 @@ interface BookmarksPageProps {
 
 function BookmarksPages(props: BookmarksPageProps) {
   const t = useLocale();
-  const { data, currentPageId, onRemovePage, onRenamePage } = props;
-
+  const { data, onRemovePage, onRenamePage } = props;
   const history = useHistory();
-
-  const [currentPage, setCurrentPage] = useState(currentPageId);
+  const [currentPageId, setCurrentPageId] = useState(null);
   const [localPages, setLocalPages] = useState(props.data);
 
+  const {
+    currentPage,
+  } = useSelector(
+    (state: RootState) => ({
+      currentPage: state.global.currentPage,
+    }),
+    shallowEqual
+  );
+
+
+  // console.log('----------------------- BookmarksPages currentPageId', currentPageId);
   // const [newPageIds, setNewPageIds] = useState<number[]>(() => addedPageIds || []);
   // 本地是否已修改过 newPageIds（用户交互后设为 true），如果为 true 则不再由 props 覆盖
 
   function onItemClick(item: BookmarksPageData, index: number) {
     props.onItemClick && props.onItemClick(item, index);
   }
+  useEffect(() => {
+    if (currentPage) setCurrentPageId(currentPage.pageId);
+    // console.log('useEffect setLocalPages', data);
+  }, [currentPage]);
 
   useEffect(() => {
     setLocalPages(data);
-    // console.log('useEffect setLocalPages', data);
   }, [data]);
-
-
-  /*     useEffect(() => {
-       setCurrentPage(currentPageId);
-       // setDefaultPage(currentPageId);
-       // console.log('useEffect currentPageId', currentPageId)
-     }, [currentPageId]); 
-   */
-  useEffect(() => {
-  }, [currentPage]);
 
 
   async function handleSetDefaultPage(item: BookmarksPageData, index: number) {
@@ -106,7 +109,8 @@ function BookmarksPages(props: BookmarksPageProps) {
 
   async function handleSetCurrentPage(item: BookmarksPageData, index: number) {
     // 设置为当前书签页
-    await setCurrentPageId(item.pageId);
+    // console.log('222222222222222222 handleSetCurrentPage', item);
+    await setCurrentPage(item.pageId);
   }
 
   /*  async function removePage(item: BookmarksPageData, index: number) {
@@ -119,19 +123,6 @@ function BookmarksPages(props: BookmarksPageProps) {
      setLocalPages(newPages);
    } */
 
-  /*   async function getGroupData(pageId: number) {
-      try {
-        const data: any = await dispatch(fetchTagGroupsData(pageId));
-        return data;
-      } catch (error) {
-        return false;
-      }
-    } */
-
-  //切换标签页
-  /*   const switchPageId = async (pageId: number) => {
-      const res = await dispatchTagGroupsData(pageId);
-    } */
 
   // 替换掉原来的 useDispatch() 和 switchPageId 函数定义
   // 💥 在组件顶层调用自定义 Hook
@@ -175,8 +166,6 @@ function BookmarksPages(props: BookmarksPageProps) {
    }, [addedPageIds]); */
 
   function isNew(item: BookmarksPageData) {
-    // const res = item.new;
-    // return res;
     return item.new;
   }
 
@@ -197,28 +186,6 @@ function BookmarksPages(props: BookmarksPageProps) {
    } */
 
   async function switchPage(item: BookmarksPageData, index: number) {
-    if (!currentPage || currentPage !== item.pageId) {
-      console.log("---------->switchPage,currentPage 1111", currentPage, window.location.href);
-      // 先完成数据切换和持久化，再执行路由跳转，这样 UI 可以立即反映选中状态
-      await switchPageId(item.pageId);//切换显示数据
-    }
-    handleSetCurrentPage(item, index);
-    setCurrentPage(item.pageId);
-    console.log("---------->switchPage,currentPage", currentPage, window.location.href);
-
-    /*  if (isContained(item.pageId)) {
-       // 点击切换到刚添加的书签页，取消红点：使用函数式更新以避免闭包取到过期状态
-       setNewPageIds(prev => prev.filter(id => id !== item.pageId));
-       // console.log("点击切换到刚添加的书签页，取消红点：使用函数式更新以避免闭包取到过期状态", addedPageIds.filter(id => id !== item.pageId));
-     } */
-    if (isNew(item)) {
-      // setNewPageIds(prev => prev.filter(id => id !== item.pageId));
-      const idx = localPages.findIndex(p => p.pageId === item.pageId);
-      if (idx !== -1) {
-        localPages[idx].new = false; // 就地修改
-        setLocalPages([...localPages]); // 通过创建新数组引用来触发渲染
-      }
-    }
 
     let pathname = window.location.pathname;
     const pro = pathname.startsWith('/bookmarksPro');
@@ -229,7 +196,27 @@ function BookmarksPages(props: BookmarksPageProps) {
     if (pathname.indexOf('/bookmarks') == -1) {
       history.replace('/bookmarks');
     }
+
+    setCurrentPageId(item.pageId);
+    if (!currentPage || currentPage.pageId !== item.pageId) {
+      // 立即更新本地状态，确保按钮样式瞬时响应
+      // setCurrentPage(item.pageId);
+      // console.log("---------->switchPage,currentPage 1111", currentPage, window.location.href);
+      // 先派发页面数据加载，再持久化当前页标记
+      await switchPageId(item.pageId);//切换显示数据
+    }
+    await handleSetCurrentPage(item, index);
+    if (isNew(item)) {
+      // setNewPageIds(prev => prev.filter(id => id !== item.pageId));
+      const idx = localPages.findIndex(p => p.pageId === item.pageId);
+      if (idx !== -1) {
+        localPages[idx].new = false; // 就地修改
+        setLocalPages([...localPages]); // 通过创建新数组引用来触发渲染
+      }
+    }
   }
+
+  const [bookmarkPage, setBookmarkPage] = useState(window.location.pathname.indexOf('/bookmarks') !== -1);
 
   return (
     <>
@@ -250,7 +237,6 @@ function BookmarksPages(props: BookmarksPageProps) {
         </div>
       } */
       >
-        {/* {data.map((item, index) => ( */}
         {localPages.map((item, index) => (
           <List.Item
             key={item.pageId}
@@ -276,13 +262,13 @@ function BookmarksPages(props: BookmarksPageProps) {
                     <Space size={4}>
                       {/* <Badge count={isContained(item.pageId) ? 1 : 0} dot> */}
                       <Badge count={isNew(item) ? 1 : 0} dot>
-                        <Button style={{ width: 175 }} type={item.pageId == currentPage ? 'outline' : 'default'}
+                        {/* <Button style={{ width: 175 }} type={bookmarkPage && item.pageId == currentPage.pageId ? 'outline' : 'default'} */}
+                        <Button style={{ width: 175 }} type={bookmarkPage && item.pageId == currentPageId ? 'outline' : 'default'}
                           onClick={e => { e.stopPropagation(); switchPage(item, index); }}
                         >
                           {item.title}
                           {/* {currentPage} */}
                         </Button>
-                        {/* <span style={{ position: 'absolute', left: 180, top: 21 }} >1000个书签</span> */}
                         <Tag size='small' checkable checked={false} color='#ffffff' style={{ position: 'absolute', left: 190, top: 21, padding: 0 }} >
                           {item.bookmarksNum}
                         </Tag>

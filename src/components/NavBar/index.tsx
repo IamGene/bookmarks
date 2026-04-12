@@ -86,7 +86,8 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
       // const defaultPage = pages.find(page => page.default === true);
       const currentPage = pages.find(page => page.current === true);
       const pageId = currentPage ? currentPage.pageId : pages[0].pageId;//获取默认展示的书签页
-      setCurrentPage(pageId);
+      // setCurrentPage(pageId);
+      setCurrentPageId(pageId);
       const data: any = await dispatch(fetchBookmarksPageData(pageId));//获取当前书签页的分组和书签数据
     }
 
@@ -95,7 +96,6 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
     /*  const pages1: any = await dispatch(reloadUserPages());//加载所有书签页->Redux
      setBookmarkPages(pages1);
     */
-
   };
 
   // const { userInfo, userLoading } = useSelector((state: GlobalState) => state);
@@ -120,7 +120,7 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
   useEffect(() => {
     setBookmarkPages(pages);
     if (!currentPage) setCurrentPageBookmarksData(pages);//初始化默认书签页数据
-  }, [pages]);
+  }, [pages]);//书签页数据
 
   // 监听搜索框输入变化
   const onInputChange = (key: string) => {

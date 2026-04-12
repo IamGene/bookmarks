@@ -122,16 +122,10 @@ function DefaultNavigate() {
     settings,
     userLoading,
     userInfo,
-    dataByGroup,
-    dataByDate,
-    dataByDomain,
     loadedBookmarks,
   } = useSelector(
     (state: RootState) => ({
       settings: state.global.settings,
-      dataByGroup: state.global.dataByGroup,
-      dataByDate: state.global.dataByDate,
-      dataByDomain: state.global.dataByDomain,
       hiddenGroup: state.global.hiddenGroup,
       loadedBookmarks: state.global.loadedBookmarks,
     }),
@@ -144,21 +138,7 @@ function DefaultNavigate() {
      shallowEqual
    ); */
 
-  const group3Bookmarks = useMemo(() => ([
-    { data: dataByGroup, value: 0 },
-    { data: dataByDate, value: 1 },
-    { data: dataByDomain, value: 2 }
-  ]), [dataByGroup, dataByDate, dataByDomain]);
 
-
-  useEffect(() => {
-    const data = group3Bookmarks.find(g => g.value === dataType)?.data || [];
-    // console.log('1111111111111111 useEffect group3Bookmarks group3Bookmarks', dataType, group3Bookmarks);
-    setList(data);
-    group3Ref.current = group3Bookmarks;
-  }, [group3Bookmarks]);//书签页数据发生变化
-
-  const group3Ref = useRef(group3Bookmarks);
 
   /*   useEffect(() => {
       console.log('00000000000000   selectedTags=', selectedTags, toUpdateGroupTypes);
@@ -172,16 +152,11 @@ function DefaultNavigate() {
 
   function onTreeTypeChange(value) {
     // const data = group3Bookmarks.find(g => g.value === value)?.data || [];
-    // setList(data);
-    setDataType(value);
-    const data = group3Ref.current.find(g => g.value === value)?.data || [];
-    setList(data);
   }
 
   const [list, setList] = useState([]);//右侧书签数据
   console.log('!!!!!!!!!!!!! index ', list);//查看index页面有无重新渲染
 
-  const [dataType, setDataType] = useState(0);//数据组织类型：0：按分组；1：按时间
 
   const [hasResult, setHasResult] = useState(true);
   // const [data, setData] = useState(hiddenGroup ? filterHideItems(groups) : groups);
@@ -220,7 +195,6 @@ function DefaultNavigate() {
   // const flattenRoutes = useMemo(() => getFlattenRoutes(routes) || [], [routes]);
   // 点击(菜单)回调
   function onClickMenuItem(key, e, keyPath) {//key
-    // console.log('onClickMenuItem', keyPath);
     if (key.indexOf(',') !== -1) {
       // const stringArray: string[] = key.split(',');
       // const activeCardTab: number[] = stringArray.map(Number);
@@ -254,12 +228,10 @@ function DefaultNavigate() {
 
   const [treeSelected, setTreeSelected] = useState([]);
   const [treeSelectedKeys, setTreeSelectedKeys] = useState([]);
-  // const [treeInputValue, setTreeInputValue] = useState('');
 
   // 接收Tree传过来的选中项
   const getTreeSelect = (selected) => {
     // console.log('00000000000000 user  getTreeSelect selected=', selected);
-    // const value = selected[0];
     const value = selected;
     const stringArray: string[] = value.split(',');
     const activeCardTab: string[] = stringArray.map(String);
@@ -269,29 +241,6 @@ function DefaultNavigate() {
 
   // 接受NavBar传过来的切换隐藏/显示
   const getAllDisplay = () => {
-    // console.log('user navigate getAllDisplay', display);
-    /*  setDisplay(display);//用于传递(卡片?)切换显示/隐藏
-     //显示
-     if (display) {//不搜索
-       if (!treeInputValue || !treeInputValue.trim()) {
-         setData(list);
-       } else {//搜索结果
-         setData(searchFromAll)//在搜索结果上显示隐藏的
-       }
-     }
-     //隐藏
-     else {
-       // console.log(">>>>>>>>>>隐藏");
-       //设置已过滤的
-       const result = filterHideItems(list)
-       setFilterFromAll(result);//从全部数据中过滤
-       if (!treeInputValue || !treeInputValue.trim()) {
-         setData(result)//不搜索：显示过滤的结果
-       } else {
-         //搜索：显示搜索后过滤的结果
-         setData(filterHideItems(searchFromAll))//在原有(搜索)结果上过滤隐藏
-       }
-     } */
   }
 
   // 接收Card-Tab传过来的选中项['card_id,tab_id']
@@ -316,7 +265,6 @@ function DefaultNavigate() {
     }
     // setNavbarKeyWord(keyword)
   }
-
 
   const dispatch = useDispatch();
   // 获取用户信息和标签数据

@@ -346,7 +346,7 @@ export async function setDefaultPage(pageId) {
     await tx.done; // 确保事务完成
 }
 
-export async function setCurrentPageId(pageId) {
+export async function setCurrentPage(pageId) {
     const db = await getDB();
     const tx = db.transaction('pages', 'readwrite');
     const store = tx.objectStore('pages');

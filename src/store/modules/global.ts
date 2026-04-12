@@ -631,8 +631,6 @@ const fetchBookmarksPageData = (pageId: number) => {
         currentPage: currentPage,
       }));
 
-
-
       return res; // 直接返回整个响应对象
     } else {
       dispatch(updateBookmarks({ dataByGroup: [], dataByDate: [], hideGroup: false, dateGroups: [], tagsMap: tagsMap, currentPage: currentPage, dataGroups: [] }));
