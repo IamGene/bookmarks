@@ -367,14 +367,11 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
     }); */
   }
 
-  useEffect(() => {
-    if (pageType === 'bookmarks') {
-      // filterDataByTags(selectedTags);
-      // updatePageSelectedTags(selectedTags);
-      console.log("66666666666666666 NavBar selectedTags=", selectedTags);
-      // dispatch(updatePageSelectedTags(selectedTags));//获取当前书签页的分组和书签数据
-    }
-  }, [selectedTags]);//当选中标签发生变化时，传递到主页面组件
+  /*   useEffect(() => {
+      if (pageType === 'bookmarks') {
+        // dispatch(updatePageSelectedTags(selectedTags));//获取当前书签页的分组和书签数据
+      }
+    }, [selectedTags]);//当选中标签发生变化时，传递到主页面组件 */
 
   // When tags change, scroll the tags container to the rightmost edge
   useEffect(() => {

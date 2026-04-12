@@ -49,15 +49,6 @@ export interface BookmarksPageData {
 export type MessageListType = MessageItemData[];
 export type BookmarksPagesType = BookmarksPageData[];
 
-interface MessageListProps {
-  data: MessageItemData[];
-  unReadData: MessageItemData[];
-  onItemClick?: (item: MessageItemData, index: number) => void;
-  onAllBtnClick?: (
-    unReadData: MessageItemData[],
-    data: MessageItemData[]
-  ) => void;
-}
 
 interface BookmarksPageProps {
   data: BookmarksPageData[];
@@ -79,7 +70,7 @@ function BookmarksPages(props: BookmarksPageProps) {
 
   const [currentPage, setCurrentPage] = useState(currentPageId);
   const [localPages, setLocalPages] = useState(props.data);
-  // console.log('useEffect BookmarksPages addedPageIds', addedPageIds);
+
   // const [newPageIds, setNewPageIds] = useState<number[]>(() => addedPageIds || []);
   // 本地是否已修改过 newPageIds（用户交互后设为 true），如果为 true 则不再由 props 覆盖
 
@@ -93,14 +84,14 @@ function BookmarksPages(props: BookmarksPageProps) {
   }, [data]);
 
 
+  /*     useEffect(() => {
+       setCurrentPage(currentPageId);
+       // setDefaultPage(currentPageId);
+       // console.log('useEffect currentPageId', currentPageId)
+     }, [currentPageId]); 
+   */
   useEffect(() => {
-    setCurrentPage(currentPageId);
-    // setDefaultPage(currentPageId);
-    // console.log('useEffect currentPageId', currentPageId)
-  }, [currentPageId]);
-
-  /*   useEffect(() => {
-    }, [localPages]); */
+  }, [currentPage]);
 
 
   async function handleSetDefaultPage(item: BookmarksPageData, index: number) {
@@ -205,33 +196,16 @@ function BookmarksPages(props: BookmarksPageProps) {
      setRenameForm(false);
    } */
 
-  function switchPage(item: BookmarksPageData, index: number) {
+  async function switchPage(item: BookmarksPageData, index: number) {
+    if (!currentPage || currentPage !== item.pageId) {
+      console.log("---------->switchPage,currentPage 1111", currentPage, window.location.href);
+      // 先完成数据切换和持久化，再执行路由跳转，这样 UI 可以立即反映选中状态
+      await switchPageId(item.pageId);//切换显示数据
+    }
+    handleSetCurrentPage(item, index);
     setCurrentPage(item.pageId);
+    console.log("---------->switchPage,currentPage", currentPage, window.location.href);
 
-    console.log("---------->switchPage", item);
-    // onSwitchPage(item);
-    // testUpdate();
-    // const path = await getNodePath({ id: '3ve0wr3tn', pId: 'voqqcfkih' })
-    /*
-      const href = window.location.href;
-     const lastIndex = href.lastIndexOf('/');
-     if (lastIndex > -1) {//A.点击的是：3级和以下分组
-       const last = href.substring(lastIndex + 1).trim();
-       console.log("href last", last);
-     } */
-    //else {} //是首页
-    // console.log("---------->href", window.location.href);
-    // console.log("---------->pathname", window.location.pathname);
-    let pathname = window.location.pathname;
-    const pro = pathname.startsWith('/bookmarksPro');
-    if (pro) {//github pages
-      pathname = pathname.replace('/bookmarksPro', '');
-      // console.log('-------------->>>>>', '/bookmarksPro')
-    }
-    if (pathname.indexOf('/bookmarks') == -1) {
-      // if (window.location.pathname.indexOf('/bookmarks') === -1) {
-      history.replace('/bookmarks');
-    }
     /*  if (isContained(item.pageId)) {
        // 点击切换到刚添加的书签页，取消红点：使用函数式更新以避免闭包取到过期状态
        setNewPageIds(prev => prev.filter(id => id !== item.pageId));
@@ -245,9 +219,15 @@ function BookmarksPages(props: BookmarksPageProps) {
         setLocalPages([...localPages]); // 通过创建新数组引用来触发渲染
       }
     }
-    if (currentPage !== item.pageId) {
-      switchPageId(item.pageId);//切换显示数据
-      handleSetCurrentPage(item, index);
+
+    let pathname = window.location.pathname;
+    const pro = pathname.startsWith('/bookmarksPro');
+    if (pro) {//github pages
+      pathname = pathname.replace('/bookmarksPro', '');
+    }
+    // 在所有切换动作完成后再导航到书签页（如果当前不在书签页）
+    if (pathname.indexOf('/bookmarks') == -1) {
+      history.replace('/bookmarks');
     }
   }
 
@@ -296,10 +276,11 @@ function BookmarksPages(props: BookmarksPageProps) {
                     <Space size={4}>
                       {/* <Badge count={isContained(item.pageId) ? 1 : 0} dot> */}
                       <Badge count={isNew(item) ? 1 : 0} dot>
-                        <Button style={{ width: 175 }} type={item.pageId === currentPage ? 'outline' : 'default'}
+                        <Button style={{ width: 175 }} type={item.pageId == currentPage ? 'outline' : 'default'}
                           onClick={e => { e.stopPropagation(); switchPage(item, index); }}
                         >
                           {item.title}
+                          {/* {currentPage} */}
                         </Button>
                         {/* <span style={{ position: 'absolute', left: 180, top: 21 }} >1000个书签</span> */}
                         <Tag size='small' checkable checked={false} color='#ffffff' style={{ position: 'absolute', left: 190, top: 21, padding: 0 }} >
