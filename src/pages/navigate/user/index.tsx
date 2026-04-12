@@ -188,7 +188,6 @@ function UserNavigate() {
   // const globalState = useSelector((state: RootState) => state.global);
   // const { settings, userLoading, userInfo, tags, dataByGroup, dataByDate, dataByDomain, pageId,
   //   hiddenGroup, loadedBookmarks } = globalState;
-
   // console.log('!!!!!!!!!!!!! index ', dataByGroup, dataByDate);
 
   const {
