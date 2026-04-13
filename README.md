@@ -47,8 +47,9 @@ vercel.json **必须**：
 - 没注释
 - 没尾逗号
 
-
-
+### vercel 查看源码
+github查看源码: 左侧Overview> Production Deployment > 预览图片右边 > Source - master
+vercel查看源码: 左侧Overview> Production Deployment > 点击右侧的 Deployment - 项目序列号左侧切换为 DeployMents > 右侧 Source
 ## Github Pages 部署
 
 ### 要点
@@ -84,11 +85,12 @@ export default defineConfig({
 ```
 npm run deploy
 ```
+先npm run build?
 
 ### 404报错
   首次部署出现404报错，可能是缓存问题，清空浏览器缓存，重新刷新试试
 
-## 插件的混淆打包
+# 插件的混淆打包
 
 - 1.首先，在你的项目根目录下，通过终端安装 Webpack 及其混淆插件：
 ```

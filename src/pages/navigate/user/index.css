@@ -99,10 +99,10 @@ html {
 }
 
 /* card-tab */
-.arco-tabs-header-nav-card .arco-tabs-header-title,
-.arco-tabs-header-nav-card-gutter .arco-tabs-header-title {
+.arco-tabs-header-nav-card .arco-tabs-header-title, .arco-tabs-header-nav-card-gutter .arco-tabs-header-title {
     padding: 0;
 }
+
 
 .arco-tabs-close-icon {
     margin-left: 0;
@@ -167,3 +167,4 @@ label {
  {
     background-color: #ffffff;
 }
+

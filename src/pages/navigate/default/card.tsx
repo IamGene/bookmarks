@@ -845,26 +845,10 @@ function renderCard({ cardData, treeSelectedNode, setCardTabActive, keyWord }) {
 
     //二、关键词搜索部分end ====================================================================================
 
-
-    // 四、增删改部分====================================================================================
-    // const [requirePid, setRequirePid] = useState(true);//添加Tab
-
-    //添加2级分组Tab
-    /* const handleAddTab = () => {
-        // console.log('添加2级分组Tab handleAddTab');
-        setTabForm(true);
-        // setTabGroup({null});
-        setTabGroup({ pId: cardData.id });
-        // setSelectGroup([cardData.id]);
-        setSelectGroup(cardData.id);
-    }; */
-
     const handleAddTab = (group) => {
         // console.log('添加分组Tab handleAddTab', group, pathArr);
         // setSelectGroup([group.id]);
     };
-
-
 
     // 提交表单数据Group
 
@@ -873,14 +857,6 @@ function renderCard({ cardData, treeSelectedNode, setCardTabActive, keyWord }) {
         // console.log('打开全部标签', group)
         openUrls(group.bookmarks);
     }
-
-
-
-    // 四、增删改部分 end====================================================================================
-
-    //四、添加/编辑/删除Tab标签部分 End
-    // const [addTabVisible, setAddTabVisible] = useState(false);//添加Tab
-
 
     const openUrls = (tags) => {
         if (tags.length > 0) {
