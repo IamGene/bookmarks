@@ -132,69 +132,29 @@ function ListCard({ activeCardTab, display, setCardTabActive, keyWord, list, has
 
   return (
     <div>
+      {list && list.length > 0 && (
+        <DndProvider backend={HTML5Backend}>
+          {list.map((item, index) => {
+            return <CardItem key={index}
+              setCardTabActive={setCardTabActive}
+              cardData={item}
+              // index={index}
+              // last={index == list.length - 1}
+              // first={index == 0}
+              // activeGroup={activeGroup}
+              treeSelectedNode={activeCardTab}
+              keyWord={keyWord}
+            >
+            </CardItem>
+          })}
+        </DndProvider>
+      )}
 
-      {/*回到顶部 一 */}
-      {/*回到顶部 四： 把navigate.tsx中的Footer注释掉 */}
-      {/*  <BackTop
-        easing={easing}
-        duration={duration}
-        style={{
-          position: 'absolute',
-          right: 60,
-          bottom: 5,
-        }}
-        visibleHeight={400}
-        target={() => document.getElementById('custom_backtop')}
-      >
-        <div className='custom-backtop' tabIndex={0} role='button' aria-label='scroll to top'>
-          <IconCaretUp />
-          <br />
-          TOP
-        </div>
-      </BackTop>
- */}
-      <div
-        id='custom_backtop'
-        style={{
-          // 二
-          // height: 820,//860?
-          // overflow: 'auto',
-        }}
-      >
 
-        {list && list.length > 0 && (
-          <DndProvider backend={HTML5Backend}>
-            {list.map((item, index) => {
-              return <CardItem key={index}
-                setCardTabActive={setCardTabActive}
-                cardData={item}
-                // index={index}
-                // last={index == list.length - 1}
-                // first={index == 0}
-                // activeGroup={activeGroup}
-                display={display}
-                treeSelectedNode={activeCardTab}
-                keyWord={keyWord}
-                hasResult={hasResult}
-              >
-              </CardItem>
-            })}
-          </DndProvider>
-        )}
-
-        {/* {(!hasResult || (list && list.length === 0)) && <EmptyCard search={search}></EmptyCard>} */}
-        {!hasResult && search && <EmptyCard search={search}></EmptyCard>}
-
-        {/* <Footer /> */}
-        {/* 三 */}
-        {/*  <Footer style={{
-          position: 'absolute',
-          bottom: 5,
-          width: '85%',
-          height: 30
-        }} /> */}
-
-      </div>
+      {/* {(search  && (list && list.length > 0)) && <SearchResult></SearchResult>} */}
+      {(search || (!list || list.length === 0)) && <EmptyCard search={search}></EmptyCard>}
+      {/* {(!hasResult || (list && list.length === 0)) && <EmptyCard search={search}></EmptyCard>} */}
+      {/* {!hasResult && search && <EmptyCard search={search}></EmptyCard>} */}
     </div>
   );
 

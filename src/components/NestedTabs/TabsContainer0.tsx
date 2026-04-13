@@ -19,7 +19,7 @@ interface Props {
     // onClickSort: Function;
     determinShowTabOrNot: Function;
     WrapTabNode: any;
-    moveTabNode: Function;
+    // moveTabNode: Function;
     searching: boolean;
     // searchResult: any[];
     // cardData: any;
@@ -52,7 +52,7 @@ export default function TabsContainer(props: Props) {
         // showItem,
         // currentSearch,//当前card搜索
         WrapTabNode,
-        moveTabNode,
+        // moveTabNode,
         searching,
         tabMore,
         searchTabKey,
@@ -101,13 +101,13 @@ export default function TabsContainer(props: Props) {
                     title={
                         <div style={{ width: '100%' }} onMouseEnter={() => handleTabMouseEnter(child, true)} onMouseLeave={() => handleTabMouseEnter(child, false)}>
                             <span style={{ display: 'block', padding: '4px 16px' }}>
-                                <WrapTabNode key={child.id} index={idx} node={child} moveTabNode={moveTabNode}>{
+                                {
                                     //搜索模式：有结果或Tree节点选中
                                     <>
                                         {tabMore(child, hoveredId === child.id)}
                                         {searching && <span style={{ color: 'red' }}>{`(${child.totalMatchCount})`}</span>}
                                     </>
-                                } </WrapTabNode>
+                                }
                             </span>
                         </div>
                     }>
@@ -119,7 +119,13 @@ export default function TabsContainer(props: Props) {
 
 
             {searching && level <= 0 && (
-                <TabPane key={searchTabKey} title={<span style={{ color: 'red' }}>{`搜索结果(${props.showSearchResult ? props.showSearchResult.length : 0})`}</span>}>
+                // <TabPane key={searchTabKey} title={<span style={{ color: 'red' }}>{`搜索结果(${props.showSearchResult ? props.showSearchResult.length : 0})`}</span>}>
+                <TabPane key={searchTabKey}
+                    title={
+                        // <div style={{ width: '100%' }} >
+                        <span style={{ width: '100%', color: 'red', display: 'block', padding: '4px 16px' }}>{`搜索结果(${data.searchResult ? data.searchResult.length : 0})`}</span>
+                        // </div>
+                    }>
                     {/* <TabPane key={searchTabKey} title={<span style={{ color: 'red' }}>{`搜索结果(${data.searchResult ? props.searchResult.length : 0})`}</span>}> */}
                     {renderSearchContent()}
                 </TabPane>

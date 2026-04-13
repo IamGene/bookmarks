@@ -106,7 +106,7 @@ function ListCard({ activeCardTab, dataType, setCardTabActive, keyWord, list, lo
     );
   };
 
-  const renderMockCard = (data, index) => {
+  const renderCards = (data, index) => {
 
     return (
       <Card key={index}

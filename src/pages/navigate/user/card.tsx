@@ -4240,596 +4240,97 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         }
 
 
-        const tabMore = (subGroup, enter) => {
+        const tabMore = (subGroup, popUp) => {
             // 创建自定义事件并分发
-            // const bookmarksAndChildren = !!subGroup.list;
-            const json = JSON.stringify({ id: subGroup.id, name: subGroup.name, pageId: subGroup.pageId, hide: subGroup.hide, path: subGroup.path, pId: subGroup.pId });
+            // console.log('xxxxxxxxxxxxxxxxxxxxxxxxxxx tabMore', subGroup, popUp);
+            const json = JSON.stringify({ id: subGroup.id, name: subGroup.name, hide: subGroup.hide, path: subGroup.path, pId: subGroup.pId });
 
-            //删除子分组-按默认分组
-            const processRemoveSubGroup0 = async () => {
+            /*  const processRemoveGroup = async () => {
                 try {
-                    //A.搜索模式:删除分组的搜索结果
-                    if (searching) {
-                        //删除该分组的搜索结果，如果被删除书签所在的分组没有其他书签了则将该分组也删除，
-                        // 并向上迭代，直至祖先分组或父(祖)分组有书签数据 逻辑同 processRemoveGroup00
-                        const removeBookmarks = subGroup.searchResult;
-                        const response = await removeWebTagsAndGroups(removeBookmarks, false);
-                        const toRemoveTags = [];
-                        // const response = true;
-                        for (const bookmark of removeBookmarks) {
-                            const tags = bookmark.tags;
-                            if (Array.isArray(tags) && tags.length > 0) {
-                                for (const t of tags) toRemoveTags.push({ tag: t, add: false, id: bookmark.id });
-                            }
-                        }
-
-                        if (response.success) {
-                            await processUpdatePageBookmarksNum(pageId, -1 * removeBookmarks.length);
-                            const resultData = await getBookmarksGroupById(cardData.id);
-
-                            if (resultData) {//获取最新的分组数据
-                                const newSearchResult = searchDataAggregated(searchInput.trim(), resultData.groupData);
-                                // console.log('----------------- processRemoveSubGroup0 resultData removeBookmarks', removeBookmarks);
-                                setData(newSearchResult);
-                                //A，如果被删除当前分组的搜索结果数==全部搜索结果个数，即全部搜索结果变为0？--因为只有当前被删除的分组才有搜索结果
-                                //a.全局搜索 隐藏 b.局部搜索 切换到SearchTab
-                                if (newSearchResult.searchResult.length == 0) {
-                                    if (currentSearch) {
-                                        setActiveMap({ [cardData.id]: searchTabKey });
-                                    } else {
-                                        setCardShow(false);
-                                    }
-                                } else {//搜索模式 删除分组的搜索结果后，仍有剩余搜索结果
-                                    //否则，切换到被删除数据的兄弟tab,否则如果在第一层tab则切换到搜索结果tab
-                                    const path = subGroup.path.split(',');
-                                    // console.log('1111111111111111111 processRemoveSubGroup0 搜索模式删除搜索结果 response 剩余数据', response, subGroup, path);
-                                    if (path.length >= 2) {//对应的分组从第二级开始
-                                        // const pId = path[1];//适用于二级分组及以下的书签,path[0]是祖分组id(cardName)，path[1]是第一层tabs的active项
-                                        const toFind = newSearchResult.children.filter((item: any) => item.id == path[1]);
-                                        if (toFind.length > 0) {
-                                            const item = toFind[0];
-                                            if (item.totalMatchCount == 0) setActiveMap({ [path[0]]: searchTabKey });//该二级分组没有搜索结果
-                                            else if (path.length >= 3) {//该tab（其祖分组）有搜索结果，继续路径匹配直到最底层
-                                                // 优先沿 path 深度匹配；若未命中则在同层找第一个有结果的兄弟并递归到底层
-                                                // console.log('22222222222222222222 processRemoveSubGroup0  优先沿 path 深度匹配；path.length >= 3',);
-                                                const matchedPath = traverseForMatch(item, path, 2);//从path[2]第二个元素开始匹配，第2层tab开始
-                                                if (matchedPath) setActiveMap(buildActiveMap(matchedPath));
-                                                else setActiveMap({ [path[0]]: searchTabKey });
-                                            }
-                                        } else setActiveMap({ [path[0]]: searchTabKey });
-                                    }
-                                    // 祖分组（path.length == 1）只有存在书签数据（subGroup.copy）和子分组才会出现在子分组的tab（第一层tabs）
-                                    /* else if (path.length == 1 && subGroup.copy) { // 删除的是大分组的复制分组,在第一层tabs
-                                        setActiveMap({ [data.id]: searchTabKey });
-                                    } */
-                                }
-                                dispatch(fetchBookmarksPageDatas([0, 1, 2]));//删除了书签+分组
-
-                            } else {//整个大分组没有数据了（因为所有书签被清空导致分组也被删除）
-                                // getGroupData();
-                                removeCard(data.id);
-                                dispatch(fetchBookmarksPageDatas([1, 2]));//删除了书签+分组
-                            }
-                            // return true;
-                            if (toRemoveTags.length > 0) dispatch(updatePageBookmarkTags(toRemoveTags));
-                            if (!currentSearch) dispatch(updateSearchState({ searchResultNum: removeBookmarks.length * -1 }));
-                            if (response.deletedGroups > 0) await dispatch(fetchBookmarksPageDataGoups(pageId));
-                            return true;
-                        }
-                        return false;
-                    }
-
-                    else if (currentFilter) {//标签筛选模式
-                        //删除该分组的搜索结果，如果被删除书签所在的分组没有其他书签了则将该分组也删除，
-                        // 并向上迭代，直至祖先分组或父(祖)分组有书签数据 逻辑同 processRemoveGroup00
-                        const removeBookmarks = subGroup.searchResult;
-                        const response = await removeWebTagsAndGroups(removeBookmarks, false);//不向上迭代删除父分组
-                        if (response.success) {
-                            return { success: true, removeBookmarks, response };
-                        } else {
-                            return { success: false };
-                        }
-                    }
-                    //B.非搜索/标签筛选模式  
-                    else {
-                        const copyGroup: boolean = subGroup.copy;
-                        const response = copyGroup ? await removeCopyGroupById(subGroup.id.replace('_copy', ''))//仅删除该(复制)分组的书签
-                            : await removeGroupById(subGroup.id);//迭代删除分组和书签
-                        // const response = { success: false, deletedBookmarks: 1 };
-                        if (response.success) {//删除成功
-
-                            getBookmarksGroupById(cardData.id).then((resultData) => {
-                                if (resultData) {
-                                    // console.log('aaaaaaaaaaaaaaaaaaaa processRemoveSubGroup0 resultData', resultData);
-                                    setData(resultData.groupData);
-                                }
-                                //  else setCardShow(false);//正常来说不会走到这里，因为没有删除大分组
-                            });
-
-                            //有书签被删除才需要同步按时间/域名分组数据
-                            if (response.deletedBookmarks > 0) {
-                                dispatch(fetchBookmarksPageDatas([0, 1, 2]));//删除了书签+分组
-                                await processUpdatePageBookmarksNum(pageId, -1 * response.deletedBookmarks);
-                            }
-                            else dispatch(fetchBookmarksPageDatas([0]));//仅删除了分组
-
-                            if (response.toRemoveTags && response.toRemoveTags.length > 0) dispatch(updatePageBookmarkTags(response.toRemoveTags));
-
-                            if (copyGroup) {//被删除的是复制分组(id,path属性都是原分组的值)，它本身不会有子分组的了
-                                const activeMap = buildActiveMap(subGroup.path.slice(0, subGroup.path.lastIndexOf(',')));//切换到被删除分组的父分组tab 自动选择剩余子分组
-                                setActiveMap(activeMap);
-                            } else {
-                                //从被删除的子分组，根据其path从其父节点开始,重新计算activeMap激活tabs路径
-                                const pId = subGroup.pId;
-                                const str = subGroup.path;
-                                const lastIndex = str.lastIndexOf(',');
-                                if (lastIndex > -1) {//说明被删除的分组不是第一层分组，才需要切换到父分组tab
-                                    const part1 = str.substring(0, lastIndex);//part1:从root到父节点位置的路径path
-                                    const lastChild = await getThroughChild(pId, part1);//从该分组的父分组中直至找到最后一个子分组
-                                    const activeMap = buildActiveMap(lastChild.path);
-                                    setActiveMap(activeMap);
-                                }
-                            }
-                            if (!copyGroup) await dispatch(fetchBookmarksPageDataGoups(pageId));
-                            return true;//删除完成
-                        }
+                    const response = await removeGroup(subGroup.id);
+                    if (response.code === 200) {
+                        // Message.success('删除成功');
+                        getGroupData();
+                        return true;
+                    } else {
                         return false;
                     }
                 } catch (error) {
                     return false;
                 }
-            }
-
-            //按域名分组-删除子分组 按域名分组
-            const processRemoveSubGroup2 = async () => {
-                // console.log('222222222222222222222 processRemoveSubGroup2', subGroup);
-                if (searching) {//搜索模式：删除搜索结果的书签
-                    for (const item of data.children) {
-                        if (item.id === subGroup.id) {
-                            // 收集所有该子分组当前搜索结果中的书签 id，批量删除一次
-                            const bookmarkIds = (Array.isArray(item.searchResult) ? item.searchResult.map(b => b && b.id).filter(Boolean) : []);
-                            const bookmarks = item.searchResult;
-                            if (bookmarkIds.length > 0) {
-
-                                const toRemoveTags = [];
-                                for (const bookmark of bookmarks) {
-                                    const tags = bookmark.tags;
-                                    if (Array.isArray(tags) && tags.length > 0) {
-                                        for (const t of tags) toRemoveTags.push({ tag: t, add: false, id: bookmark.id });
-                                    }
-                                }
-
-                                const res = await removeWebTags(bookmarkIds);//删除书签数组
-                                if (res) {//删除书签成功
-                                    await processUpdatePageBookmarksNum(pageId, -1 * bookmarkIds.length);
-                                    if (toRemoveTags.length > 0) dispatch(updatePageBookmarkTags(toRemoveTags));
-
-                                    let leftBookmarksNum = item.bookmarks.length;//剩余书签数量
-                                    const newChildren = data.children.reduce((acc, ch) => {
-                                        if (ch.id === subGroup.id) {
-                                            const currentBookmarks = Array.isArray(item.bookmarks) ? item.bookmarks : [];
-                                            const newBookmarks = currentBookmarks.filter(b => !bookmarkIds.includes(b.id));//剩余书签数组
-                                            leftBookmarksNum = newBookmarks.length;
-                                            // 仅当 newBookmarks 非空时保留该子元素
-                                            if (newBookmarks.length > 0) {
-                                                // const currentSearchResult = Array.isArray(item.searchResult) ? item.searchResult : [];
-                                                // const newSearchResult = currentSearchResult.filter(b => !bookmarkIds.includes(b.id));
-                                                // const totalMatchCount = Math.max(0, (item.totalMatchCount || 0) - bookmarkIds.length);
-                                                acc.push({ ...ch, bookmarks: newBookmarks, bookmarksNum: newBookmarks.length, searchResult: [], totalMatchCount: 0 });
-                                            }
-                                        } else {
-                                            acc.push(ch);
-                                        }
-                                        return acc;
-                                    }, []);
-
-                                    const newSearchResult = data.searchResult.filter(b => !bookmarkIds.includes(b.id));
-                                    const newData = { ...data, children: newChildren, totalMatchCount: newSearchResult.length, searchResult: newSearchResult };
-                                    setData(newData);
-
-                                    setActiveMap({ [cardData.id]: searchTabKey });
-                                    /*  if (currentSearch) {
-                                     } else {//全局搜索下
-                                         if (newSearchResult.length == 0) {//全部中没有剩余的搜索结果了
-                                             // setCardShow(false);//如果没有子分组了，隐藏整个Card
-                                             removeCard(data.id);
-                                         }
-                                         dispatch(updateSearchState({ searchResultNum: bookmarkIds.length * -1 }));
-                                     } */
-                                    if (leftBookmarksNum == 0) {//当前分组没有剩余书签了
-                                        if (data.bookmarksNum == bookmarkIds.length) {//如果当前分组的全部书签被删除了
-                                            // （即使有子分组，但当前分组没有书签了，也隐藏该分组tab）
-                                            removeCard(data.id);
-                                        } else {
-                                            removeCard(data.id + ',' + subGroup.id);
-                                            setCardShow(false);
-                                        }
-                                    }
-                                    if (currentSearch) {
-                                    } else {//全局搜索下
-                                        dispatch(updateSearchState({ searchResultNum: bookmarkIds.length * -1 }));
-                                    }
-                                    dispatch(fetchBookmarksPageDatas([0, 1, 2]));//删除了书签
-                                }
-                                return true;
-                            }
-                        }
-                    }
-                    return false;
-                } else {//非搜索模式
-                    try {
-                        for (const item of data.children) {
-                            if (item.id === subGroup.id) {
-                                // 收集所有书签 id，批量删除一次，避免多次调用
-                                const bookmarkIds = item.bookmarks.map(b => b && b.id).filter(Boolean);
-                                const bookmarks = item.bookmarks;
-                                if (bookmarkIds.length > 0) {
-
-                                    const toRemoveTags = [];
-                                    for (const bookmark of bookmarks) {
-                                        const tags = bookmark.tags;
-                                        if (Array.isArray(tags) && tags.length > 0) {
-                                            for (const t of tags) toRemoveTags.push({ tag: t, add: false, id: bookmark.id });
-                                        }
-                                    }
-
-                                    const res = await removeWebTags(bookmarkIds);
-
-                                    if (res) {//删除书签成功
-                                        await processUpdatePageBookmarksNum(pageId, -1 * bookmarkIds.length);
-
-                                        if (toRemoveTags.length > 0) dispatch(updatePageBookmarkTags(toRemoveTags));
-
-                                        const newChildren = data.children.filter(child => child.id !== subGroup.id);//过滤整个分组
-                                        setData(prevData => ({ ...prevData, children: newChildren }));
-                                        removeCard(data.id + ',' + subGroup.id);//
-                                        if (newChildren.length == 0) {
-                                            removeCard(data.id);
-                                            // setCardShow(false);//如果没有子分组了，隐藏整个Card
-                                        } else {
-                                            removeCard(data.id + ',' + subGroup.id);//仅删除子节点
-                                            setActiveMap({ [cardData.id]: newChildren[0]?.id || null });
-                                        }
-                                        dispatch(fetchBookmarksPageDatas([0, 1, 2]));//删除了书签
-                                    }
-                                    return true;
-                                }
-                            }
-                        }
-                        return false;
-                    } catch (error) {
-                        return false;
-                    }
-                }
-            }
-
+            } */
 
 
             // 2级分组菜单
-            const onClickMenuItem = async (key: string, event) => {
+            const onClickMenuItem = (key: string, event) => {
                 const index = key.indexOf('-');
                 if (index !== -1) {
                     const [part1, ...rest] = key.split('-');
                     // 2. 使用 join 将 rest 数组重新组合成一个字符串
                     //    ["123", "profile"].join('-') 会变成 "123-profile"
                     const part2 = rest.join('-');
-                    const subGroup1 = JSON.parse(part2);
+                    const subGroup = JSON.parse(part2);
                     key = part1;
-
-                    let pathArr: string[] = subGroup1.path.split(",");
-                    if (pathArr[pathArr.length - 1].endsWith('_copy')) {
-                        pathArr = [...pathArr.slice(0, pathArr.length - 1)];//去掉最后一个（复制子分组）
-                    };
-                    // console.log('111111111111111 点击菜单 key', key, subGroup);
-                    if (key === '0') {//添加Tag
+                    const pathArr: string[] = subGroup.path.split(",");
+                    if (key === '0') {//收藏
                         setAddTagVisible(true);
-                        setEditTag(null);
-                        // console.log('111111111111111 添加Tag subGroup', subGroup);
+                        setEditTag(null)
                         // setTagSelectGroup(cardData.id === subGroup.id ? [subGroup.id] : [cardData.id, subGroup.id]);
-                        setTagSelectGroup(dataType == 0 ? pathArr : null);
-                        if (dataType == 2) {
-                            data.children.some((item) => {
-                                if (item.id === subGroup.id) {//非隐藏的
-                                    // console.log('111111111111111 添加Tag subGroup', item.bookmarks[0]);
-                                    const tag = {
-                                        // name: item.bookmarks[0].name,
-                                        id: null,
-                                        gId1: subGroup.id,
-                                        icon: item.bookmarks[0].icon,
-                                        url: (() => {
-                                            try {
-                                                const host = new URL(item.bookmarks[0].url).hostname || '';
-                                                return host.endsWith('/') ? host : host + '/';
-                                            } catch (e) {
-                                                const raw = item.bookmarks[0].url || '';
-                                                const m = raw.match(/^(?:https?:\/\/)?(?:www\.)?([^\/]+)/i);
-                                                const host = m ? m[1] : raw;
-                                                return host.endsWith('/') ? host : host + '/';
-                                            }
-                                        })(),
-                                        pageId: subGroup.pageId,
-                                    };
-                                    setEditTag(tag);
-                                }
-                            });
-                        }
-
+                        setTagSelectGroup(pathArr);
                     } else if (key === '1') {//编辑Group
                         setTabForm(true);
-                        setTabGroup(subGroup.id.endsWith('_copy') ? { ...subGroup, id: subGroup.id.replace('_copy', '') } : subGroup);
+                        setTabGroup(subGroup);
                         const parentPath: string[] = pathArr.length > 1 ? pathArr.slice(0, pathArr.length - 1) : null;
                         setSelectGroup(parentPath);//截取parent的path路径
-
-                        if (dataType == 2) {
-                            data.children.some((item) => {
-                                if (item.id === subGroup.id) {//非隐藏的
-                                    // console.log('111111111111111 添加Tag subGroup', item.bookmarks[0]);
-                                    const tag = {
-                                        gId1: subGroup.id,
-                                    };
-                                    setEditTag(tag);
-                                }
-                            });
-                        }
-                    } else if (key === '2') {//删除子分组Group 或分组(及其子分组内)的书签(多选模式) 按分组/按域名分组
-                        if (multiSelectModeMap[subGroup.id] || multiSelectMap[subGroup.id]) {//删除书签(多选)
-                            const ids = Array.isArray(selectedMapRef.current[subGroup.id]) ? selectedMapRef.current[subGroup.id] : [];
-                            // console.log('xxxxxxxxxxxxxxxx selectedMapRef', selectedMapRef, selectedMapRef.current[subGroup.id]);
-                            if (ids.length > 0) {
-                                const bookmarks = await getBookmarksByIds(ids);
-                                // console.log('xxxxxxxxxxxxxxxxxxx 111 ids  bookmarks', ids, bookmarks);
-                                if (!bookmarks || bookmarks.length == 0) return;
-                                const names = bookmarks.map(b => b.name);
-                                //被删除的书签涉及的分组id列表 
-                                const gIds = [...new Set(bookmarks.map(b => b.gId))];// 使用 Set 去重，然后再转回数组
-
-                                let result = names.length > 0 ? names[0] : '';
-                                for (let i = 1; i < names.length; i++) {
-                                    const next = result ? result + '，' + names[i] : names[i];
-                                    if (next.length > 100) {//字数超过，停止遍历
-                                        result += '...'; break;
-                                    }
-                                    result = next;//下一循环
-                                }
-
-                                const toRemoveTags = [];
-                                for (const bookmark of bookmarks) {
-                                    const tags = bookmark.tags;
-                                    if (Array.isArray(tags) && tags.length > 0) {
-                                        for (const t of tags) toRemoveTags.push({ tag: t, add: false, id: bookmark.id });
-                                    }
-                                }
-
-                                let groupPath = subGroup.path;//默认要切换的分组路径
-
-                                // console.log('xxxxxxxxxxxxxxxxxx 删除书签(多选) activeMap', activeMap);
-                                //A.非搜索模式：如果删除的书签涉及多个分组(有可能是复制子分组，删除仅剩的书签后该子分组会消失，需要指定设置切换activeTab的gruopPath)
-                                if (activeMap) {
-                                    const keys = Object.keys(activeMap);
-                                    const longestKey = keys.length ? keys.reduce((a, b) => (a.length > b.length ? a : b)) : undefined;
-                                    if (longestKey) {
-                                        if (activeMap[longestKey].endsWith('_copy')) { //如果当前激活的tab是复制分组tab，
-                                            const copyGroupId = activeMap[longestKey];
-                                            const copyOriGId = copyGroupId.split('_copy')[0];
-                                            if (gIds.includes(copyOriGId)) { // 且被删除的书签id列表包含了该复制分组内的书签
-                                                const node = findNodeById(data, copyGroupId);//找到该复制分组子节点
-                                                if (node.bookmarks.length == 1) {//如果被删除的书签之一是该复制分组（最后一层）内仅剩的一个书签
-                                                    groupPath = node.path.slice(0, node.path.lastIndexOf(","));//切换到该复制分组的父分组tab,再下层的activeTab不作设置，自动取第1个child
-                                                }
-                                            }
-                                            else {//activeTab不变
-                                                groupPath = longestKey.replaceAll('-', ',') + ',' + activeMap[longestKey];
-                                            }
-                                        }
-                                    }
-                                }
-                                //执行成功：返回newData；失败/取消：返回false
-                                console.log('xxxxxxxxxxxxxxxxxx 删除书签(多选) subGroup groupPath', subGroup, groupPath);
-                                const newData = await removeConfirm(ids, result, true, '', '选中的' + ids.length + '个书签', deleteSelectedBookmarks, groupPath);//ok
-                                // 清空 subGroup 及其子孙在 selectedMap 中的已选中书签数据（置为空数组）...
-                                if (newData) {//删除成功后的newData
-                                    // false：本身节点在selectMap中的选中数据不清除， 留给onNodeSelectionChange进行判断和更新该节点的selectMap数据
-                                    updateAncestorAndDescendantNodesMultiSelect(newData, subGroup, false);//更新子分组的多选状态 
-                                    onNodeSelectionChange(subGroup.id, [], subGroup.path);//将选择状态中的父分组的已选中书签变为空[]
-                                    setData(newData);
-                                    if (toRemoveTags.length > 0) {
-                                        // console.log('xxxxxxxxxxxxxxxxxx 删除书签(多选)', toRemoveTags);
-                                        dispatch(updatePageBookmarkTags(toRemoveTags));
-                                    }
-                                }
-                                //B.搜索模式：todo
-
-                            }
-                        } else { //删除分组(默认) ：分组及其书签或分组的搜索/筛选结果
-
-                            /*   removeConfirm(subGroup.id, subGroup.name, searching ? false : true,
-                                  searching ? '点击确定将删除该分组的书签搜索结果' : '点击确定将删除该分组及其所有书签',
-                                  searching ? '搜索结果' : '分组',
-                                  dataType == 0 ? processRemoveSubGroup0 : processRemoveSubGroup2);//ok */
-
-                            const result = await removeConfirm(subGroup.id, subGroup.name, searching || currentFilter ? false : true,
-                                searching ? '点击确定将删除该分组的书签搜索结果' : (currentFilter ? '点击确定将删除该分组的筛选结果' : '点击确定将删除该分组及其所有书签'),
-                                searching ? '搜索结果' : (currentFilter ? '筛选结果' : '分组'),
-                                dataType == 0 ? processRemoveSubGroup0 : processRemoveSubGroup2);//ok
-
-
-                            if (dataType == 0 && currentFilter && result && result.success) {
-                                const removeBookmarks = result.removeBookmarks;
-                                const toRemoveTags = [];
-                                for (const bookmark of removeBookmarks) {
-                                    const tags = bookmark.tags;
-                                    if (Array.isArray(tags) && tags.length > 0) {
-                                        for (const t of tags) toRemoveTags.push({ tag: t, add: false, id: bookmark.id });
-                                    }
-                                }
-                                //如果被删除的书签包含当前筛选标签，则需要重新获取数据进行筛选，否则不需要了
-                                const resultData = await getBookmarksGroupById(cardData.id);
-                                processUpdatePageBookmarksNum(pageId, -1 * removeBookmarks.length);//更新书签总数
-
-                                if (toRemoveTags.length > 0) {
-                                    dispatch(updatePageBookmarkTags(toRemoveTags));
-                                    // dispatch(fetchBookmarksPageDatas([0, 1, 2]));//删除了书签+分组,如果导航栏选中标签变少，需要重新加载最新数据进行筛选
-                                }
-
-                                if (resultData) {//获取最新的分组数据
-                                    const newGroupData = resultData.groupData;
-                                    // console.log('22222222222222222 after removeGroup newGroupData', newGroupData);
-                                    // 在这里标记，避免随后 selectedTags 的 useEffect 覆盖刚设置的新数据
-                                    skipSelectedTagsEffectRef.current = true;
-                                    setData(newGroupData);
-                                    setFilterTags(newGroupData.tagsList);
-                                    // const result =
-                                    //重新执行筛选
-                                    const ids = removeBookmarks.map(bm => bm.id);
-                                    let nextSelectedTags = latestSelectedTagsRef.current;
-                                    console.log('-----------latestSelectedTags', latestSelectedTagsRef.current);
-                                    if (toRemoveTags.length > 0 && nextSelectedTags.length > 0) {
-                                        const ts = toRemoveTags.map(t => t.tag);
-                                        // 基于被删除书签的 ids，局部计算新的 selectedTags（不写回 redux）
-                                        // 如果 selectedTags 中某项的 key 在 ts 中，则从该项的 bookmarks 中移除 ids
-                                        // 若移除后 bookmarks 为空，则从结果中移除该 selectedTag
-                                        nextSelectedTags = nextSelectedTags.map(a => {
-                                            if (a && a.key && ts.includes(a.key)) {
-                                                const orig = Array.isArray(a.bookmarks) ? a.bookmarks : [];
-                                                const filtered = orig.filter(bid => !ids.includes(bid));
-                                                return { ...a, bookmarks: filtered };
-                                            }
-                                            return a;
-                                        }).filter(a => !(Array.isArray(a.bookmarks) && a.bookmarks.length === 0));
-                                        // console.log('-----------nextSelectedTags after removals removeBookmarks', nextSelectedTags, removeBookmarks);
-                                        // console.log('-----------toRemoveTags', toRemoveTags);
-                                        latestSelectedTagsRef.current = nextSelectedTags;//更新最新的 selectedTags 数据，供后续使用
-                                    }
-                                    //now1
-                                    //主动触发筛选，不等待selectedTags的useEffect了，用来更新card的数据
-                                    //至于其他cards，会响应selectedTags的useEffect触发更新
-                                    onNavTagsFilterChange(nextSelectedTags, newGroupData.tagsList, newGroupData, searchInput);
-                                } else {//整个大分组没有数据了（因为所有书签被清空导致分组也被删除）
-                                    removeCard(data.id);
-                                }
-                                if (result.response.deletedGroups > 0) dispatch(fetchBookmarksPageDataGoups(pageId));//删除了分组才需要同步分组数据
-                            }
-                        }
-
-                    } else if (key === '3') {//打开全部书签(包括子分组的书签)
+                    } else if (key === '2') {//删除Group
+                    } else if (key === '3') {//打开全部标签
                         //test
-                        const nodeToClear = findNodeById(data, subGroup.id);
-                        const descendantNodes = collectDescendantNodes(nodeToClear);//包括自身分组
-                        // 汇总 descendantNodes 中所有元素的 bookmarks 数组
-                        const tags = descendantNodes.reduce((acc: any[], n: any) => {
-                            if (Array.isArray(n.bookmarks) && n.bookmarks.length > 0) acc.push(...n.bookmarks);
-                            return acc;
-                        }, []);
-                        openUrls(tags);
-
-                    } else if (key === '5') {//打开选中书签
-                        const ids = Array.isArray(selectedMapRef.current[subGroup.id]) ? selectedMapRef.current[subGroup.id] : [];
-                        if (ids.length > 0) {
-                            getBookmarksByIds(ids).then(bookmarks => {
-                                openUrls(bookmarks);
-                            });
-                        }
-                    }
-                    else if (key === '4') {//多选/取消的切换
-                        // 切换对应 subGroup 的多选状态（存储到 multiSelectMap）
-                        // multiSelectModeMap：由祖先调用 enableModeForSubtree 在子孙上设置的“生效模式”（表示列表应显示复选框，祖先传播的结果）。
-                        // multiSelectMap：用户在某个 tab 上显式点击“多选 / 取消”产生的用户意图（true / false）。
-                        const currentEffectiveSub = !!multiSelectModeMap[subGroup.id] || !!multiSelectMap[subGroup.id];//计算得出当前tab的有效多选状态
-                        const newVal = !currentEffectiveSub;//取反
-                        const nextUserMap = { ...multiSelectMap, [subGroup.id]: newVal };
-                        setMultiSelectMap(nextUserMap);
-                        if (newVal) {//如果切换后是多选状态，则启用以该分组为根的子树的多选模式（显示复选框，启用相关功能）
-                            enableModeForSubtree(subGroup.id);
-                            // 将子孙节点已选中的书签汇总到该节点
-                            // 汇总子孙已选并写回当前节点的 selectedMap
-                            const unique = aggregateSelectedFromDescendants(subGroup.id);
-                            if (unique && unique.length > 0) {
-                                setSelectedMap(prev => ({ ...prev, [subGroup.id]: unique }));
+                        let tags = [];
+                        data.children.some((item) => {
+                            if (item.id === subGroup.id) {//非隐藏的
+                                tags = item.urlList;
+                                return true;//终止遍历
+                            } else {//当前项隐藏
+                                return false;//继续遍历
                             }
-                        } else {//如果切换后不是多选状态，则强制禁用以该分组为根的子树的多选模式（隐藏复选框，禁用相关功能，并清空相关状态）
-                            disableModeForSubtreeForce(subGroup.id);
-                        }
-                    } else if (key === '6') {//移动选中书签(多选模式)
-                        const ids = Array.isArray(selectedMapRef.current[subGroup.id]) ? selectedMapRef.current[subGroup.id] : [];
-                        // console.log('666666666666666666ssss 要移动的书签ids', ids, subGroup);
-                        if (ids.length > 0) {
-                            setMoveFormVisible(true);
-                            setMoveSelectGroup(subGroup);
-                            const bookamrks = await getBookmarksByIds(ids);
-                            setBookmarksToMove(bookamrks);
-                        }
+                        });
+                        openUrls(tags);
                     }
                 };
             }
-
-            // 当祖级开启多选时，子孙的“列表复选框显示”由 multiSelectModeMap 控制。
-            // multiSelectEffective 表示当前分组是否处于多选模式（由祖先传播或自身触发）
-            const multiSelectEffective: boolean = !!multiSelectModeMap[subGroup.id] || !!multiSelectMap[subGroup.id];
-            // const multiSelectEnabled: boolean = !!multiSelectMap[subGroup.id]; // 当前 tab 用户显式开启状态
-            const multiSelectDisabled: boolean = !multiSelectEffective;
-
 
             return <Dropdown
                 position={'top'}
                 droplist={
                     <Menu onClickMenuItem={onClickMenuItem} mode='pop'>
+                        {/* {['添加', '编辑', '删除', '打开'].map((item, index) => (
+                            <Menu.Item key={index.toString() + '-' + json} >{item}</Menu.Item>
+                        ))} */}
+                        {/* {subGroup.pId != null && */}
                         {
                             enable && dropdownVisible && <>
-                                {/* 排除有复制子分组的分组 未被多选或有书签数据(原分组非复制子分组)!multiSelectMap[subGroup.id] || bookmarksAndChildren */}
-                                {multiSelectDisabled && <Menu.Item key={'0-' + json} >添加</Menu.Item>}
-                                {dataType == 0 && multiSelectDisabled && <Menu.Item key={'1-' + json} >编辑</Menu.Item>}
-
-                                {subGroup.bookmarksNum > 0 && multiSelectEffective && (
-                                    <Menu.Item key={'6-' + json} disabled={getSelectedCountForNode(subGroup) === 0}>
-                                        <span style={{ color: 'rgb(var(--arcoblue-6))' }}>移动</span>
-                                    </Menu.Item>
-                                )}
-
-                                {/* 正常/多选模式 删除， 当多选模式下无选中书签时禁用删除按钮 */}
-                                <Menu.Item key={'2-' + json}
-                                    // 当任一祖先或自身处于多选时，删除按钮的禁用基于本节点及其子孙的聚合选中数
-                                    disabled={multiSelectEffective ? getSelectedCountForNode(subGroup) === 0 : false} >
-                                    {multiSelectEffective ? <span style={{ color: 'rgb(var(--arcoblue-6))' }}>删除</span> : '删除'}
-                                </Menu.Item>
-
-                                {/* 正常模式 打开 全部书签 */}
-                                {subGroup.bookmarksNum > 0 && !multiSelectEffective && (
-                                    <Menu.Item key={'3-' + json}>打开</Menu.Item>
-                                )}
-
-                                {/* 多选模式 打开 选中书签为0时禁用按钮 */}
-                                {subGroup.bookmarksNum > 0 && multiSelectEffective && (
-                                    <Menu.Item key={'5-' + json} disabled={getSelectedCountForNode(subGroup) === 0}>
-                                        <span style={{ color: 'rgb(var(--arcoblue-6))' }}>打开</span>
-                                    </Menu.Item>
-                                )}
-
-                                {/* 有书签数据 切换多选/取消 */}
-                                {subGroup.bookmarksNum > 0 && <Menu.Item key={'4-' + json} >
-                                    {(multiSelectEffective) ? '取消' : <span style={{ color: 'rgb(var(--arcoblue-6))' }}>多选</span>}
-                                </Menu.Item>}
+                                {/* <Menu.Item key={'0-' + json} >♥♡♥收藏</Menu.Item> */}
+                                <Menu.Item key={'0-' + json} >♡收藏</Menu.Item>
+                                {/* {subGroup.urlList && subGroup.urlList.length > 0 && <Menu.Item key={'3-' + json} >打开</Menu.Item>} */}
                             </>
                         }
-                    </Menu >
+
+                    </Menu>
                 }
                 trigger="hover"
+                // onVisibleChange={setVisible}
                 //不再由Dropdown组件控制visible状态，而是通过onTabMouseEnter事件在tab组件中由enter值(true/false)设置的popupVisible控制
-                // onVisibleChange={handleDropdownVisibleChange} 
-                // popupVisible={dropdownVisible}
-
-                popupVisible={enter}
+                // onVisibleChange={handleDropdownVisibleChange}
+                popupVisible={popUp}
             >
                 {/*  <div className="tab-more" style={{ display: 'inline-block', color: 'var(--color-text-2)' }}>
                     <IconMore />
                 </div> */}
-                {!!multiSelectMap[subGroup.id] && <IconSelectAll></IconSelectAll>}  {/* 全选图标 */}
                 {subGroup.name}
-                {/* {'(' + subGroup.id + ')'} */}
-                {/* {'(' + subGroup.bookmarksNum + ')'}  */}
+                {/* {subGroup.copy ? 'copy' : 'self'} */}
+                {subGroup.hide ? <IconEyeInvisible></IconEyeInvisible> : ''}
 
-                {/* {subGroup.hide ? <IconEyeInvisible></IconEyeInvisible> : ''} */}
-            </Dropdown >
-
+            </Dropdown>
         }
 
         const deleteSelectedBookmarks = async (ids, groupPath) => {
