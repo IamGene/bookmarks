@@ -65,15 +65,13 @@ export default function TabsContainer(props: Props) {
     const [hoveredId, setHoveredId] = useState<string | null>(null);
 
     function handleTabMouseEnter(child: any, entering: boolean) {
+        // console.log('xxxxxxxxxxxxxxxxxxxxxxxxxxxxx handleTabMouseEnter', child);
         try {
             setHoveredId(entering ? child.id : null);
         } catch (err) {
             // ignore
         }
     }
-    /*  if (children.length > 0 && !searching) {//非搜索，按原始顺序，排序，保持稳定性；搜索时有结果的排在前面，方便选择activeTab
-         children.sort((a, b) => ((a.order ?? a.addDate ?? 0) - (b.order ?? b.addDate ?? 0)));
-     } */
 
 
     return (
@@ -101,18 +99,17 @@ export default function TabsContainer(props: Props) {
                 (searching && (child.totalMatchCount > 0 || activeCardTab.includes(child.id))) || !searching) &&
                 <TabPane key={child.id}
                     title={
-                        <span style={{ display: 'block', padding: '4px 16px' }} onMouseEnter={() => handleTabMouseEnter(child, true)} onMouseLeave={() => handleTabMouseEnter(child, false)}>
-                            <WrapTabNode key={child.id} index={idx} node={child} moveTabNode={moveTabNode}>{
-                                //搜索模式：有结果或Tree节点选中
-                                // searching && (child.totalMatchCount !== 0) ?
-                                <>
-                                    {tabMore(child, hoveredId === child.id)}
-                                    {/* <span style={{ color: 'red' }}>{`(${showItem ? child.urlList.length : child.notHideTabCount || 0})`}</span> */}
-                                    {searching && <span style={{ color: 'red' }}>{`(${child.totalMatchCount})`}</span>}
-                                </>
-                            } </WrapTabNode>
-                        </span>
-
+                        <div style={{ width: '100%' }} onMouseEnter={() => handleTabMouseEnter(child, true)} onMouseLeave={() => handleTabMouseEnter(child, false)}>
+                            <span style={{ display: 'block', padding: '4px 16px' }}>
+                                <WrapTabNode key={child.id} index={idx} node={child} moveTabNode={moveTabNode}>{
+                                    //搜索模式：有结果或Tree节点选中
+                                    <>
+                                        {tabMore(child, hoveredId === child.id)}
+                                        {searching && <span style={{ color: 'red' }}>{`(${child.totalMatchCount})`}</span>}
+                                    </>
+                                } </WrapTabNode>
+                            </span>
+                        </div>
                     }>
                     {/* 渲染单个tab内容,会递归调用RenderNode */}
                     {renderContent(child, idx)}

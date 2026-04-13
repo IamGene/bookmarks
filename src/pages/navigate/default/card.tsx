@@ -668,7 +668,8 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
 
     const [enable, setEnable] = useState(true); // 控制所有 Dropdown 的禁用
     const [defaultActiveMap, setDefaultActiveMap] = useState(null); // 控制所有 Dropdown 的禁用
-    const [dropdownVisible, setDropdownVisible] = useState(false); // 控制所有 Dropdown 的禁用
+
+    const [dropdownVisible, setDropdownVisible] = useState(true); // 控制所有 Dropdown 的禁用
     const anyDropdownOpenRef = useRef(false);
 
     const handleDropdownVisibleChange = (visible: boolean) => {
@@ -1135,8 +1136,9 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
 
 
     // const [visible, setVisible] = useState(false);
-    const tabMore = (subGroup) => {
+    const tabMore = (subGroup, popUp) => {
         // 创建自定义事件并分发
+        // console.log('xxxxxxxxxxxxxxxxxxxxxxxxxxx tabMore', subGroup, popUp);
         const json = JSON.stringify({ id: subGroup.id, name: subGroup.name, hide: subGroup.hide, path: subGroup.path, pId: subGroup.pId });
 
         /*  const processRemoveGroup = async () => {
@@ -1213,8 +1215,9 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
             }
             trigger="hover"
             // onVisibleChange={setVisible}
-            onVisibleChange={handleDropdownVisibleChange}
-        // popupVisible={visible}
+            //不再由Dropdown组件控制visible状态，而是通过onTabMouseEnter事件在tab组件中由enter值(true/false)设置的popupVisible控制
+            // onVisibleChange={handleDropdownVisibleChange}
+            popupVisible={popUp}
         >
             {/*  <div className="tab-more" style={{ display: 'inline-block', color: 'var(--color-text-2)' }}>
                     <IconMore />

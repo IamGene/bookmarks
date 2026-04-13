@@ -24,7 +24,7 @@ import qs from 'query-string';
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import cache from '@/plugins/cache';
 //注意顺序在前以免样式被覆盖 add
-import './index.css'
+import './index.css';
 // 导航组件
 import Navbar from '@/components/NavBar';
 import Footer from '@/components/Footer';

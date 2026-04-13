@@ -9,7 +9,6 @@ import BookmarksMoveForm from './form/bookmarks-move';
 import TabGroupForm from './form/tab-group-form';
 import Add2Form from './form/add2form';
 import { removeConfirm } from './form/remove-confirm-modal';
-import { clearConfirm } from './form/clear-confirm-modal';
 import { saveTagGroup, moveGroupTopBottom } from '@/api/navigate';
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import {
