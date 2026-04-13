@@ -299,7 +299,6 @@ function renderCard({ cardData, display, treeSelectedNode, setCardTabActive, key
 
             // 异步持久化排序（仍然使用 resortOrders），并把带 order 的数组返回用于更新本地 state
             // resortOrders(updatedChildren);
-
             return { ...parentData, children: updatedChildren };
         }
 

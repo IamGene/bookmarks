@@ -28,7 +28,8 @@ import './index.css';
 // 导航组件
 import Navbar from '@/components/NavBar';
 import Footer from '@/components/Footer';
-import Tree from '@/components/Tree';
+// import Tree from '@/components/Tree';
+import Tree from '@/components/Tree/default';
 import useNavi, { INavi } from '@/navis';
 import useLocale from '@/utils/useLocale';
 import getUrlParams from '@/utils/getUrlParams';
@@ -154,8 +155,7 @@ function DefaultNavigate() {
     // const data = group3Bookmarks.find(g => g.value === value)?.data || [];
   }
 
-  const [list, setList] = useState([]);//右侧书签数据
-  console.log('!!!!!!!!!!!!! index ', list);//查看index页面有无重新渲染
+
 
 
   const [hasResult, setHasResult] = useState(true);
@@ -293,6 +293,8 @@ function DefaultNavigate() {
         .finally(() => setLoading(false));
     }; */
 
+  const [list, setList] = useState([]);//右侧书签数据
+  // console.log('!!!!!!!!!!!!! index ', list);//查看index页面有无重新渲染
 
   useEffect(() => {
     if (loadedBookmarks && loadedBookmarks.length > 0) {
@@ -308,7 +310,10 @@ function DefaultNavigate() {
   useEffect(() => {
     // getData();
     // getNaviData();
-    setList(naviData);//Card
+    // setList(naviData);//Card
+    // const expandedKeys = naviData.filter(item => item.children && item.children.length > 0).map(g => g.id);
+    // console.log('>>>>>>>>>>>>>>>>>>>>> index useEffect expandedKeys', expandedKeys);
+    // setExpandedKeys(expandedKeys);
     // setData(naviData);//Menu
     // setDefaultUserInfo()
   }, []);
@@ -483,8 +488,7 @@ function DefaultNavigate() {
                 </Menu>
                   :
                   <Tree setTreeSelected={getTreeSelect}
-                    treeSelectedKeys={treeSelectedKeys}
-                    setTreeType={onTreeTypeChange}
+                    data={naviData}
                   >
                   </Tree>
                 }
@@ -511,7 +515,7 @@ function DefaultNavigate() {
                 {/* Card-Tab列表 */}
                 {/* <Sections activeCardTab={treeSelected} keyWord={navbarKeyWord} setCardTabActive={getCardTabActive} list={list} hasResult={hasResult} loading={loading}></Sections> */}
                 {/* <Sections activeCardTab={treeSelected} display={true} keyWord={navbarKeyWord} activeGroup={getCardTabActive} setCardTabActive={getCardTabActive} hasResult={hasResult} list={list} loading={loading}></Sections> */}
-                <Sections activeCardTab={treeSelected} display={true} keyWord={navbarKeyWord} setCardTabActive={getCardTabActive} hasResult={hasResult} list={list} loading={loading}></Sections>
+                <Sections activeCardTab={treeSelected} display={true} keyWord={navbarKeyWord} setCardTabActive={getCardTabActive} hasResult={hasResult} list={naviData} loading={loading}></Sections>
               </Content>
 
               {showFooter && <Footer />}
