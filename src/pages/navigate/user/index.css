@@ -99,8 +99,15 @@ html {
 }
 
 /* card-tab */
-.arco-tabs-header-nav-card .arco-tabs-header-title, .arco-tabs-header-nav-card-gutter .arco-tabs-header-title {
-    padding: 0;
+
+#root .arco-tabs-header-nav-card .arco-tabs-header-title,#root .arco-tabs-header-nav-card-gutter .arco-tabs-header-title
+ {
+   padding: 0 !important;
+}
+
+#root .arco-tabs-close-icon
+ {
+    margin: 0;
 }
 
 

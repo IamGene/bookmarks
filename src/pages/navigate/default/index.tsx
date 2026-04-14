@@ -238,7 +238,6 @@ function DefaultNavigate() {
     setTreeSelected(activeCardTab);
   }
 
-
   // 接受NavBar传过来的切换隐藏/显示
   const getAllDisplay = () => {
   }

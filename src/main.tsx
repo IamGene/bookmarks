@@ -8,7 +8,6 @@ import enUS from '@arco-design/web-react/es/locale/en-US';
 import { BrowserRouter, HashRouter, Redirect, Switch, Route } from 'react-router-dom';
 import { } from 'react-router-dom';
 // import { HashRouter as Router, Redirect, Switch, Route } from 'react-router-dom';
-// import Navigate from './navigate';
 import UserBookmarks from './pages/navigate/user';
 import DefaultNavigate from './pages/navigate/default';
 import { GlobalContext } from './context';
@@ -16,8 +15,6 @@ import Login from './pages/login';
 import changeTheme from './utils/changeTheme';
 import useStorage from './utils/useStorage';
 import { getCollectPageGroups, saveBookmarkToDB, updatePageBookmarksNum, saveBookmarksToDB, getBookmarkById, getPages } from '@/db/BookmarksPages';
-// import { useDispatch, useSelector } from 'react-redux'
-// import { RootState } from '@/store';
 import { fetchBookmarksPageData, loadNewAddedBookmarks, updateBookmarksPage, reloadUserPages, loadSearchHistory } from '@/store/modules/global'; // 确保路径正确
 import './mock';
 import store from './store';
