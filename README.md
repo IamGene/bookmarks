@@ -20,6 +20,7 @@ npm i
 ```
 serve -s dist
 ```
+npm run preview:build
 
 ## vercel 云服务部署
 

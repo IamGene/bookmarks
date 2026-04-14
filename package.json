@@ -14,7 +14,8 @@
     "pre-commit": "pretty-quick --staged && npm run eslint && npm run stylelint",
     "prepare": "husky install && husky add .husky/pre-commit 'npm run pre-commit'",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist -r git@github.com:IamGene/bookmarksPro.git"
+    "deploy": "gh-pages -d dist -r git@github.com:IamGene/bookmarksPro.git",
+    "preview:build": "vite build && vite preview"
   },
   "dependencies": {
     "@antv/data-set": "^0.11.8",
