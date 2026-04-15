@@ -51,6 +51,7 @@ vercel.json **必须**：
 ### vercel 查看源码
 github查看源码: 左侧Overview> Production Deployment > 预览图片右边 > Source - master
 vercel查看源码: 左侧Overview> Production Deployment > 点击右侧的 Deployment - 项目序列号左侧切换为 DeployMents > 右侧 Source
+
 ## Github Pages 部署
 
 ### 要点
@@ -79,14 +80,12 @@ export default defineConfig({
 })
 
 ```
-
 **BrowserRouter改为HashRouter**
 
 ### 发布命令
 ```
-npm run deploy
+npm run deploy(会自动先执行npm run predeploy)
 ```
-先npm run build?
 
 ### 404报错
   首次部署出现404报错，可能是缓存问题，清空浏览器缓存，重新刷新试试
@@ -172,6 +171,7 @@ npm run build
 - [x] 标签筛选按时间/域名分组
 - [x] 书签页切换到主页没有清空标签  04.14
 - [x] 插件保存书签直接大分组从0到1 没有更新
+- [x] github pages部署的书签页按钮高亮问题  04.14
 - [x] 解决etdown域名下icon失效问题 03.23
 - [x] 修复移动分组tabs排序导致出现新增copy分组的问题 03.15
 - [x] 修复了onNodeSelectionChange显式传递path参数后全选/反选导致父分祖的选中书签不同步问题
@@ -233,6 +233,10 @@ npm run build
 - [ ] 检查功能：子分组菜单 搜索模式  D.多选模式 搜索模式 删除分组(选中的书签)
 - [x] 全局搜索结果为空然后通过插件添加书签后有了搜索结果但仍显示'无搜索结果'  04.04
 - [x] 按时间分组，多选菜单 菜单改为右键弹出
+- [ ] 检查插件配合网页功能 04.15
+- [x] 导航主页不展示标签列表 04.15
+- [x] 导航主页card-tabs样式随treeSelected变化 04.15
+- [ ] 书签卡片的省略 https://arco.design/react/components/typography 04.17
 - [x] 导入全部书签报错，统计书签个数 04.03
 - [x] 删除复制子分组没有更新标签数据的问题 03.31
 - [x] 按域名/时间分组，数据删除后移除card组件，并更新redux数据中的树状列表数据节点 03.29

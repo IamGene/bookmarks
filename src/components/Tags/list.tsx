@@ -130,9 +130,11 @@ function TagList(props: BookmarksPageProps) {
   /*   useEffect(() => {
       // console.log('useEffect currentPageId', currentPageId)
     }, [selectedTags]); */
+  const bookmarkPage =
+    window.location.hash === '#/bookmarks' || window.location.pathname === '/bookmarks';
 
   return (
-    keys.length === 0 ?
+    keys.length === 0 || !bookmarkPage ?
       <Empty description={t['bookmark.noTags']} style={{ alignContent: 'center' }}></Empty> :
       <List
         noDataElement={<Result status="404" subTitle={t['message.empty.tips']} />}
@@ -175,10 +177,8 @@ function TagList(props: BookmarksPageProps) {
                         </Tag>
                       );
                     })}
-
-
-
                   </Space>
+
                 </div>
               }
             />

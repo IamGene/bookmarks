@@ -216,7 +216,12 @@ function BookmarksPages(props: BookmarksPageProps) {
     }
   }
 
-  const [bookmarkPage, setBookmarkPage] = useState(window.location.pathname.replace('/bookmarksPro', '').indexOf('/bookmarks') !== -1);
+  //A Github Pages:  location: pathname='/bookmarksPro/', hash='#/',hash='#/bookmarks' √
+  //B.Vervel:        location: pathname='/', hash=''; pathname='/bookmarks', hash='' 
+  // console.log('bookmarks list location', window.location);
+  const [bookmarkPage, setBookmarkPage] = useState(
+    window.location.hash === '#/bookmarks' || window.location.pathname === '/bookmarks'
+  );
 
   return (
     <>

@@ -22,9 +22,13 @@ interface Props {
     // moveTabNode: Function;
     searching: boolean;
     // searchResult: any[];
+
+    activeCardTab: string[];
+    // searchTabMore: Function;
+    treeSelected: boolean;
+
     // cardData: any;
     // currentSearch: any;
-    activeCardTab: string[];
     tabMore: Function;
     showItem: boolean;
     searchTabKey: any;
@@ -41,7 +45,6 @@ export default function TabsContainer(props: Props) {
         onTabChange,
         activeTab,
         level,
-        activeCardTab,
         // resort,
         // onClickSort,
         // determinShowTabOrNot,
@@ -53,6 +56,8 @@ export default function TabsContainer(props: Props) {
         // currentSearch,//当前card搜索
         WrapTabNode,
         // moveTabNode,
+        treeSelected,
+        activeCardTab,
         searching,
         tabMore,
         searchTabKey,
@@ -73,6 +78,16 @@ export default function TabsContainer(props: Props) {
         }
     }
 
+    const getClassName = () => {
+        if (treeSelected) {
+            if (activeCardTab.length > 1) {//选中子节点
+                return activeCardTab.includes(data.id) ? 'treeActiveTabSelectedA' : 'treeActiveTabUnSelected';
+            } else if (activeCardTab.length == 1 && activeCardTab[0] === data.id) {//选中祖节点
+                return searching ? 'treeActiveTabSelectedB' : ''//搜索/筛选结果tab 或 子分组tab
+            }
+        }
+        return '';
+    }
 
     return (
         <Tabs
@@ -82,6 +97,7 @@ export default function TabsContainer(props: Props) {
             onChange={(key) => onTabChange && onTabChange(key, props.data, props.currentPath)}
             activeTab={activeTab ? activeTab : data.children[0].id}
             deleteButton={<></>}
+            className={getClassName()}
         /* extra={
             level == 0 && <Input.Search
                 allowClear
@@ -98,9 +114,21 @@ export default function TabsContainer(props: Props) {
                 //a.搜索：有结果或Tree节点选中时显示该Tab；b.非搜索：全部显示
                 (searching && (child.totalMatchCount > 0 || activeCardTab.includes(child.id))) || !searching) &&
                 <TabPane key={child.id}
+                    style={{
+                        backgroundColor: treeSelected && activeCardTab.length > 0 && child.id == activeCardTab[activeCardTab.length - 1]
+                            // && child.children.length == 0
+                            ? 'aliceblue' : '#ffffff',
+                    }}
+                    className={treeSelected && activeCardTab.length > 1
+                        ? (activeCardTab.includes(child.id) && child.id !== activeCardTab[activeCardTab.length - 1] ? 'treeActiveTabSelected' : 'treeActiveTabUnSelected')
+                        : ''
+                    }
                     title={
                         <div style={{ width: '100%' }} onMouseEnter={() => handleTabMouseEnter(child, true)} onMouseLeave={() => handleTabMouseEnter(child, false)}>
-                            <span style={{ display: 'block', padding: '4px 16px' }}>
+                            <span style={{
+                                display: 'block', padding: '4px 16px',
+                                backgroundColor: treeSelected && activeCardTab.length > 0 && activeCardTab.includes(child.id) ? 'aliceblue' : '',
+                            }}>
                                 {
                                     //搜索模式：有结果或Tree节点选中
                                     <>
@@ -114,7 +142,6 @@ export default function TabsContainer(props: Props) {
                     {/* 渲染单个tab内容,会递归调用RenderNode */}
                     {renderContent(child, idx)}
                 </TabPane>
-
             )}
 
 

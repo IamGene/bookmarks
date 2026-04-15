@@ -232,8 +232,8 @@ function Index() {
 
   return (
     // <Router>
-    // <HashRouter>
     <BrowserRouter>
+      {/* <HashRouter> */}
       <ConfigProvider
         locale={getArcoLocale()}
         componentConfig={{
@@ -263,7 +263,6 @@ function Index() {
       </ConfigProvider>
     </BrowserRouter>
     // </HashRouter>
-    // </Router >
 
   );
 }

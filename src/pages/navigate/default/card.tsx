@@ -697,7 +697,7 @@ function renderCard({ cardData, treeSelectedNode, setCardTabActive, keyWord }) {
         // 受控模式
         if (cardActive === data.id) {//当前Card被选中了
             setTreeSelected(true);
-            // console.log('ggggggggggggggggggggg setTreeSelected', cardActive);
+            console.log('ggggggggggggggggggggg setTreeSelected', cardActive, activeCardTab);
             setActiveMapByTreeSelected();
             // console.log(cardData.name + ' useEffect activeCardTab', activeCardTab, lastPath)
             //如果在全局搜索模式下当前Card被tree选中且搜索结果为空 =>临时显示全部
@@ -1064,6 +1064,7 @@ function renderCard({ cardData, treeSelectedNode, setCardTabActive, keyWord }) {
                                 <Tabs
                                     type="card-gutter"
                                     onChange={TabChange}
+                                    className={treeSelected && activeCardTab[0] == data.id ? 'treeActiveTabSelectedB' : null}
                                 >
                                     <TabPane key={searchTabKey}
                                         title={
@@ -1079,7 +1080,8 @@ function renderCard({ cardData, treeSelectedNode, setCardTabActive, keyWord }) {
                                 </Tabs>
                                 :
                                 // <div className={styles.container}>
-                                <div className={styles['single-content-border']}>
+
+                                <div className={styles['single-content-border']} style={{ backgroundColor: activeCardTab.includes(data.id) ? 'aliceblue' : '' }}>
                                     {renderTags(data.bookmarks, data.path, false)}
                                 </div>
                                 // </div>
@@ -1102,24 +1104,17 @@ function renderCard({ cardData, treeSelectedNode, setCardTabActive, keyWord }) {
         return (
             level == 0 ?
                 <Card id={data.id} key={data.id}
-                    title={
-                        data.name
-                    }
+                    title={data.name}
+                    className={treeSelected && !searching && activeCardTab.length == 1
+                        ? 'default-selected-card' : ''}
                     extra={
-                        <>
-                            {/*   data.itemHide && <div style={{ marginLeft: '15px', fontSize: '14px' }}>
-                                <Typography.Text style={{ color: 'var(--color-text-2)' }}>显示</Typography.Text>
-                                <Switch size='small' style={{ marginLeft: 12, marginRight: 12 }} checked={showItem} onChange={switchShow}></Switch>
-                            </div> */}
-
-                            <Input.Search
-                                allowClear
-                                style={{ width: '240px' }}
-                                placeholder={`在${data.name}中搜索`}
-                                onChange={onInputChange}
-                                value={searchInput}
-                            />
-                        </>
+                        <Input.Search
+                            allowClear
+                            style={{ width: '240px' }}
+                            placeholder={`在${data.name}中搜索`}
+                            onChange={onInputChange}
+                            value={searchInput}
+                        />
                     }
                     style={{ width: '100%' }
                     }
@@ -1138,6 +1133,7 @@ function renderCard({ cardData, treeSelectedNode, setCardTabActive, keyWord }) {
                         WrapTabNode={WrapTabNode}
                         searching={searching}
                         activeCardTab={activeCardTab}
+                        treeSelected={treeSelected}
                         tabMore={tabMore}
                         showItem={showItem}
                         searchTabKey={searchTabKey}
@@ -1175,6 +1171,7 @@ function renderCard({ cardData, treeSelectedNode, setCardTabActive, keyWord }) {
                     WrapTabNode={WrapTabNode}
                     searching={searching}
                     activeCardTab={activeCardTab}
+                    treeSelected={treeSelected}
                     tabMore={tabMore}
                     showItem={showItem}
                     searchTabKey={searchTabKey}
