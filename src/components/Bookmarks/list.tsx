@@ -216,7 +216,7 @@ function BookmarksPages(props: BookmarksPageProps) {
     }
   }
 
-  const [bookmarkPage, setBookmarkPage] = useState(window.location.pathname.indexOf('/bookmarks') !== -1);
+  const [bookmarkPage, setBookmarkPage] = useState(window.location.pathname.replace('/bookmarksPro', '').indexOf('/bookmarks') !== -1);
 
   return (
     <>
