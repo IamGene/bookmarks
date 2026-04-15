@@ -19,7 +19,7 @@ export const naviData =
                     "icon": "https://res.wx.qq.com/a/wx_fed/assets/res/NTI4MWU5.ico",
                     "addDate": 1763631340948,
                     "date": "2025-11-20",
-                    "name": "如何去除文章的AI味道123?",
+                    "name": "如何去除文章的AI味道1234?",
                     "description": "如何去除文章的AI味道?",
                     "type": "bookmark",
                     "url": "https://mp.weixin.qq.com/s/VUqqJjqiajvwxNpvR-Zg2g"
