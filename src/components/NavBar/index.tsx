@@ -97,7 +97,7 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
   };
 
   // const { userInfo, userLoading } = useSelector((state: GlobalState) => state);
-  console.log(" ===================currentPage=", currentPage);
+  // console.log(" ===================currentPage=", currentPage);
 
   const [_, setUserStatus] = useStorage('userStatus');
   const [role, setRole] = useStorage('userRole', 'admin');
@@ -130,8 +130,6 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
     }
   }
   const onClickHistory = (word: string) => {
-    // setNavBarKey(key);//搜索跟随输入
-    // setKeyword(word);//本地状态更新
     setKeyword(word);//本地状态更新
     setNavBarKey(word);//搜索跟随输入
     setSearchKeyword(word);//传递给搜索历史子组件
@@ -333,7 +331,7 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
 
   function onTagSwitch(value: { key: string; index: number; color: string; selected: boolean, bookmarkIds: string[] }) {
     // Normalize and validate incoming value
-    console.log('sssssssssssssssssss onTagSwitch state.tags.toBeUnselectedNextTime.=', tags.toBeUnselectedNextTime);
+    // console.log('sssssssssssssssssss onTagSwitch state.tags.toBeUnselectedNextTime.=', tags.toBeUnselectedNextTime);
     const key = value && typeof value.key === 'string' ? value.key : null;
     const color = value && value.color ? value.color : undefined;
     const bookmarks = value && value.bookmarkIds ? value.bookmarkIds : [];
@@ -352,6 +350,7 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
         // dispatch(updatePageSelectedTags(selectedTags));//获取当前书签页的分组和书签数据
       }
     }, [selectedTags]);//当选中标签发生变化时，传递到主页面组件 */
+  const InputSearch = Input.Search;
 
   return (
     <>
@@ -366,9 +365,8 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
           {/* selected tags UI removed: selection is driven by Redux `tags.selectedTags` */}
 
           <li>
-            <SearchHistory searchKeyword={searchKeyword} onClickHistory={onClickHistory} inputValue={keyword}>
+            {/* <SearchHistory searchKeyword={searchKeyword} onClickHistory={onClickHistory} inputValue={keyword}>
               <Input.Search
-                allowClear
                 className={styles.round}
                 // value={value}
                 value={keyword}
@@ -377,7 +375,34 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
                 // onPressEnter={(value) => setNavBarKey(value)}
                 onPressEnter={(value) => onEnterPress(value)}
               />
-            </SearchHistory>
+            </SearchHistory> */}
+            <div
+              style={{
+                width: 300,
+                display: 'inline-block',
+              }}
+              className="custom-input-group"
+            >
+              <Input.Group compact>
+                <Select defaultValue='0' style={{ width: 70 }}>
+                  <Select.Option value='0' >默认</Select.Option>
+                  <Select.Option value='1'>标题</Select.Option>
+                  <Select.Option value='2'>描述</Select.Option>
+                  <Select.Option value='3'>域名</Select.Option>
+                  <Select.Option value='4'>网址</Select.Option>
+                </Select>
+                <SearchHistory searchKeyword={searchKeyword} onClickHistory={onClickHistory} inputValue={keyword}>
+                  <InputSearch
+                    allowClear
+                    style={{ width: '76.5%', height: 32 }}
+                    value={keyword}
+                    placeholder={t['navbar.search.placeholder']}
+                    onChange={onInputChange}
+                    onPressEnter={(value) => onEnterPress(value)} />
+
+                </SearchHistory>
+              </Input.Group>
+            </div>
           </li>
 
           <li>

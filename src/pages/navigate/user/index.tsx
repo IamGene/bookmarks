@@ -207,7 +207,7 @@ function UserNavigate() {
       dataByDate: state.global.dataByDate,
       // toUpdateGroupTypes: state.global.toUpdateGroupTypes,
       dataByDomain: state.global.dataByDomain,
-      hiddenGroup: state.global.hiddenGroup,
+      // hiddenGroup: state.global.hiddenGroup,
       loadedBookmarks: state.global.loadedBookmarks,
     }),
     shallowEqual

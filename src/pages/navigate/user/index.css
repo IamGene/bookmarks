@@ -141,7 +141,6 @@ label {
 
 .treeActiveTabSelectedB .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active, .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active:hover {
     border-bottom-color: aliceblue;
-    /* background-color:  #ffffff; */
     background-color:  aliceblue;
 }
 
@@ -174,4 +173,20 @@ label {
  {
     background-color: #ffffff;
 }
+
+/* 最外层包裹 */
+.custom-input-group {
+  border-radius: 20px; /* 半圆效果 */
+  overflow: hidden;     /* 关键：裁剪内部元素 */
+  border: 1px solid var(--color-neutral-3) ; 
+  /* 自己控制整体边框 */
+}
+
+/* 去掉内部组件各自的圆角 */
+.custom-input-group .arco-select-view,
+.custom-input-group .arco-input-inner-wrapper {
+  border-radius: 0 !important;
+  border: none !important; 
+}
+
 

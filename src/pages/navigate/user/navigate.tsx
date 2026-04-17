@@ -17,12 +17,13 @@ import SearchResult from '@/components/SearchResult/index';
 import {
   updatePageGroupsDataByType
 } from '@/store/modules/global';
-import { useDispatch } from 'react-redux';
 // const TabPane = Tabs.TabPane;
 // import AddCard from './card-add';
 import { WebTag } from './interface';
-import { useSelector } from 'react-redux';
+import { RootState } from '@/store';
+import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import './mock';
+import { set } from 'mobx';
 
 // tab标签类型
 const TabPane = Tabs.TabPane;
@@ -32,7 +33,8 @@ function ListCard({ activeCardTab, dataType, setCardTabActive, keyWord, list, lo
   const t = useLocale(locale);
 
   const searchState = useSelector((state: any) => state.global.search);
-  const selectedTags = useSelector((state: any) => state.global.tags.selectedTags);
+
+
   const { searchResultNum } = searchState;
 
   const dispatch = useDispatch();
@@ -44,12 +46,32 @@ function ListCard({ activeCardTab, dataType, setCardTabActive, keyWord, list, lo
     // console.log('zzzzzzzzzzzzzzzzzzzzzzzzzzz  keyWord search searchResultNum', keyWord, searchResultNum);
   }, [keyWord]);
 
+  // const selectedTags = useSelector((state: any) => state.global.tags.selectedTags);
+  //导航栏选中的标签（优先使用按页缓存的 selectedTagsByPage）
+  const selectedTags = useSelector((state: any) => {
+    const pageKey = state.global.currentPage?.pageId ?? state.global.pageId ?? list?.[0]?.pageId;//优先使用当前页缓存的标签，否则使用全局缓存的标签
+    const key = pageKey != null ? String(pageKey) : null;
+    if (key) return state.global.tags.selectedTagsByPage?.[key] ?? [];
+    return state.global.tags.selectedTags ?? [];
+  });
+
+  /* const selectedTags1 = useSelector(
+    (state: RootState) => {
+      const pageKey = useSelector((state: RootState) => state.global.currentPage?.pageId ?? state.global.pageId);
+      // const pageKey = state.global.currentPage?.pageId ?? state.global.pageId ?? list?.[0]?.pageId;//优先使用当前页缓存的标签，否则使用全局缓存的标签
+      const key = pageKey != null ? String(pageKey) : null;
+      if (key) return state.global.tags.selectedTagsByPage?.[key] ?? [];
+      return state.global.tags.selectedTags ?? [];
+    },
+    shallowEqual
+  ); */
+
   useEffect(() => {
     // const isEmpty = !keyWord?.trim();
-    setSearch(selectedTags.length > 0 ? false : !(!keyWord?.trim()));
+    const search = selectedTags.length > 0 ? false : !(!keyWord?.trim());
+    // console.log('zzzzzzzzzzzzzzzzzzzzzzzzzzz  selectedTags search', selectedTags, search);
+    setSearch(search);
   }, [selectedTags]);
-
-
 
   const [cardList, setCardList] = useState(list);
   useEffect(() => {

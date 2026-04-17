@@ -768,9 +768,6 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
     // const [activeTab, setActiveTab] = useState(getInitialDefaultActiveKeyFromCardData(cardData));
 
 
-
-
-
     // 处理空字符串搜索
     /*  const processEmptySearch = async () => {
          console.log(cardData.name + '000000000000000 processEmptySearch setActiveTab');
@@ -848,7 +845,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         setData(cardData);
         setFilterTags(cardData.tagsList || []);
         if (selectedTags && selectedTags.length > 0) {//导航栏中标签筛选
-            const result = onNavTagsFilterChange(selectedTags, cardData.tagsList || [], cardData, searchInput);
+            onNavTagsFilterChange(selectedTags, cardData.tagsList || [], cardData, searchInput);
         } else {
             processSearchKeywordChange(cardData, searchInput, currentSearch, false);//从data中搜索 根据当前Card展示与否
         }
@@ -857,7 +854,6 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         /*  if (cardData.tags && cardData.tags.length > 0) {
              setSelectedTags(cardData.tags);
          } else */
-        // setSelectedTags(cardData.tags);
         if (!activeMap[cardData.id] && dataType == 0) {
             initActiveMap(cardData.id);
         }//初始化第一层tabs的active项
@@ -1041,7 +1037,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
     //导航栏标签筛选变化时的处理逻辑：同步 filterTags 的 selected/checked 状态，进行数据筛选，并控制当前 Card 的展示与标签高亮
     const onNavTagsFilterChange = (tags: any[], filterTags, data: any, keyword: string) => {
         // if (data.name === 'AAAAA')
-        console.log('11111111111111111111 onNavTagsFilterChange data', data.name, filterTags, tags);
+        // console.log('11111111111111111111 onNavTagsFilterChange data', data.name, filterTags, tags);
         if (tags && tags.length > 0) {
             setFilter(true);
             let filterResult: boolean = false; let result: any = data; let activeMap: any = null;
@@ -1089,19 +1085,14 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                         cardShow = filterResult; //filterTags为空则不展示
                         currentFilter = filterResult; //filterTags为空则不展示
                         tagsFilter = hasSelected; //filterTags为空则不展示
-
-                    } else {//无标签筛选结果 也无搜索关键词
                     }
-
+                    // else { }//无标签筛选结果 也无搜索关键词
                 } catch (e) {
                     console.error('同步 filterTags selected 失败', e); // 容错：若处理出错，不影响后续逻辑
                 }
-
-            } else { //分组无标签
-                // setCardShow(false); //filterTags为空则不展示
-                // setCurrentFilter(false);
-                // setTagsFilter(false);//展示标签项?
             }
+            // else { } //分组无标签
+
 
             // console.log('xxxxxxxxxxxxxx filterResult', data.name, filterResult);
             setData(result);
