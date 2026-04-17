@@ -124,13 +124,12 @@ export interface GlobalState {
   domainGroups: TagGroups;
   pageId: number,
   currentPage: Page,
-  // group1s: TagGroups;
   defaultPage: number;
   pages: [];
-  // tagsMap: { [key: string]: string[] } | null;
   tags: {
     tagsMap: { [key: string]: string[] } | null,
     selectedTags: any[],
+    selectedTagsByPage: Record<string, any[]>,
     groupUnselectedTags: any[],
     toBeUnselectedNextTime: any[],
     groupSwitchTag: any,
@@ -153,8 +152,6 @@ const initialState: GlobalState = {
     searchResultNum: 0,
   },
 
-  // hasResult: true,
-  // groups: [],//当前标签分组列表,用于新增
   dataByDate: null,//当前标签分组列表,用于新增
   dataByGroup: null,//当前标签分组列表（按时间排列）,用于新增
   dataByDomain: null,//当前标签分组列表（按域名排列）,用于新增
@@ -170,6 +167,7 @@ const initialState: GlobalState = {
   tags: {
     tagsMap: null,
     selectedTags: [],
+    selectedTagsByPage: {},
     groupUnselectedTags: [],
     toBeUnselectedNextTime: [],
     groupSwitchTag: null,
@@ -206,6 +204,52 @@ function hasHidden(arr) {
   }
   // 没有找到hide为true的元素
   return false;
+}
+
+function getPageCacheKey(pageId: number | string | null | undefined) {
+  if (pageId == null) return null;
+  return String(pageId);
+}
+
+function getCurrentPageCacheKey(state: GlobalState) {
+  return getPageCacheKey(state.currentPage?.pageId ?? state.pageId);
+}
+
+function getSelectedTagsForPage(state: GlobalState, pageKey: string | null) {
+  if (!pageKey) return [];
+  const cached = state.tags.selectedTagsByPage?.[pageKey];
+  return Array.isArray(cached) ? cached : [];
+}
+
+function sanitizeSelectedTags(selectedTags: any[], tagsMap: { [key: string]: string[] } | null) {
+  if (!Array.isArray(selectedTags) || selectedTags.length === 0) return [];
+  if (!tagsMap) return [];
+
+  const seen = new Set<string>();
+  const nextSelectedTags: any[] = [];
+  for (const tag of selectedTags) {
+    const tagKey = String(tag?.key ?? '');
+    if (!tagKey || seen.has(tagKey) || !Array.isArray(tagsMap[tagKey])) continue;
+    seen.add(tagKey);
+    nextSelectedTags.push({
+      ...tag,
+      key: tagKey,
+      bookmarks: tagsMap[tagKey],
+    });
+  }
+  return nextSelectedTags;
+}
+
+function syncSelectedTagsForPage(
+  state: GlobalState,
+  pageKey: string | null,
+  selectedTags: any[],
+  tagsMap: { [key: string]: string[] } | null = state.tags.tagsMap
+) {
+  const sanitized = sanitizeSelectedTags(selectedTags, tagsMap);
+  state.tags.selectedTags = sanitized;
+  if (!pageKey) return;
+  state.tags.selectedTagsByPage[pageKey] = sanitized;
 }
 
 const globalSlice = createSlice({
@@ -253,22 +297,27 @@ const globalSlice = createSlice({
     },
     switchTagSelected: (state, action) => {
       const tag = action.payload.switchTag;
+      const pageKey = getCurrentPageCacheKey(state);
       if (Array.isArray(state.tags.toBeUnselectedNextTime) && state.tags.toBeUnselectedNextTime.length > 0) {
         // 仅移除那些临时结果中已经被完全清空的项
         const keysToRemove = Array.from(new Set(state.tags.toBeUnselectedNextTime
           .filter(item => !Array.isArray(item.updateBookmarks) || item.updateBookmarks.length === 0)
           .map(item => String(item.key))));
         if (keysToRemove.length > 0 && Array.isArray(state.tags.selectedTags)) {
-          state.tags.selectedTags = state.tags.selectedTags.filter(t => !keysToRemove.includes(String(t.key)));
+          const nextSelectedTags = state.tags.selectedTags.filter(t => !keysToRemove.includes(String(t.key)));
+          syncSelectedTagsForPage(state, pageKey, nextSelectedTags);
         }
         // 保留仍有 updateBookmarks 的 pending 项
         state.tags.toBeUnselectedNextTime = state.tags.toBeUnselectedNextTime.filter(item => Array.isArray(item.updateBookmarks) && item.updateBookmarks.length > 0);
       }
 
       if (tag && tag.selected) {
-        state.tags.selectedTags.push(tag);
+        const nextSelectedTags = state.tags.selectedTags.filter(t => String(t.key) !== String(tag.key));
+        nextSelectedTags.push(tag);
+        syncSelectedTagsForPage(state, pageKey, nextSelectedTags);
       } else if (tag) {
-        state.tags.selectedTags = state.tags.selectedTags.filter(t => t.key !== tag.key);
+        const nextSelectedTags = state.tags.selectedTags.filter(t => String(t.key) !== String(tag.key));
+        syncSelectedTagsForPage(state, pageKey, nextSelectedTags);
       }
     },
 
@@ -311,7 +360,7 @@ const globalSlice = createSlice({
 
       const emptys = state.tags.toBeUnselectedNextTime.filter(item => item.updateBookmarks.length == 0);//全部为空
       if (emptys.length == state.tags.selectedTags.length && emptys.length == state.tags.toBeUnselectedNextTime.length) {
-        state.tags.selectedTags = [];
+        syncSelectedTagsForPage(state, getCurrentPageCacheKey(state), []);
         // state.tags.toBeUnselectedNextTime = [];
       }
 
@@ -419,11 +468,19 @@ const globalSlice = createSlice({
       if (action.payload.domainGroups) state.domainGroups = action.payload.domainGroups;
       if (action.payload.currentPage) state.currentPage = action.payload.currentPage;
       if (action.payload.tagsMap) state.tags.tagsMap = action.payload.tagsMap;
+      const pageKey = getCurrentPageCacheKey(state);
+      const currentSelectedTags = state.tags.selectedTags;
       // console.log('xxxxxxxxxxxxxxxxxxx updateBookmarks', action.payload.tagsMap);
       if (action.payload.clearSearchResultNum || action.payload.clearSearchResultNum === undefined)//
         state.search.searchResultNum = 0;//每次更新书签数据，重置搜索结果数 仅更新分组数据的时候除外
       if (action.payload.updateSelectedTags || action.payload.updateSelectedTags === undefined)//
-        state.tags.selectedTags = [];
+        if (action.payload.updateSelectedTags || action.payload.updateSelectedTags === undefined) syncSelectedTagsForPage(state, pageKey, getSelectedTagsForPage(state, pageKey), state.tags.tagsMap);
+      if (!(action.payload.updateSelectedTags || action.payload.updateSelectedTags === undefined))
+        syncSelectedTagsForPage(state, pageKey, currentSelectedTags, state.tags.tagsMap);
+      if (action.payload.currentPage) {
+        state.tags.toBeUnselectedNextTime = [];
+        state.tags.groupSwitchTag = null;
+      }
       if (action.payload.expandedKeys) state.expandedKeys = action.payload.expandedKeys;
       if (action.payload.updatedGroupType != null) {
         if (state.toUpdateGroupTypes.includes(action.payload.updatedGroupType)) {
@@ -476,18 +533,38 @@ const globalSlice = createSlice({
             // console.log('sssssssssssssssssssssssss updateTagsMap nextSelectedTags', filtered);
             if (filtered.length === 0) {
               delete state.tags.tagsMap[tagKey];
-              const selectedTags = state.tags.selectedTags;
-              const nextSelectedTags = selectedTags.filter(t => t.key !== tagKey);
-              // console.log('sssssssssssssssssssssssss updateTagsMap delete tagKey nextSelectedTags', nextSelectedTags);
-              state.tags.selectedTags = nextSelectedTags;
+              Object.keys(state.tags.selectedTagsByPage || {}).forEach(pageKey => {
+                state.tags.selectedTagsByPage[pageKey] = (state.tags.selectedTagsByPage[pageKey] || []).filter(t => String(t.key) !== tagKey);
+              });
+              syncSelectedTagsForPage(
+                state,
+                getCurrentPageCacheKey(state),
+                getSelectedTagsForPage(state, getCurrentPageCacheKey(state)),
+                state.tags.tagsMap
+              );
             }
             else state.tags.tagsMap[tagKey] = filtered;
           } else {
             // no id: remove the whole tag entry
             delete state.tags.tagsMap[tagKey];
+            Object.keys(state.tags.selectedTagsByPage || {}).forEach(pageKey => {
+              state.tags.selectedTagsByPage[pageKey] = (state.tags.selectedTagsByPage[pageKey] || []).filter(t => String(t.key) !== tagKey);
+            });
+            syncSelectedTagsForPage(
+              state,
+              getCurrentPageCacheKey(state),
+              getSelectedTagsForPage(state, getCurrentPageCacheKey(state)),
+              state.tags.tagsMap
+            );
           }
         }
       }
+      syncSelectedTagsForPage(
+        state,
+        getCurrentPageCacheKey(state),
+        getSelectedTagsForPage(state, getCurrentPageCacheKey(state)),
+        state.tags.tagsMap
+      );
     },
 
     /* updateSearchHistory: (state, action) => {
@@ -857,4 +934,3 @@ export {
 };
 export default globalSlice.reducer;
 // export { dispatchTagGroupsData }; updatePageSelectedTags
-

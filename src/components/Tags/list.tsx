@@ -74,7 +74,7 @@ function TagList(props: BookmarksPageProps) {
   // console.log("BookmarksPages currentPageId=", currentPageId);
 
   const globalState = useSelector((state: any) => state.global);
-  const { tags, currentPage } = globalState;
+  const { tags } = globalState;
   // const tagsMap = tags.tagsMap;
   // const groupUnselectedTag = tags.groupUnselectedTag; selectedTags
   const { tagsMap, groupSwitchTag, selectedTags } = tags;
@@ -105,7 +105,7 @@ function TagList(props: BookmarksPageProps) {
   // 当外部通过 TagContext 传入要取消/选择的 tag 时作出响应
   useEffect(() => {
     if (!item) return;
-    debug: console.log('3333333333333 TagList item=', item);
+    // debug: console.log('3333333333333 TagList item=', item);
     // 如果外部要求取消选中，则从 selectedTags 中移除
     setSelectedTagList(prev => prev.filter(x => x !== item));//本组件中用的参数 selectedTags
     // 同步触发父回调，通知外部该 tag 已取消选中
@@ -113,8 +113,11 @@ function TagList(props: BookmarksPageProps) {
   }, [item]);
 
   useEffect(() => {
-    setSelectedTagList([]);
-  }, [currentPage]);//切换书签页时清空已选项
+    const nextSelectedKeys = Array.isArray(selectedTags)
+      ? selectedTags.map(tag => String(tag?.key)).filter(Boolean)
+      : [];
+    setSelectedTagList(nextSelectedKeys);
+  }, [selectedTags]);
 
   function onItemClick(k: any, color: string, index: number, bookmarkIds: string[]) {
     // console.log('xxxxxxxxxxxxxxx onItemClick bookmarkIds=', bookmarkIds);
@@ -123,7 +126,6 @@ function TagList(props: BookmarksPageProps) {
       if (!selected) return [...prev, k];
       return prev.filter(x => x !== k);
     });
-    // props.onItemClick && props.onItemClick(k, index, !selected);
     props.onItemClick && props.onItemClick({ key: k, index, color, selected: !selected, bookmarkIds });
   }
 
@@ -178,7 +180,6 @@ function TagList(props: BookmarksPageProps) {
                       );
                     })}
                   </Space>
-
                 </div>
               }
             />

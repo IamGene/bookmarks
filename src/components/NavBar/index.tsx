@@ -1,11 +1,10 @@
-import React, { useContext, useEffect, useState, useRef } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import {
   Tooltip,
   Input,
   Avatar,
   Select,
   Dropdown,
-  Tag,
   Trigger,
   Tabs,
   Spin,
@@ -77,7 +76,6 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
 
   function setCurrentPage(pageId) {
     setCurrentPageId(pageId);
-    // setSelectedTags([]);
   }
 
 
@@ -267,7 +265,7 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
 
 
   useEffect(() => {
-    setSelectedTags([]);
+    // selected tags are sourced from Redux now.
   }, [currentPageId]);
 
 
@@ -333,9 +331,6 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
   }
 
 
-  const [selectedTags, setSelectedTags] = useState<any[]>([]);
-  const tagsContainerRef = useRef<HTMLDivElement | null>(null);
-
   function onTagSwitch(value: { key: string; index: number; color: string; selected: boolean, bookmarkIds: string[] }) {
     // Normalize and validate incoming value
     console.log('sssssssssssssssssss onTagSwitch state.tags.toBeUnselectedNextTime.=', tags.toBeUnselectedNextTime);
@@ -350,21 +345,6 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
     }
 
     dispatch(oneTagSelectedSwitch({ key, index, color, selected: selected, bookmarks }));//获取当前书签页的分组和书签数据
-
-    /* setSelectedTags(prev => {
-      // Ensure prev is an array
-      const list = Array.isArray(prev) ? prev : [];
-      const exists = list.some(x => x && x.key === key);
-
-      if (selected) {//选中
-        if (exists) return list; // already selected
-        // store a normalized object to keep shape consistent
-        return [...list, { key, index, color, selected: true, bookmarks }];
-      } else {//非选中
-        return list.filter(x => !(x && x.key === key));
-      }
-      // deselect: remove any matching key
-    }); */
   }
 
   /*   useEffect(() => {
@@ -372,27 +352,6 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
         // dispatch(updatePageSelectedTags(selectedTags));//获取当前书签页的分组和书签数据
       }
     }, [selectedTags]);//当选中标签发生变化时，传递到主页面组件 */
-
-  // When tags change, scroll the tags container to the rightmost edge
-  useEffect(() => {
-    const el = tagsContainerRef.current as HTMLDivElement | null;
-    if (el) {
-      // ensure scroll happens after render
-      requestAnimationFrame(() => {
-        try {
-          el.scrollLeft = el.scrollWidth;
-        } catch (e) {
-          // ignore
-        }
-      });
-    }
-  }, [selectedTags]);
-
-
-  useEffect(() => {
-    setSelectedTags([]);
-  }, [currentPage]);
-
 
   return (
     <>
@@ -404,51 +363,7 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
           </div>
         </div>
         <ul className={styles.right} style={{ marginBottom: '0rem' }}>
-          {/*  {
-            pageType === 'bookmarks' && selectedTags.length > 0 &&
-            <li style={{ minWidth: 0, width: '1060px', flex: '0 0 1060px' }}>
-              <div
-                style={{
-                  display: 'flex',
-                  flexWrap: 'nowrap',
-                  alignItems: 'center',
-                  justifyContent: 'flex-start',
-                  width: '100%',
-                  maxHeight: '56px',
-                  overflowX: 'auto',
-                  overflowY: 'hidden',
-                  padding: '4px 0',
-                  minWidth: 0,
-                }}
-              >
-              
-                  <div style={{ flex: '1 0 auto' }} />
-                  {selectedTags.map((item) => {
-                    // 左侧占位，用来把 tags 顶到右边
-                  return (
-                    <Tag
-                      key={item.key}
-                      closable
-                      style={{
-                        // margin: '16px 16px 16px 0',
-                        marginRight: '16px',
-                        flex: '0 0 auto',
-                        maxWidth: '160px',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        display: 'inline-block',
-                      }}
-                      color={item.color}
-                      onClose={() => onTagClose(item)}
-                    >
-                      {item.key}
-                    </Tag>
-                  );
-                })}
-              </div>
-            </li>
-          } */}
+          {/* selected tags UI removed: selection is driven by Redux `tags.selectedTags` */}
 
           <li>
             <SearchHistory searchKeyword={searchKeyword} onClickHistory={onClickHistory} inputValue={keyword}>
