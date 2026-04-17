@@ -3,7 +3,6 @@ import { Tree, Switch, Input, Typography, Anchor, Select, Message, Space } from 
 import { RootState } from '@/store';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchBookmarksPageData0, fetchBookmarksPageData1, updateSearchState, fetchBookmarksPageData2 } from '@/store/modules/global';
-import { testUpdateData } from '@/db/BookmarksPages';
 const AnchorLink = Anchor.Link;
 const TreeNode = Tree.Node;
 
@@ -67,10 +66,12 @@ function filterChildrenByPath(data) {
 function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
     //所有树数据
 
-    const [pageId, setPageId] = useState(null);
+    // derive pageId from currentPage when possible to avoid stale id when switching pages
+
     const [inputValue, setInputValue] = useState(null);
     const globalState = useSelector((state: any) => state.global);
     const { dateGroups, dataGroups, expandedKeys, domainGroups, toUpdateGroupTypes } = globalState;
+    const pageId = globalState.currentPage?.pageId ?? (Array.isArray(dataGroups) && dataGroups.length ? dataGroups[0].pageId : null);
     const dispatch = useDispatch();
 
     /**
@@ -92,12 +93,8 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
 
     useEffect(() => {
         const data = allDataGroups.find(g => g.value === groupType)?.data || []
-        if (dataGroups && dataGroups.length > 0) {
-            setPageId(dataGroups[0].pageId);
-        }
         setTreeData(data);
         if (groupType == 2) setTreeExpandedKeys(data.map((item) => item.id));   //切换到按域名分组 自动展开
-        // console.log('>>>>>>>>>>>>>>>>>>>>> tree组件渲染了33, dataGroups11111111111111111111111111', dataGroups);
     }, [allDataGroups]);//书签页数据发生变化
 
     //搜索输入内容

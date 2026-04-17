@@ -281,7 +281,8 @@ function filterDataByTags(tags: any[], cardData) {
         });
         const dedup = new Set<string>();
         all.forEach(item => {//去重书签bookmarkId
-            if (!dedup.has(item)) dedup.add(item);
+            const key = String(item);
+            if (!dedup.has(key)) dedup.add(key);
         });
         return Array.from(dedup);
     }
@@ -294,7 +295,7 @@ function filterDataByTags(tags: any[], cardData) {
         // const searchResult = [];
         // const filterHiddenSearchResult = [];
         // let totalMatchCount = 0;
-        const searchResult = data.bookmarks.filter(b => tagsBookmarksIds.includes(b.id));
+        const searchResult = data.bookmarks.filter(b => tagsBookmarksIds.includes(String(b.id)));
 
         return {
             ...data,
@@ -827,13 +828,27 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         }
     }
 
+    //导航栏选中的标签（优先使用按页缓存的 selectedTagsByPage）
+    const selectedTags = useSelector(
+        (state: RootState) => {
+            const pageKey = state.global.currentPage?.pageId ?? state.global.pageId ?? cardData.pageId;
+            const key = pageKey != null ? String(pageKey) : null;
+            if (key) return state.global.tags.selectedTagsByPage?.[key] ?? [];
+            return state.global.tags.selectedTags ?? [];
+        },
+        shallowEqual
+    );
+
+    // 当前全局 pageId（切换书签页时用于触发本组件的重新初始化）
+    const currentGlobalPageId = useSelector((state: RootState) => state.global.currentPage?.pageId ?? state.global.pageId);
+    // console.log('bbbbbbbbbbbbbbbbbbbbbbbbbb currentGlobalPageId', currentGlobalPageId);
     useEffect(() => {
-        //重新进行一次搜索,考虑hasResult并未更新，所以该Card仍然展示
-        // console.log(cardData.name + 'zzzzzzzzzz useEffect >>>>>>>>>>>>>>>>>>>>> cardData tags dataType', cardData);
+        //重新进行一次搜索
+        // console.log('bbbbbbbbbbbbbbbbbbbbbbbbbb useEffect >>>>>>>>>>>>>>>>>>>>> cardData tags currentGlobalPageId', cardData.name, cardData.id, currentGlobalPageId);
         setData(cardData);
         setFilterTags(cardData.tagsList || []);
-        if (filter) {//导航栏中标签筛选
-            // const result = onNavTagsFilterChange(tags, cardData.tagsList || [], cardData);
+        if (selectedTags && selectedTags.length > 0) {//导航栏中标签筛选
+            const result = onNavTagsFilterChange(selectedTags, cardData.tagsList || [], cardData, searchInput);
         } else {
             processSearchKeywordChange(cardData, searchInput, currentSearch, false);//从data中搜索 根据当前Card展示与否
         }
@@ -847,7 +862,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
             initActiveMap(cardData.id);
         }//初始化第一层tabs的active项
         //标签筛选与关键词筛选互斥
-    }, [cardData]);//cardData发生变化， 切换/初次加载某书签页
+    }, [cardData, currentGlobalPageId]);//cardData 或 全局当前 pageId 发生变化时，重新处理（解决同 id 不更新问题）
 
     const getThroughChildHasResult = (data) => {
         if (!data || !Array.isArray(data.children) || data.children.length === 0) {
@@ -923,19 +938,6 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         }
     };
 
-    const {
-    } = useSelector(
-        (state: RootState) => ({
-        }),
-        shallowEqual
-    );
-
-    //导航栏选中的标签
-    const selectedTags = useSelector(//仅依赖tags中的selectedTags
-        (state: RootState) => state.global.tags.selectedTags,
-        shallowEqual
-    );
-
     // 保持对最新 selectedTags 的引用，确保在触发筛选时使用最新的 tags
     const latestSelectedTagsRef = useRef(selectedTags);
     // 容器 ref：用于在卡片被激活时滚动到该卡片顶部
@@ -946,7 +948,8 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         // 确保在主动用最新的 newGroupData 更新组件时，
         // 不会被紧接着触发的 selectedTags（在这里是变为空时） effect 用旧 data 覆盖，因为这里已经主动调用了 onNavTagsFilterChange 进行筛选了。
         // 之后 effect 会自动复位，保持正常响应 Redux 的 selectedTags 变更。
-        // if (data.name === 'AAAAA') console.log('00000000000000   latestSelectedTagsRef.current', selectedTags);
+        // if (data.name === 'AAAAA')
+        // console.log('00000000000000   latestSelectedTagsRef.current', data.name, selectedTags);
         latestSelectedTagsRef.current = selectedTags;
         if (skipSelectedTagsEffectRef.current) { // 跳过一次自动触发的 selectedTags effect
             //  ==>前面执行了删除子分组手动触发onNavTagsFilterChange 进行筛选了，所以这里跳过selectedTags的effect，
@@ -1037,7 +1040,8 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
 
     //导航栏标签筛选变化时的处理逻辑：同步 filterTags 的 selected/checked 状态，进行数据筛选，并控制当前 Card 的展示与标签高亮
     const onNavTagsFilterChange = (tags: any[], filterTags, data: any, keyword: string) => {
-        // if (data.name === 'AAAAA') console.log('11111111111111111111 onNavTagsFilterChange data', data);
+        // if (data.name === 'AAAAA')
+        console.log('11111111111111111111 onNavTagsFilterChange data', data.name, filterTags, tags);
         if (tags && tags.length > 0) {
             setFilter(true);
             let filterResult: boolean = false; let result: any = data; let activeMap: any = null;
@@ -1067,6 +1071,8 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                         hasSelected = true;
                     }
 
+                    console.log('xxxxxxxxxxxxxxxxxxxxx filterDataByTags result hasSelected', data, hasSelected);
+                    console.log('-----------------------------------');
                     if (hasSelected) {//分组存在相同的标签
                         result = filterDataByTags(nextFilterTags, data);
 
@@ -1450,8 +1456,8 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
     }
 
     useEffect(() => {
-        if (data.name === '测试A')
-            console.log('xxxxxxxxxxxxxxxxxx useEffect activeCardTab 被选中了', activeCardTab, cardData.name);
+        // if (data.name === '测试A')
+        //     console.log('xxxxxxxxxxxxxxxxxx useEffect activeCardTab 被选中了', activeCardTab, cardData.name);
         if (activeCardTab.length == 0) return;
         const cardActive: string = activeCardTab[0];
         // 受控模式
@@ -2411,7 +2417,6 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                     // console.log('xxxxxxxxxxxxxxxxxxxxx updateCardData  filter result ', groupData, result);
                     setData(result);
                 } else {
-                    //  setFilter(false);
                     setData(groupData);
                 }
             }
@@ -4764,7 +4769,10 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                                                 droplist={searchTabMoreMenus(data.searchResult)}
                                             >
                                                 <Grid.Row style={{ color: 'var(--color-text-1)', }} >
-                                                    <span style={{ display: 'block', padding: '4px 16px', backgroundColor: activeCardTab.includes(data.id) ? 'aliceblue' : '' }}>
+                                                    <span style={{
+                                                        display: 'block', padding: '4px 16px',
+                                                        backgroundColor: activeCardTab.includes(data.id) ? 'aliceblue' : ''
+                                                    }}>
                                                         {!!multiSelectMap[searchTabKey] && <IconSelectAll></IconSelectAll>}
                                                         <span style={{ color: 'red' }}>
                                                             {`${currentFilter ? '筛选' : '搜索'}结果(${data.searchResult && data.searchResult.length})`}
