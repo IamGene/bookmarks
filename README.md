@@ -237,6 +237,7 @@ npm run build
 - [x] 按时间分组，多选菜单 菜单改为右键弹出
 - [ ] 检查插件配合网页功能 04.15
 - [x] 导航主页不展示标签列表 04.15
+- [ ] 主页的tree列表收起时没有显示数据 04.16
 - [x] 导航主页card-tabs样式随treeSelected变化 04.15
 - [ ] 书签卡片的省略 https://arco.design/react/components/typography 04.17
 - [x] 导入全部书签报错，统计书签个数 04.03

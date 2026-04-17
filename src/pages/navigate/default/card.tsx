@@ -1085,7 +1085,6 @@ function renderCard({ cardData, treeSelectedNode, setCardTabActive, keyWord }) {
                                     {renderTags(data.bookmarks, data.path, false)}
                                 </div>
                                 // </div>
-
                             }
                         </Card>
 
