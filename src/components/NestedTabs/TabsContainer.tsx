@@ -257,6 +257,12 @@ export default function TabsContainer(props: Props) {
                         //选中节点 找到最低层级tab
                         // className={treeSelected && activeCardTab.length > 0 && child.id == activeCardTab[activeCardTab.length - 1] ? 'myTabs' : ''}
                         // className={treeSelected && activeCardTab.length > 0 && child.id == activeCardTab[activeCardTab.length - 1] ? 'treeActiveTabItem' : null}
+                        /* style={{
+                            backgroundColor: treeSelected && activeCardTab.length > 0 && child.id == activeCardTab[activeCardTab.length - 1]
+                                // && child.children.length == 0
+                                ? 'aliceblue' : '#ffffff',
+                        }} */
+
                         style={{
                             backgroundColor: treeSelected && activeCardTab.length > 0 && child.id == activeCardTab[activeCardTab.length - 1]
                                 // && child.children.length == 0

@@ -159,7 +159,7 @@ const Highlight = (parts, keyword) => {
 // 递归聚合版本搜索：在保留原有 searchData 行为的同时，增加每个节点的聚合字段
 // 返回的节点包含原有的 `searchResult` 与 `noHiddenSearchResult` 字段，
 // 并额外添加 `childrenMatchCount`（直接子节点命中数）和 `totalMatchCount`（子树内总命中数）。
-function searchDataAggregated(inputValue, cardData) {
+function searchDataAggregated(inputValue, searchType, cardData) {
     const regex = new RegExp(`(${inputValue})`, 'gi');
 
     function processLeaf(data) {
@@ -371,7 +371,7 @@ function filterDataByTags(tags: any[], cardData) {
 }
 
 // tags
-function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardTabActive, keyWord }) {//hasResult
+function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardTabActive, searchKeyWord }) {//hasResult
     // 抽离的子组件：显示选中的 tags
 
     const SelectedTags = ({ groupTags }: { groupTags: Array<any> }) => {
@@ -488,7 +488,6 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
             return next;
         });
     };
-
 
 
 
@@ -783,15 +782,21 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
 
 
     const processNotEmptySearch = (data, searchKeyWord, searchTab, currentSearch: boolean) => {
-        // if (data.id === 'hve25ijlc')
-        console.log(cardData.id, cardData.name + ' processNotEmptySearch 搜索关键词', keyWord, 'showItem', showItem, 'searchTab', searchTab);
-        setSearching(true);
+
+        setSearching(true);// processNotEmptySearch
         // const result = searchData(keyWord.trim(), cardData);
-        const result = searchDataAggregated(searchKeyWord, data);
+        const searchType = searchTypeRef.current; // 始终是最新值
+
+        // if (data.name === '测试A')
+        //     // console.log(cardData.id, cardData.name + ' processNotEmptySearch 搜索关键词', keyWord, 'showItem', showItem, 'searchTab', searchTab);
+        console.log(cardData.id, cardData.name + ' processNotEmptySearch 搜索关键词', keyWord, searchType);
+
+        const result = searchDataAggregated(searchKeyWord, searchType, data);
         // console.log(cardData.name + ' processNotEmptySearch 搜索结果', result, data);
         if (result.totalMatchCount > 0) {//有搜索结果
             if (!currentSearch) dispatch(updateSearchState({ searchResultNum: result.totalMatchCount }));//全局搜索下 累加搜索结果数
             //局部搜索下，如果搜索关键词发生变得与搜索框中的关键词重新一致(原来不一致已减去搜索结果数)
+            // const keyWord = searchKeyWord ? searchKeyWord.keyword?.trim() : ''; 
             else if (searchKeyWord == keyWord && searchInput !== keyWord) {
                 setCurrentSearch(false);//相当于全局搜索了
                 dispatch(updateSearchState({ searchResultNum: result.totalMatchCount }));
@@ -910,14 +915,13 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
             // console.log('xxxxxxxxxxxxxxxxxxxx handleTagOncheck 取消筛选 unSelectedTag', unSelectedTag, selectedTags);
         }
 
-
         //取消选中 且仅剩一个标签被选中
         if (!checked && checkedItems.length === 1 && checkedItems[0].value === item.value) {
             //仅剩一个，不需要进行筛选
             // console.log('xxxxxxxxxxxxxxxxxxxx handleTagOncheck setFilter(false) next', checkedItems, next);
             setCurrentFilter(false);
             if (searchInput) {//有关键词搜索
-                onKeywordChange(searchInput, false);
+                onKeywordChange(searchInput, searchType, false);
             } else {//清空筛选
                 const last = getThroughChildFirst(data);
                 setActiveMap(buildActiveMap(last.path));
@@ -957,10 +961,31 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         onNavTagsFilterChange(selectedTags, filterTags, data, searchInput);
     }, [selectedTags]);
 
-
+    const [keyWord, setKeyWord] = useState('');
+    // const [searchType, setSearchType] = useState(0);
     //now1  搜索关键词为空时先判断当前是否标签筛选模式，如果是只需要清空搜索输入框即可
+
+
+    const searchTypeRef = useRef<number>(0);
+    const [searchType, setSearchType] = useState<number>(0);
+
+    /*  const handleSelectChange = (val) => {
+         const next = Number(val);
+         setSearchType(next);
+         searchTypeRef.current = next;
+     }; */
+
+    // const type = searchTypeRef.current; // 始终是最新值
+
+
     useEffect(() => {
-        // console.log('xxxxxxxxxxxxxxxxxx useEffect keyWord', keyWord, tags, cardData);
+        const keyWord = searchKeyWord ? searchKeyWord.keyword : '';
+        const searchType = searchKeyWord ? searchKeyWord.searchType : 0;
+        // console.log('xxxxxxxxxxxxxxxxxx useEffect keyWord', keyWord, searchKeyWord, cardData.name);
+        setKeyWord(keyWord);
+        setSearchType(searchType);
+        searchTypeRef.current = searchType;
+
         onKeywordChange(keyWord, false);
         if (keyWord) {
             inactiveTagsFilter(); //分组的所有展示的标签取消高亮
@@ -970,7 +995,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                 // console.log('xxxxxxxxxxxxxxxxxx 搜索关键词为空，有标签筛选', cardData.name, keyWord, selectedTags);
             }
         }
-    }, [keyWord]);//第一次渲染就会触发,全局搜索关键词
+    }, [searchKeyWord]);//第一次渲染就会触发,全局搜索关键词
 
 
     /*  useEffect(() => {
@@ -994,7 +1019,8 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
     }
 
     const onKeywordChange = (searchKeyword: string, currentSearch: boolean) => {
-        const keyword = searchKeyword ? searchKeyword.trim() : '';
+        // const keyword = searchKeyword ? searchKeyword.trim() : '';
+        const keyword = searchKeyword;
         setSearchInput(keyword);
         setCurrentSearch(currentSearch);
         setActiveCardTab([]);//相当于tree选中节点失效,除非重新点击
@@ -1067,8 +1093,8 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                         hasSelected = true;
                     }
 
-                    console.log('xxxxxxxxxxxxxxxxxxxxx filterDataByTags result hasSelected', data, hasSelected);
-                    console.log('-----------------------------------');
+                    // console.log('xxxxxxxxxxxxxxxxxxxxx filterDataByTags result hasSelected', data, hasSelected);
+                    // console.log('-----------------------------------');
                     if (hasSelected) {//分组存在相同的标签
                         result = filterDataByTags(nextFilterTags, data);
 

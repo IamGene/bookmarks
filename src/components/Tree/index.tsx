@@ -209,7 +209,6 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
         setInputValue(inputValue);
     }
     // const [selectedKeys, setSelectedKeys] = useState(['si180dbs5', 'hndt1j4kw']);
-    const [selectedKeys, setSelectedKeys] = useState([]);
 
     function getExpandedKeys(parts) {
         // console.log('buildActiveMap path', path);

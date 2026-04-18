@@ -106,10 +106,11 @@ export interface GlobalState {
     permissions: Record<string, string[]>;
   };
   search: {
-    hasResult: boolean,
+    // hasResult: boolean,
     searchHistory: string[],
     keyword: string,
     searchResultNum: number,
+    searchType: number,
   };
   // hasResult: boolean;
   // searchHistory: string[];
@@ -146,10 +147,11 @@ const initialState: GlobalState = {
     permissions: {},
   },
   search: {
-    hasResult: true,
+    // hasResult: true,
     searchHistory: [],
     keyword: null,
     searchResultNum: 0,
+    searchType: 0,
   },
 
   dataByDate: null,//当前标签分组列表,用于新增
@@ -263,16 +265,18 @@ const globalSlice = createSlice({
       state.userInfo = action.payload.userInfo || initialState.userInfo;
       state.userLoading = action.payload.userLoading;
     },
-    updateHasResult: (state, action) => {
-      state.search.hasResult = action.payload.hasResult;
-    },
+    /*   updateHasResult: (state, action) => {
+        state.search.hasResult = action.payload.hasResult;
+      }, */
     updateSearchState: (state, action) => {
       // console.log('xxxxxxxxxxxxxxxxxxxxx updateSearchState', action.payload);
-      state.search.hasResult = action.payload.hasResult;
+      // state.search.hasResult = action.payload.hasResult;
       if (action.payload.keyword != null) {//重新搜索
         state.search.keyword = action.payload.keyword;
+        state.search.searchType = action.payload.searchType;
         state.search.searchResultNum = 0;//每次新搜索，重置结果数
         const keyword = action.payload.keyword;
+
         // 将 keyword 移到 state.searchHistory 的第一个位置（若已存在则先移除再放到最前面；若不存在则添加到最前面）
         if (!keyword) return;
         const list = Array.isArray(state.search.searchHistory) ? [...state.search.searchHistory] : [];
@@ -920,13 +924,13 @@ const loadSearchHistory = () => {
 
 // export const { updateSettings, updateUserInfo, updateHasResult, updateBookmarks } = globalSlice.actions;
 //updateSearchHistory 
-const { updateSettings, updateUserInfo, updateHasResult, switchTagSelected,
+const { updateSettings, updateUserInfo, switchTagSelected,
   updateGroupTypes, updateSearchState, updatePageGroupList, updateTagSelected, updateTagUnSelected,
   updateUserPage, updateTagsMap, updateBookmarks, setUserPages,
   setSearchHistory,
   updateActiveGroup, setLoadBookmarks } = globalSlice.actions;
 export {
-  updateSettings, updateUserInfo, updateHasResult, updateSearchState, updateBookmarks, updateActiveGroup,
+  updateSettings, updateUserInfo, updateSearchState, updateBookmarks, updateActiveGroup,
   loadSearchHistory, updatePageBookmarkTags, oneTagSelectedSwitch,
   updatePageDataState, reloadUserPages, fetchBookmarksPageData,
   fetchBookmarksPageData0, fetchBookmarksPageData1, fetchBookmarksPageData2, updateBookmarksPage, fetchBookmarksPageDatas, fetchBookmarksPageDataGoups,

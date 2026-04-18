@@ -73,6 +73,7 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
   const [currentPageId, setCurrentPageId] = useState(null);//pageNo
   const [keyword, setKeyword] = useState(null);
   const [searchKeyword, setSearchKeyword] = useState(undefined);
+  const [searchType, setSearchType] = useState<number>(0);
 
   function setCurrentPage(pageId) {
     setCurrentPageId(pageId);
@@ -125,13 +126,13 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
     // setNavBarKey(key);//搜索跟随输入
     setKeyword(key);//本地状态更新
     if (!key || key.trim().length === 0) {//清空搜索->重置数据
-      setNavBarKey(key);//搜索跟随输入
+      setNavBarKey(key.trim(), searchType);//搜索跟随输入
       // setSearchKeyword(null);
     }
   }
   const onClickHistory = (word: string) => {
     setKeyword(word);//本地状态更新
-    setNavBarKey(word);//搜索跟随输入
+    setNavBarKey(word, searchType);//搜索跟随输入
     setSearchKeyword(word);//传递给搜索历史子组件
     // console.log('点击搜索历史记录项：', word);
   }
@@ -139,10 +140,8 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
 
   // 监听回车键
   const onEnterPress = (e) => {
-    setNavBarKey(keyword);//回车搜索
-    setSearchKeyword(keyword);//传递给搜索历史子组件
-    // dispatch(addSearchHistory(keyword));//获取当前书签页的分组和书签数据
-    // console.log('onEnterPress key=', key);
+    setNavBarKey(keyword.trim(), searchType);//回车搜索，带搜索类型
+    setSearchKeyword(keyword.trim());//传递给搜索历史子组件
   }
 
   const [createNewForm, setCreateNewForm] = useState(false);//添加Tab
@@ -384,12 +383,23 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
               className="custom-input-group"
             >
               <Input.Group compact>
-                <Select defaultValue='0' style={{ width: 70 }}>
-                  <Select.Option value='0' >默认</Select.Option>
-                  <Select.Option value='1'>标题</Select.Option>
-                  <Select.Option value='2'>描述</Select.Option>
-                  <Select.Option value='3'>域名</Select.Option>
-                  <Select.Option value='4'>网址</Select.Option>
+                <Select
+                  value={searchType}
+                  onChange={(val) => {
+                    const next = Number(val);
+                    setSearchType(next);
+                    // 若输入框有内容，则切换搜索类型时立即触发搜索
+                    if (keyword && String(keyword).trim().length > 0) {
+                      setNavBarKey(keyword.trim(), next);
+                    }
+                  }}
+                  style={{ width: 70 }}
+                >
+                  <Select.Option value={0} >默认</Select.Option>
+                  <Select.Option value={1}>标题</Select.Option>
+                  <Select.Option value={2}>描述</Select.Option>
+                  <Select.Option value={3}>域名</Select.Option>
+                  <Select.Option value={4}>网址</Select.Option>
                 </Select>
                 <SearchHistory searchKeyword={searchKeyword} onClickHistory={onClickHistory} inputValue={keyword}>
                   <InputSearch

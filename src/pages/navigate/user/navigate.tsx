@@ -29,7 +29,7 @@ import { set } from 'mobx';
 const TabPane = Tabs.TabPane;
 const { Row, Col, GridItem } = Grid;
 // tags
-function ListCard({ activeCardTab, dataType, setCardTabActive, keyWord, list, loading }) {
+function ListCard({ activeCardTab, dataType, setCardTabActive, searchKeyWord, list, loading }) {
   const t = useLocale(locale);
 
   const searchState = useSelector((state: any) => state.global.search);
@@ -41,10 +41,11 @@ function ListCard({ activeCardTab, dataType, setCardTabActive, keyWord, list, lo
   const [search, setSearch] = useState(false);
 
   useMemo(() => {
-    const isEmpty = !keyWord?.trim();
+    if (searchKeyWord == null) return;
+    const isEmpty = !searchKeyWord.keyword?.trim();
     setSearch(!isEmpty);
     // console.log('zzzzzzzzzzzzzzzzzzzzzzzzzzz  keyWord search searchResultNum', keyWord, searchResultNum);
-  }, [keyWord]);
+  }, [searchKeyWord]);
 
   // const selectedTags = useSelector((state: any) => state.global.tags.selectedTags);
   //导航栏选中的标签（优先使用按页缓存的 selectedTagsByPage）
@@ -67,8 +68,10 @@ function ListCard({ activeCardTab, dataType, setCardTabActive, keyWord, list, lo
   ); */
 
   useEffect(() => {
-    // const isEmpty = !keyWord?.trim();
-    const search = selectedTags.length > 0 ? false : !(!keyWord?.trim());
+    // const isEmpty = !searchKeyWord.keyword?.trim();
+    // const search = selectedTags.length > 0 ? false : !(!searchKeyWord.keyword?.trim());
+    //当有选中标签时，无论关键词是否为空，都认为在搜索；当没有选中标签时，只有关键词非空才认为在搜索
+    const search = selectedTags.length > 0 ? false : !(!(searchKeyWord && searchKeyWord.keyword?.trim()));
     // console.log('zzzzzzzzzzzzzzzzzzzzzzzzzzz  selectedTags search', selectedTags, search);
     setSearch(search);
   }, [selectedTags]);
@@ -222,7 +225,7 @@ function ListCard({ activeCardTab, dataType, setCardTabActive, keyWord, list, lo
                 dataType={dataType}
                 removeCard={removeItem}
                 treeSelectedNode={activeCardTab}
-                keyWord={keyWord}
+                searchKeyWord={searchKeyWord}
               >
               </CardItem>
             })}

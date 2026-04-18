@@ -359,7 +359,7 @@ function DefaultNavigate() {
   function renderRoutes(locale) {
     // routeMap.current.clear();
     // console.log('renderRoutes')
-    return function travel(_routes: INavi[], level, parentNode = []) {
+    return function travel(_routes: any[], level, parentNode = []) {//_routes: INavi[],
       return _routes.map((route) => {
         const { breadcrumb = true, ignore } = route;
         //根据key获取图标
@@ -483,7 +483,8 @@ function DefaultNavigate() {
                 >
 
                   {/* 按时间，月-展开分组；按分组，嵌套分组 */}
-                  {renderRoutes(locale)(list, 1)}
+                  {/* {renderRoutes(locale)(list, 1)} */}
+                  {renderRoutes(locale)(naviData, 1)}
                 </Menu>
                   :
                   <Tree setTreeSelected={getTreeSelect}

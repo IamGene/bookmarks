@@ -181,7 +181,8 @@ function UserNavigate() {
   const pathname = history.location.pathname;
   const currentComponent = qs.parseUrl(pathname).url.slice(1);
   const locale = useLocale();
-  const [navbarKeyWord, setNavbarKeyWord] = useState('');
+  // const [navbarKeyWord, setNavbarKeyWord] = useState('');
+  const [navbarKeyWord, setNavbarKeyWord] = useState(null);
 
   // console.log('render user navigate...navbarKeyWord=>', navbarKeyWord)
 
@@ -197,7 +198,6 @@ function UserNavigate() {
     dataByGroup,
     dataByDate,
     dataByDomain,
-    hiddenGroup,
     loadedBookmarks,
   } = useSelector(
     (state: RootState) => ({
@@ -377,19 +377,11 @@ function UserNavigate() {
 
   // let hasResult = true;
   // 接收NavBar传过来的搜索关键词
-  const getNavBarKey = (keyword) => {
-    setNavbarKeyWord(keyword);
-    dispatch(updateSearchState({ keyword: keyword }));
+  const getNavBarKey = (keyword, searchType) => {
+    // setNavbarKeyWord(keyword);
+    setNavbarKeyWord({ keyword, searchType });
+    dispatch(updateSearchState({ keyword: keyword, searchType: searchType }));
     // 关键词过滤
-    if (!keyword || !keyword.trim()) {
-      setHasResult(true);
-    } else {//不为空
-      const hasResult = searchData2(list, keyword);
-      // console.log('00000000000 search', keyword, hasResult);
-      setHasResult(hasResult);
-      saveSearchHistory(keyword.trim());
-    }
-    // setNavbarKeyWord(keyword)
   }
 
 
@@ -649,7 +641,7 @@ function UserNavigate() {
               <Content>
                 <Navi activeCardTab={treeSelected}
                   dataType={dataType}
-                  keyWord={navbarKeyWord}
+                  searchKeyWord={navbarKeyWord}
                   setCardTabActive={getCardTabActive}
                   list={list}
                   // tags={tags}

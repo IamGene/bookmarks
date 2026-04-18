@@ -139,37 +139,37 @@ label {
     padding: 8px 0;
 }
 
-.treeActiveTabSelectedB .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active, .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active:hover {
+body .treeActiveTabSelectedB .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active, .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active:hover {
     border-bottom-color: aliceblue;
     background-color:  aliceblue;
 }
 
-.treeActiveTabSelectedA .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active, .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active:hover {
+body .treeActiveTabSelectedA .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active, .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active:hover {
     border-bottom-color: aliceblue;
     background-color:  #ffffff;
 }
 
-.treeActiveTabUnSelected .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active, .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active:hover {
+body .treeActiveTabUnSelected .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active, .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active:hover {
     border-bottom-color: #ffffff;
 }
 
 
-.input-search .arco-input-group > .arco-input-inner-wrapper, .arco-input-group > .arco-input
+body.input-search .arco-input-group > .arco-input-inner-wrapper, .arco-input-group > .arco-input
  {
     border-color: rgb(var(--primary-6));
 }
 
-.treeActiveTabSelectedA .arco-card-size-default .arco-card-body {
+body .treeActiveTabSelectedA .arco-card-size-default .arco-card-body {
     background-color: aliceblue;
 }
 
 
-.default-selected-card  .arco-card-body
+body.default-selected-card  .arco-card-body
  {
      background-color: aliceblue;
 }
 
-.default-selected-card .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active, .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active:hover
+body.default-selected-card .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active, .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active:hover
  {
     background-color: #ffffff;
 }
