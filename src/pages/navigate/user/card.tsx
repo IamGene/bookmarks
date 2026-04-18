@@ -1152,6 +1152,8 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                      onKeywordChange(searchInput, false);
                  } else */
                 setData(data);
+
+                initActiveMap(data.id);
                 // return { hasResult: false, data: data, activeMap: null };
             }
             // if (data.name === 'AAAAA') console.log('11111111111111111111 empty result', data);
@@ -4788,7 +4790,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                                                 <Grid.Row style={{ color: 'var(--color-text-1)', }} >
                                                     <span style={{
                                                         display: 'block', padding: '4px 16px',
-                                                        backgroundColor: activeCardTab.includes(data.id) ? 'aliceblue' : ''
+                                                        backgroundColor: activeCardTab.includes(data.id) ? 'aliceblue' : '#ffffff'
                                                     }}>
                                                         {!!multiSelectMap[searchTabKey] && <IconSelectAll></IconSelectAll>}
                                                         <span style={{ color: 'red' }}>

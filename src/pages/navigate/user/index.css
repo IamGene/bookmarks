@@ -139,41 +139,43 @@ label {
     padding: 8px 0;
 }
 
-body .treeActiveTabSelectedB .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active, .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active:hover {
+.treeActiveTabSelectedB .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active, .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active:hover {
     border-bottom-color: aliceblue;
     background-color:  aliceblue;
 }
 
-body .treeActiveTabSelectedA .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active, .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active:hover {
+.treeActiveTabSelectedA .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active, .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active:hover {
     border-bottom-color: aliceblue;
     background-color:  #ffffff;
 }
 
-body .treeActiveTabUnSelected .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active, .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active:hover {
+ .treeActiveTabUnSelected .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active, .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active:hover {
     border-bottom-color: #ffffff;
 }
 
 
-body.input-search .arco-input-group > .arco-input-inner-wrapper, .arco-input-group > .arco-input
+.input-search .arco-input-group > .arco-input-inner-wrapper, .arco-input-group > .arco-input
  {
     border-color: rgb(var(--primary-6));
 }
 
-body .treeActiveTabSelectedA .arco-card-size-default .arco-card-body {
+.treeActiveTabSelectedA .arco-card-size-default .arco-card-body {
     background-color: aliceblue;
 }
 
 
-body.default-selected-card  .arco-card-body
+.default-selected-card  .arco-card-body
  {
      background-color: aliceblue;
 }
 
-body.default-selected-card .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active, .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active:hover
+.default-selected-card .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active, .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active:hover
  {
     background-color: #ffffff;
 }
 
+
+/* 导航栏组合搜索框圆角样式 */
 /* 最外层包裹 */
 .custom-input-group {
   border-radius: 20px; /* 半圆效果 */
