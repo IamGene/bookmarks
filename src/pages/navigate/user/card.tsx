@@ -160,7 +160,6 @@ const Highlight = (parts, keyword) => {
 // 返回的节点包含原有的 `searchResult` 与 `noHiddenSearchResult` 字段，
 // 并额外添加 `childrenMatchCount`（直接子节点命中数）和 `totalMatchCount`（子树内总命中数）。
 
-
 function searchDataAggregated(inputValue, searchType, cardData) {
     const regex = new RegExp(`(${inputValue})`, 'gi');
 
@@ -332,6 +331,135 @@ function searchDataAggregated(inputValue, searchType, cardData) {
     }
     return processNode(cardData, 0);
 }
+
+function searchDataAggregated1(dateRange: string[], searchType: number, cardData: any) {
+    function processLeaf(data) {
+        const bookmarks = [];
+        const searchResult = [];
+        const filterHiddenSearchResult = [];
+        let totalMatchCount = 0;
+
+        (data.bookmarks).forEach((bookmark) => {
+            let contains = false;
+
+            // 判断 bookmark.date（字符串）是否处于 dateRange 范围内
+            try {
+                const dateStr = bookmark.date || '';
+
+                let inRange = false;
+                if (Array.isArray(dateRange) && dateRange.length >= 2) {
+                    const [startStr, endStr] = dateRange;
+                    const start = startStr ? Date.parse(startStr) : NaN;
+                    const end = endStr ? Date.parse(endStr) : NaN;
+                    const d = dateStr ? Date.parse(dateStr) : NaN;
+                    if (!isNaN(d)) {
+                        if (!isNaN(start) && !isNaN(end)) {
+                            inRange = d >= start && d <= end;
+                        } else if (!isNaN(start)) {
+                            inRange = d >= start;
+                        } else if (!isNaN(end)) {
+                            inRange = d <= end;
+                        }
+                    }
+                } else if (Array.isArray(dateRange) && dateRange.length === 1) {
+                    // 单元素范围视为精确匹配或当天范围
+                    // console.log('1111111111111111 searchDataAggregated1 dateRange single', dateRange);
+                    const d = dateStr ? Date.parse(dateStr) : NaN;
+                    const target = Date.parse(dateRange[0]);
+                    if (!isNaN(d) && !isNaN(target)) {
+                        inRange = d === target;
+                    }
+                }
+                if (inRange) {
+                    contains = true;
+                }
+            } catch (e) {
+                // 若解析失败，则不匹配
+            }
+
+
+            if (contains) {
+                // const resultBookmark = { ...bookmark };
+                bookmarks.push(bookmark);
+                searchResult.push(bookmark);
+                if (!bookmark.hide) filterHiddenSearchResult.push(bookmark);
+                totalMatchCount += 1;
+            }
+        });
+
+        return {
+            ...data,
+            bookmarks: data.bookmarks,
+            searchResult,
+            filterHiddenSearchResult,
+            // 兼容旧字段名：noHiddenSearchResult
+            noHiddenSearchResult: filterHiddenSearchResult,
+            totalMatchCount,
+        };
+    }
+
+    function processNode(node, level = 0) {
+        // 叶子（只有 urlList）：处理搜索
+        if ((!node.children || node.children.length === 0) && node.bookmarks) {
+            return processLeaf(node);
+        }
+
+        // 含 children 的节点：递归处理子节点
+        if (Array.isArray(node.children) && node.children.length > 0) {
+            let childrenMatchCount = 0;
+            let totalMatchCount = 0;
+            const newChildren = node.children.map((child) => {
+                const updated = processNode(child, level + 1);
+                const childTotal = Number(updated.totalMatchCount || 0);
+                if (childTotal > 0) childrenMatchCount += 1;
+                totalMatchCount += childTotal;//汇总子分组的查询结果总数
+                return updated;
+            });
+
+            // const filteredChildren = newChildren;
+
+            // 保留原有顺序：先收集有命中的子节点，再收集无命中的子节点
+            const nonZero = newChildren.filter(c => Number(c.totalMatchCount || 0) > 0);
+            const zero = newChildren.filter(c => Number(c.totalMatchCount || 0) === 0);
+            //保持稳定性排序
+            nonZero.sort((a, b) => ((a.order ?? a.addDate ?? 0) - (b.order ?? b.addDate ?? 0)));
+
+            const searchChildren = [...nonZero, ...zero];
+
+            // 汇总子节点的 searchResult 与 filterHiddenSearchResult（基于过滤后的子节点）
+            const aggregatedSearchResult = [];
+            const aggregatedFilterHidden = [];   //过滤掉隐藏的搜索结果
+            searchChildren.forEach((c) => {
+                if (c.searchResult && c.searchResult.length) aggregatedSearchResult.push(...c.searchResult);
+                if (c.filterHiddenSearchResult && c.filterHiddenSearchResult.length) aggregatedFilterHidden.push(...c.filterHiddenSearchResult);
+            });
+
+
+            const res = {
+                ...node,
+                children: searchChildren,
+                // searchChildren: searchChildren,
+                searchResult: aggregatedSearchResult,
+                filterHiddenSearchResult: aggregatedFilterHidden,
+                // 兼容旧字段名：noHiddenSearchResult
+                noHiddenSearchResult: aggregatedFilterHidden,
+                totalMatchCount,
+            };
+            return res;
+        }
+
+        // 无 children 且无 urlList 的节点
+        return { ...node, searchResult: [], filterHiddenSearchResult: [], childrenMatchCount: 0, totalMatchCount: 0 };
+    }
+
+    // 入口：保留和 searchData 一致的判断逻辑
+    if (cardData.bookmarks && (!cardData.children || cardData.children.length === 0)) {
+        return processLeaf(cardData);
+    }
+    return processNode(cardData, 0);
+}
+
+
 
 function filterDataByTags(tags: any[], cardData) {
     // const regex = new RegExp(`(${inputValue})`, 'gi');
@@ -1093,7 +1221,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         setActiveCardTab([]);//相当于tree选中节点失效,除非重新点击
         setSearching(true);// 
 
-        const result = searchDataAggregated(searchKeyWord, searchType, data);
+        const result = searchDataAggregated1(dateRange, searchType, data);
         setData(result);
         // console.log(cardData.name + ' processNotEmptySearch 搜索结果', result, data);
         if (result.totalMatchCount > 0) {//有搜索结果

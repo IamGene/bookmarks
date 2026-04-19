@@ -13,6 +13,7 @@ const Content = ({ children }) => {
         2: '描述',
         3: '域名',
         4: 'URL',
+        5: '日期',
     };
     const displayType = typeNames[Number(searchType)] || '默认';
     return (

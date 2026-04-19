@@ -247,7 +247,6 @@ function UserNavigate() {
 
   function onTreeTypeChange(value) {
     // const data = group3Bookmarks.find(g => g.value === value)?.data || [];
-    // setList(data);
     setDataType(value);
     const data = group3Ref.current.find(g => g.value === value)?.data || [];
     setList(data);
@@ -379,8 +378,15 @@ function UserNavigate() {
   // 接收NavBar传过来的搜索关键词
   const getNavBarKey = (keyword, searchType) => {
     // setNavbarKeyWord(keyword);
-    setNavbarKeyWord({ keyword, searchType });
-    dispatch(updateSearchState({ keyword: keyword, searchType: searchType }));
+    let keywordToUse = keyword;
+    if (searchType == 5) {
+      const kw = keyword;
+      if (kw[0] === kw[1]) {
+        keywordToUse = kw.slice(0, 1);
+      }
+    }
+    setNavbarKeyWord({ keyword: keywordToUse, searchType });
+    dispatch(updateSearchState({ keyword: searchType == 5 ? keywordToUse.join(' — ') : keywordToUse, searchType: searchType }));
     // 关键词过滤
   }
 
