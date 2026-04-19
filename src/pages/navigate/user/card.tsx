@@ -183,10 +183,13 @@ function searchDataAggregated(inputValue, searchType, cardData) {
             let contains = false;
             const originalName = bookmark.name || '';
             const originalDescription = bookmark.description || '';
+            const originalUrl = bookmark.url || '';
 
             let name = bookmark.name || '';
             let description = bookmark.description || '';
+            let url = bookmark.url || '';
             let displayName = name;
+            let displayUrl = url;
 
             // 根据 searchType 决定在哪些字段进行匹配：
             // 0: 默认（标题 + 描述）
@@ -221,18 +224,36 @@ function searchDataAggregated(inputValue, searchType, cardData) {
                 if (host && host.toLowerCase().indexOf(qLower) !== -1) {
                     contains = true;
                 }
+                // 尝试对 url 字段做高亮（若包含关键词）
+                try {
+                    const partsUrl = String(url || '').split(regex);
+                    if (partsUrl.length >= 3) {
+                        displayUrl = Highlight(partsUrl, inputValue);
+                    }
+                } catch (e) {
+                    // 忽略高亮错误，保留原始 url
+                }
             }
 
             if (searchType === 4) {
-                const url = String(bookmark.url || '');
-                if (url && url.toLowerCase().indexOf(String(inputValue).toLowerCase()) !== -1) {
+                const u = String(bookmark.url || '');
+                if (u && u.toLowerCase().indexOf(String(inputValue).toLowerCase()) !== -1) {
                     contains = true;
+                }
+                // 对整个 URL 做高亮
+                try {
+                    const partsUrl = String(url || '').split(regex);
+                    if (partsUrl.length >= 3) {
+                        displayUrl = Highlight(partsUrl, inputValue);
+                    }
+                } catch (e) {
+                    // 忽略高亮错误
                 }
             }
 
             // 默认行为(searchType===0) 也应兼容此前只检索标题和描述的逻辑
             if (contains) {
-                const resultBookmark = { ...bookmark, nameLength: (displayName || '').length, originalName, originalDescription, name: displayName, description };
+                const resultBookmark = { ...bookmark, nameLength: (displayName || '').length, originalName, originalDescription, originalUrl, name: displayName, description, url: displayUrl };
                 bookmarks.push(resultBookmark);
                 searchResult.push(resultBookmark);
                 if (!bookmark.hide) filterHiddenSearchResult.push(resultBookmark);
@@ -633,8 +654,8 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
     const skipSelectedTagsEffectRef = useRef(false);
 
 
-    if (cardData.name === 'AAAAA')
-        console.log(cardData.name + ' 渲染了>>>>>>>>>>>>>>', data);
+    // if (cardData.name === 'AAAAA')
+    //     console.log(cardData.name + ' 渲染了>>>>>>>>>>>>>>', data);
 
     const [activeCardTab, setActiveCardTab] = useState(treeSelectedNode);
     const [treeSelected, setTreeSelected] = useState(false);//当前card是被tree选中
@@ -1024,11 +1045,17 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         const keyWord = searchKeyWord ? searchKeyWord.keyword : '';
         const searchType = searchKeyWord ? searchKeyWord.searchType : 0;
         // console.log('xxxxxxxxxxxxxxxxxx useEffect keyWord', keyWord, searchKeyWord, cardData.name);
-        setKeyWord(keyWord);
+
         setSearchType(searchType);
         searchTypeRef.current = searchType;
 
-        onKeywordChange(keyWord, false);
+        if (searchType !== 5) {
+            setKeyWord(keyWord);
+            onKeywordChange(keyWord, false);
+        } else { //按日期筛选
+            onSelectDateChange(keyWord);
+            // console.log('xxxxxxxxxxxxxxxxxx useEffect data keyword', searchKeyWord, cardData.name);
+        }
         if (keyWord) {
             inactiveTagsFilter(); //分组的所有展示的标签取消高亮
         } else {
@@ -1058,6 +1085,30 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
             setFilterTags(next);
             setCurrentFilter(false);
         }
+    }
+
+    const onSelectDateChange = (dateRange: string[]) => {
+        setSearchInput('');
+        setCurrentSearch(false);
+        setActiveCardTab([]);//相当于tree选中节点失效,除非重新点击
+        setSearching(true);// 
+
+        const result = searchDataAggregated(searchKeyWord, searchType, data);
+        setData(result);
+        // console.log(cardData.name + ' processNotEmptySearch 搜索结果', result, data);
+        if (result.totalMatchCount > 0) {//有搜索结果
+            dispatch(updateSearchState({ searchResultNum: result.totalMatchCount }));//全局搜索下 累加搜索结果数
+        }
+
+        setCardShow(result.totalMatchCount > 0);
+        setActiveMap({ [data.id]: searchTabKey });
+        /* if (defaultActiveMap) setActiveMap(defaultActiveMap);
+        else {
+            if (!activeMap || activeMap[cardData.id] == searchTabKey) {
+                if (dataType == 0) initActiveMap(cardData.id);//初始化第一层tabs的activeTab
+                else if (dataType == 2) setActiveMap({ [cardData.id]: data.children[0].id });//初始化第一层tabs的activeTab
+            }
+        } */
     }
 
     const onKeywordChange = (searchKeyword: string, currentSearch: boolean) => {

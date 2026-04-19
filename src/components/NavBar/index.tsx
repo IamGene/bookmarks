@@ -14,6 +14,7 @@ import {
   Divider,
   Message,
   Upload,
+  DatePicker,
   Button,
 } from '@arco-design/web-react';
 import {
@@ -38,6 +39,7 @@ import {
   IconLoading,
 } from '@arco-design/web-react/icon';
 import { useSelector, useDispatch } from 'react-redux';
+import dayjs from 'dayjs';
 // import { useFetchPageData } from '@/hooks/fetchPageData';
 // import { GlobalState } from '@/info';
 import { GlobalContext } from '@/context';
@@ -328,6 +330,15 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
   }
 
 
+  function onSelect(dateString, date) {
+    // console.log('onSelect', dateString, date);
+  }
+
+  function onChange(dateString, date) {
+    console.log('onChange: ', dateString, date);
+    setNavBarKey(dateString, searchType);//搜索跟随输入
+  }
+
   function onTagSwitch(value: { key: string; index: number; color: string; selected: boolean, bookmarkIds: string[] }) {
     // Normalize and validate incoming value
     // console.log('sssssssssssssssssss onTagSwitch state.tags.toBeUnselectedNextTime.=', tags.toBeUnselectedNextTime);
@@ -378,6 +389,7 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
             <div
               style={{
                 width: 300,
+                height: 33,
                 display: 'inline-block',
               }}
               className="custom-input-group"
@@ -394,23 +406,69 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
                     }
                   }}
                   style={{ width: 70 }}
+                  dropdownMenuStyle={{
+                    maxHeight: 400, // 👈 调大这个值
+                    // overflowY: 'auto', // 或者 'visible'
+                  }}
                 >
                   <Select.Option value={0} >默认</Select.Option>
-                  <Select.Option value={1}>标题</Select.Option>
-                  <Select.Option value={2}>描述</Select.Option>
-                  <Select.Option value={3}>域名</Select.Option>
-                  <Select.Option value={4}>网址</Select.Option>
+                  <Select.Option value={1} >标题</Select.Option>
+                  <Select.Option value={2} >描述</Select.Option>
+                  <Select.Option value={3} >域名</Select.Option>
+                  <Select.Option value={4} >网址</Select.Option>
+                  <Select.Option value={5} >日期</Select.Option>
                 </Select>
-                <SearchHistory searchKeyword={searchKeyword} onClickHistory={onClickHistory} inputValue={keyword}>
-                  <InputSearch
-                    allowClear
-                    style={{ width: '76.5%', height: 32 }}
-                    value={keyword}
-                    placeholder={t['navbar.search.placeholder']}
-                    onChange={onInputChange}
-                    onPressEnter={(value) => onEnterPress(value)} />
+                {searchType === 5 ?
+                  <DatePicker.RangePicker
+                    style={{ width: 228 }}
+                    shortcutsPlacementLeft
+                    onChange={onChange}
+                    onSelect={onSelect}
+                    shortcuts={[
+                      {
+                        text: 'today',
+                        value: () => [dayjs(), dayjs()],
+                        key: 'today',
+                      },
+                      {
+                        text: 'yesterday',
+                        value: () => [dayjs().subtract(1, 'day'), dayjs().subtract(1, 'day')],
+                        key: 'yesterday',
+                      },
+                      {
+                        text: '1 week earlier',
+                        value: () => [dayjs().add(-1, 'week'), dayjs()],
+                        key: '1week',
+                      },
+                      {
+                        text: '1 months earlier',
 
-                </SearchHistory>
+                        value: () => [dayjs().add(-1, 'month'), dayjs()],
+                        key: '1month',
+                      },
+                      {
+                        text: '6 months earlier',
+                        value: () => [dayjs().add(-6, 'month'), dayjs()],
+                        key: '6months',
+                      },
+                      {
+                        text: '12 months earlier',
+                        value: () => [dayjs().add(-1, 'year'), dayjs()],
+                        key: '12months',
+                      },
+                    ]}
+                  />
+                  :
+                  <SearchHistory searchKeyword={searchKeyword} onClickHistory={onClickHistory} inputValue={keyword}>
+                    <InputSearch
+                      allowClear
+                      style={{ width: '76.5%', height: 31 }}
+                      value={keyword}
+                      placeholder={t['navbar.search.placeholder']}
+                      onChange={onInputChange}
+                      onPressEnter={(value) => onEnterPress(value)} />
+                  </SearchHistory>
+                }
               </Input.Group>
             </div>
           </li>
@@ -514,7 +572,6 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
             </Tooltip>
           </li>
 
-
           {/*  <li>
           <Tooltip
             content={t['website.tag.group.create']}
@@ -557,8 +614,6 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
               </Dropdown>
             </li>
           )} */}
-
-
         </ul>
 
       </div >

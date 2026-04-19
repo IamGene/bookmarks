@@ -191,4 +191,9 @@ label {
   border: none !important; 
 }
 
-
+.custom-input-group .arco-picker,
+.custom-input-group .arco-picker-size-default {
+  height: 21px !important;/* 调整日期选择器高度以匹配输入框 */
+  border: none !important; 
+  padding: 15px 11px 16px 4px !important; /* 调整日期选择器内边距以匹配输入框 */
+}

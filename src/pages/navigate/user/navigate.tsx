@@ -42,7 +42,12 @@ function ListCard({ activeCardTab, dataType, setCardTabActive, searchKeyWord, li
 
   useMemo(() => {
     if (searchKeyWord == null) return;
-    const isEmpty = !searchKeyWord.keyword?.trim();
+    const kw = searchKeyWord.keyword;
+    const hasKeyword =
+      (typeof kw === 'string' && kw.trim() !== '') ||
+      // (Array.isArray(kw) && kw.some(item => typeof item === 'string' && item.trim() !== ''));
+      (Array.isArray(kw) && kw.length > 0);
+    const isEmpty = !hasKeyword;
     setSearch(!isEmpty);
     // console.log('zzzzzzzzzzzzzzzzzzzzzzzzzzz  keyWord search searchResultNum', keyWord, searchResultNum);
   }, [searchKeyWord]);
