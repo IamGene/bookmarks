@@ -255,11 +255,14 @@ const App = (props: CardBlockType) => {
                         } */}
                         {/* <a href="#" onClick={() => openUrl(tag.url)}  > */}
                         {/* <Tooltip position='top' trigger='hover' content={tag.date ? `${tag.name}` + `(` + ` ${tag.date}` + `)` : tag.name}> */}
-                        {/* <Tooltip position='top' trigger='hover' content={tag.name}> */}
                         <Tooltip position='top' trigger='hover' content={<div style={{}}>
                             {tag.name}
+                            <br />
+                            {<span style={{ fontSize: 'small', color: 'rgb(var(--data-2))' }}>
+                                {tag.url}
+                            </span>}
                             {tag.date && <br />}
-                            {<span style={{ color: 'var(--color-primary-light-4)' }}>
+                            {<span style={{ color: 'rgb(var(--arcoblue-4))' }}>
                                 {/* {<span style={{ color: '#5156be' }}> */}
                                 {tag.date && tag.date}
                             </span>}
