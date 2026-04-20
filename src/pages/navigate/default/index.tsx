@@ -449,7 +449,7 @@ function DefaultNavigate() {
         {/* filterDataByTags={filterDataByTags} */}
         {/* num={groups.length} */}
         {/* pageNo={currentPage} */}
-        <Navbar show={showNavbar} pageType={'bookmarks'} setNavBarKey={getNavBarKey} setAllDisplay={getAllDisplay} />
+        <Navbar show={showNavbar} pageType={'index'} setNavBarKey={getNavBarKey} setAllDisplay={getAllDisplay} />
 
       </div>
       {userLoading ? (

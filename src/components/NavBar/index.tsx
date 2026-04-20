@@ -70,7 +70,7 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
   // const [bookmarkPages, setBookmarkPages] = useState(pages);
   const [bookmarkPages, setBookmarkPages] = useState([]);
   const globalState = useSelector((state: any) => state.global);
-  const { userInfo, userLoading, pages, tags, currentPage } = globalState;
+  const { userInfo, userLoading, pages, tags, domainGroups, currentPage } = globalState;
   const history = useHistory();
   const [currentPageId, setCurrentPageId] = useState(null);//pageNo
   const [keyword, setKeyword] = useState(null);
@@ -144,6 +144,12 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
   const onEnterPress = (e) => {
     setNavBarKey(keyword.trim(), searchType);//回车搜索，带搜索类型
     setSearchKeyword(keyword.trim());//传递给搜索历史子组件
+  }
+
+  const onEnterPress1 = (value: string) => {
+    console.log('11111111111111 onEnterPress1 value=', value);
+    setNavBarKey(value.trim(), searchType);//回车搜索，带搜索类型
+    setSearchKeyword(value.trim());//传递给搜索历史子组件
   }
 
   const [createNewForm, setCreateNewForm] = useState(false);//添加Tab
@@ -335,14 +341,10 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
   }
 
   function onChange(dateString, date) {
-    console.log('onChange: ', dateString, date);
+    // console.log('onChange: ', dateString, date);
     setNavBarKey(dateString, searchType);//搜索跟随输入
   }
 
-
-  /*  function onClear() {
-     console.log('onClear: sssssssssss ');
-   } */
 
   function onTagSwitch(value: { key: string; index: number; color: string; selected: boolean, bookmarkIds: string[] }) {
     // Normalize and validate incoming value
@@ -366,6 +368,14 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
       }
     }, [selectedTags]);//当选中标签发生变化时，传递到主页面组件 */
   const InputSearch = Input.Search;
+
+  const [data, setData] = useState([]);
+
+  const handleSearch = (inputValue) => {
+    // if (searchType == 3)
+    console.log('handleSearch inputValue=', inputValue, domainGroups);
+    setData(inputValue && searchType == 3 ? new Array(5).fill(null).map((_, index) => `${inputValue}_${index}`) : []);
+  };
 
   return (
     <>
@@ -391,6 +401,10 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
                 onPressEnter={(value) => onEnterPress(value)}
               />
             </SearchHistory> */}
+
+
+
+
             <div
               style={{
                 width: 300,
@@ -421,7 +435,7 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
                   <Select.Option value={2} >描述</Select.Option>
                   <Select.Option value={3} >域名</Select.Option>
                   <Select.Option value={4} >网址</Select.Option>
-                  <Select.Option value={5} >日期</Select.Option>
+                  {pageType === 'bookmarks' && <Select.Option value={5} >日期</Select.Option>}
                 </Select>
                 {searchType === 5 ?
                   <DatePicker.RangePicker
@@ -515,13 +529,23 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
                   />
                   :
                   <SearchHistory searchKeyword={searchKeyword} onClickHistory={onClickHistory} inputValue={keyword}>
-                    <InputSearch
-                      allowClear
+
+                    <AutoComplete
+                      // placeholder='Please Enter'
+                      onSearch={handleSearch}
+                      data={data}
                       style={{ width: '76.5%', height: 31 }}
-                      value={keyword}
-                      placeholder={t['navbar.search.placeholder']}
-                      onChange={onInputChange}
-                      onPressEnter={(value) => onEnterPress(value)} />
+                      onPressEnter={(event) => onEnterPress1(event.target.value)}
+                    >
+                      <InputSearch
+                        allowClear
+                        style={{ width: '76.5%', height: 31 }}
+                        value={keyword}
+                        placeholder={t['navbar.search.placeholder']}
+                        onChange={onInputChange}
+                      // onPressEnter={(value) => onEnterPress(value)}
+                      />
+                    </AutoComplete>
                   </SearchHistory>
                 }
               </Input.Group>
