@@ -62,6 +62,7 @@ import CreatePageGroup from '@/pages/navigate/user/form/add_page_group';
 import { reloadUserPages, oneTagSelectedSwitch, fetchBookmarksPageData } from '@/store/modules/global';
 // const api = import.meta.env.VITE_REACT_APP_BASE_API; updatePageSelectedTags
 import { useHistory } from 'react-router-dom';
+import { set } from 'mobx';
 // filterDataByTags
 function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
 
@@ -70,7 +71,18 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
   // const [bookmarkPages, setBookmarkPages] = useState(pages);
   const [bookmarkPages, setBookmarkPages] = useState([]);
   const globalState = useSelector((state: any) => state.global);
-  const { userInfo, userLoading, pages, tags, domainGroups, currentPage } = globalState;
+  const { userInfo, userLoading, pages, domainGroups, currentPage } = globalState;
+
+  //将domainGroups（数组）按属性name转换为map，key为name，value为属性children（数组）中各个元素的name组成的数组，
+  // 存储在domainGroupsMap中，供搜索建议使用
+  /* const domainGroupsMap = domainGroups && domainGroups.reduce((acc, group) => {
+    acc[group.name] = group.children.map(child => child.name);
+    return acc;
+  }, {} as Record<string, string[]>);
+ */
+  // 将domainGroups中的每个元素的属性children（数组）中每个元素的属性name组成一个新的数组，存储在domainList中，供搜索建议使用
+  const domainList = domainGroups ? domainGroups.flatMap(group => group.children.map(child => child.name)) : [];
+
   const history = useHistory();
   const [currentPageId, setCurrentPageId] = useState(null);//pageNo
   const [keyword, setKeyword] = useState(null);
@@ -80,7 +92,6 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
   function setCurrentPage(pageId) {
     setCurrentPageId(pageId);
   }
-
 
   const setCurrentPageBookmarksData = async (pages) => {
     if (pages && pages.length > 0 && pageType === 'bookmarks') {//只有用户存在标签数据才能查询
@@ -147,7 +158,8 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
   }
 
   const onEnterPress1 = (value: string) => {
-    console.log('11111111111111 onEnterPress1 value=', value);
+    console.log('onEnterPress1 value=', value);
+    if (searchType === 4) return;
     setNavBarKey(value.trim(), searchType);//回车搜索，带搜索类型
     setSearchKeyword(value.trim());//传递给搜索历史子组件
   }
@@ -370,11 +382,40 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
   const InputSearch = Input.Search;
 
   const [data, setData] = useState([]);
+  const [domainOptionSelected, setDomainOptionSelected] = useState(false);
 
   const handleSearch = (inputValue) => {
-    // if (searchType == 3)
-    console.log('handleSearch inputValue=', inputValue, domainGroups);
-    setData(inputValue && searchType == 3 ? new Array(5).fill(null).map((_, index) => `${inputValue}_${index}`) : []);
+    // 取inputValue的首字母，从domainGroupsMap中找到对应的域名列表，更新data为该域名列表；如果没有找到，则将data置空数组
+    /*  if (searchType == 3 && inputValue && domainGroupsMap) {
+       const firstChar = inputValue[0].toUpperCase();
+       const matchedDomains = domainGroupsMap[firstChar] || [];
+       // console.log('matchedDomains=', matchedDomains);
+       setData(matchedDomains);
+     } */
+    if (searchType == 4 && inputValue && domainList) {
+      const matchedDomains = domainList.filter(domain => domain.indexOf(inputValue) !== -1);
+      setData(matchedDomains);
+    }
+    else {
+      setData([]);
+    }
+    // setData(inputValue && searchType == 3 ? new Array(5).fill(null).map((_, index) => `${inputValue}_${index}`) : []);
+  };
+
+
+  const handleSelect = (value) => {
+    setNavBarKey(value, searchType);//搜索跟随输入
+    setDomainOptionSelected(true);
+  };
+
+  const handleChange = (value) => {//输入后Enter或选择建议项都会触发这个函数，
+    // console.log('11111111111111 handleChange value=', value);
+    setDomainOptionSelected(false);
+    setKeyword(value);//本地状态更新
+    if (!value || value.trim().length === 0) {//清空搜索->重置数据
+      setNavBarKey(value.trim(), searchType);//搜索跟随输入
+      // setSearchKeyword(null);
+    }
   };
 
   return (
@@ -403,8 +444,6 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
             </SearchHistory> */}
 
 
-
-
             <div
               style={{
                 width: 300,
@@ -419,8 +458,9 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
                   onChange={(val) => {
                     const next = Number(val);
                     setSearchType(next);
+                    setData([]);//切换搜索类型时清空搜索建议数据
                     // 若输入框有内容，则切换搜索类型时立即触发搜索
-                    if (keyword && String(keyword).trim().length > 0) {
+                    if (!domainOptionSelected && keyword && String(keyword).trim().length > 0) {
                       setNavBarKey(keyword.trim(), next);
                     }
                   }}
@@ -430,123 +470,117 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
                     // overflowY: 'auto', // 或者 'visible'
                   }}
                 >
-                  <Select.Option value={0} >默认</Select.Option>
-                  <Select.Option value={1} >标题</Select.Option>
-                  <Select.Option value={2} >描述</Select.Option>
-                  <Select.Option value={3} >域名</Select.Option>
-                  <Select.Option value={4} >网址</Select.Option>
+                  <Select.Option value={0}>默认</Select.Option>
+                  <Select.Option value={1}>标题</Select.Option>
+                  <Select.Option value={2}>描述</Select.Option>
+                  <Select.Option value={4} >域名</Select.Option>
+                  <Select.Option value={3} >网址</Select.Option>
                   {pageType === 'bookmarks' && <Select.Option value={5} >日期</Select.Option>}
                 </Select>
-                {searchType === 5 ?
-                  <DatePicker.RangePicker
-                    style={{ width: 228 }}
-                    shortcutsPlacementLeft
-                    onChange={onChange}
-                    onSelect={onSelect}
-                    // onClear={onClear}
-                    shortcuts={[
-                      {
-                        text: 'Today',
-                        value: () => [dayjs(), dayjs()],
-                        key: 'today',
-                      },
-                      {
-                        text: 'Yesterday',
-                        value: () => [dayjs().subtract(1, 'day'), dayjs().subtract(1, 'day')],
-                        key: 'yesterday',
-                      },
-                      {
-                        text: 'Last week',
-                        value: () => [dayjs().add(-1, 'week'), dayjs()],
-                        key: '1week',
-                      },
-                      {
-                        text: 'Last 30 days',
-                        value: () => [dayjs().subtract(30, 'day'), dayjs()],
-                        key: '30days',
-                      },
+                {
 
-                      {
-                        text: 'This month', // 本月至今
-                        value: () => [dayjs().startOf('month'), dayjs()],
-                        key: 'thisMonth',
-                      },
-                      /* {
-                        text: 'Last month', // 上个完整的自然月
-                        value: () => [
-                          dayjs().subtract(1, 'month').startOf('month'),
-                          dayjs().subtract(1, 'month').endOf('month')
-                        ],
-                        key: 'lastMonth',
-                      }, */
-                      {
-                        // text: 'Last month', // 上个月 (3月)
-                        text: dayjs().subtract(1, 'month').format('MMMM'), // 上个月 (3月)
-                        value: () => [dayjs().subtract(1, 'month').startOf('month'), dayjs().subtract(1, 'month').endOf('month')],
-                        key: 'last-1-month',
-                      },
-                      {
-                        text: dayjs().subtract(2, 'month').format('MMMM'), // 上上个月 (2月)
-                        value: () => [dayjs().subtract(2, 'month').startOf('month'), dayjs().subtract(2, 'month').endOf('month')],
-                        key: 'last-2-month',
-                      },
-                      {
-                        text: dayjs().subtract(3, 'month').format('MMMM'), // 上上上个月 (1月)
-                        value: () => [dayjs().subtract(3, 'month').startOf('month'), dayjs().subtract(3, 'month').endOf('month')],
-                        key: 'last-3-month',
-                      },
-                      /*  {
-                         text: 'Last 90 days',
-                         value: () => [dayjs().subtract(90, 'day'), dayjs()],
-                         key: '90days',
-                       }, */
-                      /*   {
-                          text: 'Last month',
-                          value: () => [dayjs().add(-1, 'month'), dayjs()],
-                          key: '1month',
-                        }, */
-                      /*  {
-                         text: 'Last 3 months',
-                         value: () => [dayjs().add(-3, 'month'), dayjs()],
-                         key: '3month',
-                       },
-                       {
-                         text: 'Last 6 months',
-                         value: () => [dayjs().add(-6, 'month'), dayjs()],
-                         key: '6months',
-                       }, 
-                      {
-                        text: 'Last year',
-                        value: () => [dayjs().add(-1, 'year'), dayjs()],
-                        key: '12months',
-                      },*/
-                      {
-                        text: 'This year', // 今年至今
-                        value: () => [dayjs().startOf('year'), dayjs()],
-                        key: 'thisYear',
-                      },
-                    ]}
-                  />
-                  :
-                  <SearchHistory searchKeyword={searchKeyword} onClickHistory={onClickHistory} inputValue={keyword}>
-
+                  searchType === 4 ?
                     <AutoComplete
                       // placeholder='Please Enter'
+                      placeholder={t['navbar.search.placeholder']}
+                      allowClear
                       onSearch={handleSearch}
+                      onSelect={handleSelect}
+                      onChange={handleChange}
+                      defaultValue={'blog.codejerry.cn'}
                       data={data}
                       style={{ width: '76.5%', height: 31 }}
+                      triggerElement={<Input.Search />}
                       onPressEnter={(event) => onEnterPress1(event.target.value)}
                     >
-                      <InputSearch
-                        allowClear
-                        style={{ width: '76.5%', height: 31 }}
-                        value={keyword}
-                        placeholder={t['navbar.search.placeholder']}
-                        onChange={onInputChange}
-                      // onPressEnter={(value) => onEnterPress(value)}
-                      />
                     </AutoComplete>
-                  </SearchHistory>
+
+                    :
+
+                    (
+                      searchType !== 5 ?
+                        <SearchHistory searchKeyword={searchKeyword} onClickHistory={onClickHistory} inputValue={keyword}>
+                          <InputSearch
+                            allowClear
+                            value={keyword}
+                            placeholder={t['navbar.search.placeholder']}
+                            onChange={onInputChange}
+                            style={{ width: '76.5%', height: 31 }}
+                            onPressEnter={(value) => onEnterPress(value)}
+                          />
+                        </SearchHistory>
+                        :
+                        <DatePicker.RangePicker
+                          style={{ width: 228 }}
+                          shortcutsPlacementLeft
+                          onChange={onChange}
+                          onSelect={onSelect}
+                          shortcuts={[
+                            {
+                              text: 'Today',
+                              value: () => [dayjs(), dayjs()],
+                              key: 'today',
+                            },
+                            {
+                              text: 'Yesterday',
+                              value: () => [dayjs().subtract(1, 'day'), dayjs().subtract(1, 'day')],
+                              key: 'yesterday',
+                            },
+                            {
+                              text: 'Last week',
+                              value: () => [dayjs().add(-1, 'week'), dayjs()],
+                              key: '1week',
+                            },
+                            {
+                              text: 'Last 30 days',
+                              value: () => [dayjs().subtract(30, 'day'), dayjs()],
+                              key: '30days',
+                            },
+
+                            {
+                              text: 'This month', // 本月至今
+                              value: () => [dayjs().startOf('month'), dayjs()],
+                              key: 'thisMonth',
+                            },
+                            {
+                              // text: 'Last month', // 上个月 (3月)
+                              text: dayjs().subtract(1, 'month').format('MMMM'), // 上个月 (3月)
+                              value: () => [dayjs().subtract(1, 'month').startOf('month'), dayjs().subtract(1, 'month').endOf('month')],
+                              key: 'last-1-month',
+                            },
+                            {
+                              text: dayjs().subtract(2, 'month').format('MMMM'), // 上上个月 (2月)
+                              value: () => [dayjs().subtract(2, 'month').startOf('month'), dayjs().subtract(2, 'month').endOf('month')],
+                              key: 'last-2-month',
+                            },
+                            {
+                              text: dayjs().subtract(3, 'month').format('MMMM'), // 上上上个月 (1月)
+                              value: () => [dayjs().subtract(3, 'month').startOf('month'), dayjs().subtract(3, 'month').endOf('month')],
+                              key: 'last-3-month',
+                            },
+                            /*   {
+                                text: 'Last month',
+                                value: () => [dayjs().add(-1, 'month'), dayjs()],
+                                key: '1month',
+                              }, */
+                            /*  {
+                               text: 'Last 3 months',
+                               value: () => [dayjs().add(-3, 'month'), dayjs()],
+                               key: '3month',
+                             },
+                            {
+                              text: 'Last year',
+                              value: () => [dayjs().add(-1, 'year'), dayjs()],
+                              key: '12months',
+                            },*/
+                            {
+                              text: 'This year', // 今年至今
+                              value: () => [dayjs().startOf('year'), dayjs()],
+                              key: 'thisYear',
+                            },
+                          ]}
+                        />
+                    )
                 }
               </Input.Group>
             </div>

@@ -375,6 +375,9 @@ function UserNavigate() {
 
   // 接收NavBar传过来的搜索关键词
   const getNavBarKey = (keyword, searchType) => {
+
+    // console.log('0000000000000000000000 user navigate getNavBarKey keyword, searchType', keyword, searchType);
+
     let keywordToUse = keyword;
     let keywordString = keyword;
 

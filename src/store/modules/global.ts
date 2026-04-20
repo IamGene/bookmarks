@@ -279,7 +279,7 @@ const globalSlice = createSlice({
 
         // 将 keyword 移到 state.searchHistory 的第一个位置（若已存在则先移除再放到最前面；若不存在则添加到最前面）
         // if (!keyword) return;
-        if (!keyword || action.payload.searchType == 5) return;
+        if (!keyword || action.payload.searchType >= 4) return;
         const list = Array.isArray(state.search.searchHistory) ? [...state.search.searchHistory] : [];
         const idx = list.findIndex(item => item === keyword);
         if (idx > -1) {

@@ -214,7 +214,7 @@ function searchDataAggregated(inputValue, searchType, cardData) {
                 }
             }
 
-            if (searchType === 3) {
+            if (searchType === 4) {
                 const host = extractHostname(bookmark.url || '');
                 // 去除 inputValue 末尾可能存在的斜杠，再去掉协议进行比较
                 const trimmed = String(inputValue || '').replace(/\/+$/, '');
@@ -234,7 +234,7 @@ function searchDataAggregated(inputValue, searchType, cardData) {
                 }
             }
 
-            if (searchType === 4) {
+            if (searchType === 3) {
                 const u = String(bookmark.url || '');
                 if (u && u.toLowerCase().indexOf(String(inputValue).toLowerCase()) !== -1) {
                     contains = true;
@@ -979,8 +979,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         const searchType = searchTypeRef.current; // 始终是最新值
 
         // if (data.name === '测试A')
-        //     // console.log(cardData.id, cardData.name + ' processNotEmptySearch 搜索关键词', keyWord, 'showItem', showItem, 'searchTab', searchTab);
-        console.log(cardData.id, cardData.name + ' processNotEmptySearch 搜索关键词', keyWord, searchType);
+        // console.log(cardData.id, cardData.name + ' processNotEmptySearch 搜索关键词', keyWord, searchType);
 
         const result = searchDataAggregated(searchKeyWord, searchType, data);
         // console.log(cardData.name + ' processNotEmptySearch 搜索结果', result, data);

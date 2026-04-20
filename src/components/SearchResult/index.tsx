@@ -11,8 +11,8 @@ const Content = ({ children }) => {
         0: '默认',
         1: '标题',
         2: '描述',
-        3: '域名',
-        4: 'URL',
+        4: '域名',
+        3: 'URL',
         5: '日期',
     };
     const displayType = typeNames[Number(searchType)] || '默认';
@@ -54,7 +54,7 @@ const App = () => {
                 // style={{ width: 360, marginBottom: 20 }}
                 style={{ marginBottom: 20 }}
             >
-                <Content></Content>
+                <Content><></></Content>
             </Card>
         </>
     );
