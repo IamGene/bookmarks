@@ -339,6 +339,11 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
     setNavBarKey(dateString, searchType);//搜索跟随输入
   }
 
+
+  /*  function onClear() {
+     console.log('onClear: sssssssssss ');
+   } */
+
   function onTagSwitch(value: { key: string; index: number; color: string; selected: boolean, bookmarkIds: string[] }) {
     // Normalize and validate incoming value
     // console.log('sssssssssssssssssss onTagSwitch state.tags.toBeUnselectedNextTime.=', tags.toBeUnselectedNextTime);
@@ -424,37 +429,87 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
                     shortcutsPlacementLeft
                     onChange={onChange}
                     onSelect={onSelect}
+                    // onClear={onClear}
                     shortcuts={[
                       {
-                        text: 'today',
+                        text: 'Today',
                         value: () => [dayjs(), dayjs()],
                         key: 'today',
                       },
                       {
-                        text: 'yesterday',
+                        text: 'Yesterday',
                         value: () => [dayjs().subtract(1, 'day'), dayjs().subtract(1, 'day')],
                         key: 'yesterday',
                       },
                       {
-                        text: '1 week earlier',
+                        text: 'Last week',
                         value: () => [dayjs().add(-1, 'week'), dayjs()],
                         key: '1week',
                       },
                       {
-                        text: '1 months earlier',
+                        text: 'Last 30 days',
+                        value: () => [dayjs().subtract(30, 'day'), dayjs()],
+                        key: '30days',
+                      },
 
-                        value: () => [dayjs().add(-1, 'month'), dayjs()],
-                        key: '1month',
+                      {
+                        text: 'This month', // 本月至今
+                        value: () => [dayjs().startOf('month'), dayjs()],
+                        key: 'thisMonth',
+                      },
+                      /* {
+                        text: 'Last month', // 上个完整的自然月
+                        value: () => [
+                          dayjs().subtract(1, 'month').startOf('month'),
+                          dayjs().subtract(1, 'month').endOf('month')
+                        ],
+                        key: 'lastMonth',
+                      }, */
+                      {
+                        // text: 'Last month', // 上个月 (3月)
+                        text: dayjs().subtract(1, 'month').format('MMMM'), // 上个月 (3月)
+                        value: () => [dayjs().subtract(1, 'month').startOf('month'), dayjs().subtract(1, 'month').endOf('month')],
+                        key: 'last-1-month',
                       },
                       {
-                        text: '6 months earlier',
-                        value: () => [dayjs().add(-6, 'month'), dayjs()],
-                        key: '6months',
+                        text: dayjs().subtract(2, 'month').format('MMMM'), // 上上个月 (2月)
+                        value: () => [dayjs().subtract(2, 'month').startOf('month'), dayjs().subtract(2, 'month').endOf('month')],
+                        key: 'last-2-month',
                       },
                       {
-                        text: '12 months earlier',
+                        text: dayjs().subtract(3, 'month').format('MMMM'), // 上上上个月 (1月)
+                        value: () => [dayjs().subtract(3, 'month').startOf('month'), dayjs().subtract(3, 'month').endOf('month')],
+                        key: 'last-3-month',
+                      },
+                      /*  {
+                         text: 'Last 90 days',
+                         value: () => [dayjs().subtract(90, 'day'), dayjs()],
+                         key: '90days',
+                       }, */
+                      /*   {
+                          text: 'Last month',
+                          value: () => [dayjs().add(-1, 'month'), dayjs()],
+                          key: '1month',
+                        }, */
+                      /*  {
+                         text: 'Last 3 months',
+                         value: () => [dayjs().add(-3, 'month'), dayjs()],
+                         key: '3month',
+                       },
+                       {
+                         text: 'Last 6 months',
+                         value: () => [dayjs().add(-6, 'month'), dayjs()],
+                         key: '6months',
+                       }, 
+                      {
+                        text: 'Last year',
                         value: () => [dayjs().add(-1, 'year'), dayjs()],
                         key: '12months',
+                      },*/
+                      {
+                        text: 'This year', // 今年至今
+                        value: () => [dayjs().startOf('year'), dayjs()],
+                        key: 'thisYear',
                       },
                     ]}
                   />

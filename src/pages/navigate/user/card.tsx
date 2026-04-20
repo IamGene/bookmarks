@@ -1216,27 +1216,31 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
     }
 
     const onSelectDateChange = (dateRange: string[]) => {
-        setSearchInput('');
         setCurrentSearch(false);
+        setSearchInput('');
         setActiveCardTab([]);//相当于tree选中节点失效,除非重新点击
-        setSearching(true);// 
-
-        const result = searchDataAggregated1(dateRange, searchType, data);
-        setData(result);
-        // console.log(cardData.name + ' processNotEmptySearch 搜索结果', result, data);
-        if (result.totalMatchCount > 0) {//有搜索结果
-            dispatch(updateSearchState({ searchResultNum: result.totalMatchCount }));//全局搜索下 累加搜索结果数
+        if (dateRange.length === 0) {
+            setCardShow(true);
+            setSearching(false);//
+            if (defaultActiveMap) setActiveMap(defaultActiveMap);
+            else {
+                if (!activeMap || activeMap[cardData.id] == searchTabKey) {
+                    if (dataType == 0) initActiveMap(cardData.id);//初始化第一层tabs的activeTab
+                    else if (dataType == 2) setActiveMap({ [cardData.id]: data.children[0].id });//初始化第一层tabs的activeTab
+                }
+            }
+        } else {
+            setSearching(true);//
+            const result = searchDataAggregated1(dateRange, searchType, data);
+            setData(result);
+            // console.log(cardData.name + ' processNotEmptySearch 搜索结果', result, data);
+            if (result.totalMatchCount > 0) {//有搜索结果
+                dispatch(updateSearchState({ searchResultNum: result.totalMatchCount }));//全局搜索下 累加搜索结果数
+            }
+            setCardShow(result.totalMatchCount > 0);
+            setActiveMap({ [data.id]: searchTabKey });
         }
 
-        setCardShow(result.totalMatchCount > 0);
-        setActiveMap({ [data.id]: searchTabKey });
-        /* if (defaultActiveMap) setActiveMap(defaultActiveMap);
-        else {
-            if (!activeMap || activeMap[cardData.id] == searchTabKey) {
-                if (dataType == 0) initActiveMap(cardData.id);//初始化第一层tabs的activeTab
-                else if (dataType == 2) setActiveMap({ [cardData.id]: data.children[0].id });//初始化第一层tabs的activeTab
-            }
-        } */
     }
 
     const onKeywordChange = (searchKeyword: string, currentSearch: boolean) => {

@@ -271,14 +271,15 @@ const globalSlice = createSlice({
     updateSearchState: (state, action) => {
       // console.log('xxxxxxxxxxxxxxxxxxxxx updateSearchState', action.payload);
       // state.search.hasResult = action.payload.hasResult;
-      if (action.payload.keyword != null) {//重新搜索
-        state.search.keyword = action.payload.keyword;
+      const keyword = action.payload.keyword;
+      if (keyword != null) {//重新搜索
+        state.search.keyword = keyword;
         state.search.searchType = action.payload.searchType;
         state.search.searchResultNum = 0;//每次新搜索，重置结果数
-        const keyword = action.payload.keyword;
 
         // 将 keyword 移到 state.searchHistory 的第一个位置（若已存在则先移除再放到最前面；若不存在则添加到最前面）
-        if (!keyword) return;
+        // if (!keyword) return;
+        if (!keyword || action.payload.searchType == 5) return;
         const list = Array.isArray(state.search.searchHistory) ? [...state.search.searchHistory] : [];
         const idx = list.findIndex(item => item === keyword);
         if (idx > -1) {

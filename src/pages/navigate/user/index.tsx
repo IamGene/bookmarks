@@ -37,10 +37,9 @@ import { RootState } from '@/store';
 import { updateUserInfo, updateSearchState } from '@/store/modules/global';
 import { generatePermission } from '@/routes';
 import Navi from './navigate';
-import { getPages, saveSearchHistory, getBookmarkById, getBookmarkGroupById } from "@/db/BookmarksPages";
 import BackToTop from '../common/back-to-top';
 import styles from '@/style/layout.module.less';
-import { set } from 'mobx';
+// import { set } from 'mobx';
 // import { fetchGroupData } from './common';
 // import './index.css'
 // import NProgress from 'nprogress';
@@ -374,19 +373,25 @@ function UserNavigate() {
     setTreeSelectedKeys(activeValue);
   }
 
-  // let hasResult = true;
   // 接收NavBar传过来的搜索关键词
   const getNavBarKey = (keyword, searchType) => {
-    // setNavbarKeyWord(keyword);
     let keywordToUse = keyword;
+    let keywordString = keyword;
+
     if (searchType == 5) {
-      const kw = keyword;
-      if (kw[0] === kw[1]) {
-        keywordToUse = kw.slice(0, 1);
+      if (keyword) {
+        const kw = keyword;
+        if (kw[0] === kw[1]) {//如果两个日期相同，取一个即可
+          keywordToUse = kw.slice(0, 1);
+        }
+        keywordString = keywordToUse.join(' — ');
+      } else {
+        keywordToUse = [];
+        keywordString = null;
       }
     }
     setNavbarKeyWord({ keyword: keywordToUse, searchType });
-    dispatch(updateSearchState({ keyword: searchType == 5 ? keywordToUse.join(' — ') : keywordToUse, searchType: searchType }));
+    dispatch(updateSearchState({ keyword: keywordString, searchType: searchType }));
     // 关键词过滤
   }
 

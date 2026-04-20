@@ -240,6 +240,7 @@ npm run build
 - [ ] 书签卡片的省略 https://arco.design/react/components/typography 04.17
 - [ ] 黑暗模式下的背景色问题
 - [ ] 主页搜索结果card展示问题 04.17
+- [x] 按时间搜索不应将参数保存到历史记录 04.20
 - [x] 导航主页不展示标签列表 04.15
 - [x] 主页的tree列表收起时没有显示数据 04.16
 - [x] 导航主页card-tabs样式随treeSelected变化 04.15
