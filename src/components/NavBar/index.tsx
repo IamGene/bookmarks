@@ -86,8 +86,12 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
   const history = useHistory();
   const [currentPageId, setCurrentPageId] = useState(null);//pageNo
   const [keyword, setKeyword] = useState(null);
+  const [keyword1, setKeyword1] = useState(null);
   const [searchKeyword, setSearchKeyword] = useState(undefined);
+
   const [searchType, setSearchType] = useState<number>(0);
+  const [enterSearchType, setEnterSearchType] = useState<number>(0);
+  const [valueValid, setValueValid] = useState<boolean>(true);
 
   function setCurrentPage(pageId) {
     setCurrentPageId(pageId);
@@ -138,6 +142,7 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
   const onInputChange = (key: string) => {
     // setNavBarKey(key);//搜索跟随输入
     setKeyword(key);//本地状态更新
+    setValueValid(true);
     if (!key || key.trim().length === 0) {//清空搜索->重置数据
       setNavBarKey(key.trim(), searchType);//搜索跟随输入
       // setSearchKeyword(null);
@@ -155,13 +160,18 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
   const onEnterPress = (e) => {
     setNavBarKey(keyword.trim(), searchType);//回车搜索，带搜索类型
     setSearchKeyword(keyword.trim());//传递给搜索历史子组件
+    setKeyword1(null);//重置按域名搜索的输入值
+    setEnterSearchType(searchType);//0 1 2 3
   }
 
   const onEnterPress1 = (value: string) => {
     console.log('onEnterPress1 value=', value);
-    if (searchType === 4) return;
-    setNavBarKey(value.trim(), searchType);//回车搜索，带搜索类型
-    setSearchKeyword(value.trim());//传递给搜索历史子组件
+    //如果domainList包含value
+    setKeyword(null);
+    if (value && domainList.includes(value))
+      // if (searchType === 4) return;
+      setNavBarKey(value.trim(), searchType);//回车搜索，带搜索类型
+    // setSearchKeyword(value.trim());//传递给搜索历史子组件
   }
 
   const [createNewForm, setCreateNewForm] = useState(false);//添加Tab
@@ -349,12 +359,14 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
 
 
   function onSelect(dateString, date) {
-    // console.log('onSelect', dateString, date);
+    // console.log('111111111111 onSelect', dateString, date);
   }
 
   function onChange(dateString, date) {
-    // console.log('onChange: ', dateString, date);
+    // console.log('111111111111 onChange: ', dateString, date);
     setNavBarKey(dateString, searchType);//搜索跟随输入
+    setKeyword1(null);//重置按域名搜索的输入值
+    setKeyword(null);//
   }
 
 
@@ -382,9 +394,53 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
   const InputSearch = Input.Search;
 
   const [data, setData] = useState([]);
-  const [domainOptionSelected, setDomainOptionSelected] = useState(false);
+  // const [domainOptionSelected, setDomainOptionSelected] = useState(false);
+  const DOMAIN_INPUT_PATTERN = /^[a-zA-Z0-9.-]*$/;
+
+  const normalizeDomainInput = (value) => {
+    const nextValue = typeof value === 'string' ? value : '';
+    return nextValue.replace(/[^a-zA-Z0-9.-]/g, '');
+  };
+
+  const isValidDomainInput = (value) => DOMAIN_INPUT_PATTERN.test(value || '');
+
+  const handleDomainSelect = (value) => {
+    const normalizedValue = normalizeDomainInput(value);
+    setNavBarKey(normalizedValue, searchType);
+    setKeyword1(normalizedValue);
+  };
+
+  const handleDomainChange = (value) => {
+    const nextValue = typeof value === 'string' ? value : '';
+    const normalizedValue = normalizeDomainInput(nextValue);
+    if (nextValue && !isValidDomainInput(nextValue)) {
+      Message.warning('Only letters, numbers, "." and "-" are allowed.');
+    }
+    setKeyword1(normalizedValue);
+    if (!normalizedValue || normalizedValue.trim().length === 0) {
+      setNavBarKey(normalizedValue.trim(), searchType);
+    }
+  };
+
+  const handleDomainPressEnter = (value: string) => {
+    const normalizedValue = normalizeDomainInput(value).trim();
+    setKeyword(null);
+    setKeyword1(normalizedValue);
+    if (!normalizedValue) {
+      setNavBarKey('', searchType);
+      return;
+    }
+    if (!isValidDomainInput(value)) {
+      Message.warning('Only letters, numbers, "." and "-" are allowed.');
+      return;
+    }
+    if (domainList.includes(normalizedValue)) {
+      setNavBarKey(normalizedValue, searchType);
+    }
+  };
 
   const handleSearch = (inputValue) => {
+    const normalizedValue = normalizeDomainInput(inputValue);
     // 取inputValue的首字母，从domainGroupsMap中找到对应的域名列表，更新data为该域名列表；如果没有找到，则将data置空数组
     /*  if (searchType == 3 && inputValue && domainGroupsMap) {
        const firstChar = inputValue[0].toUpperCase();
@@ -392,8 +448,8 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
        // console.log('matchedDomains=', matchedDomains);
        setData(matchedDomains);
      } */
-    if (searchType == 4 && inputValue && domainList) {
-      const matchedDomains = domainList.filter(domain => domain.indexOf(inputValue) !== -1);
+    if (searchType == 4 && normalizedValue && domainList) {
+      const matchedDomains = domainList.filter(domain => domain.indexOf(normalizedValue) !== -1);
       setData(matchedDomains);
     }
     else {
@@ -402,21 +458,44 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
     // setData(inputValue && searchType == 3 ? new Array(5).fill(null).map((_, index) => `${inputValue}_${index}`) : []);
   };
 
-
   const handleSelect = (value) => {
     setNavBarKey(value, searchType);//搜索跟随输入
-    setDomainOptionSelected(true);
+    setKeyword1(value);//本地状态更新
+    // setDomainOptionSelected(true);
   };
 
   const handleChange = (value) => {//输入后Enter或选择建议项都会触发这个函数，
     // console.log('11111111111111 handleChange value=', value);
-    setDomainOptionSelected(false);
-    setKeyword(value);//本地状态更新
+    // setDomainOptionSelected(false);
+    // setKeyword(value);//本地状态更新
+    setKeyword1(value);//本地状态更新
     if (!value || value.trim().length === 0) {//清空搜索->重置数据
       setNavBarKey(value.trim(), searchType);//搜索跟随输入
       // setSearchKeyword(null);
     }
   };
+
+  const handleChange1 = (value) => {//输入后Enter或选择建议项都会触发这个函数，
+    // onChange = {(val) => {
+    const next = Number(value);
+    setSearchType(next);
+    setData([]);//切换搜索类型时清空搜索建议数据
+
+    //搜索值有效（valueValid）? 搜索类型在0 1 2 3 之间切换则有效（3按url不能包含中文否则无效）；
+    //曾切换到4或5则输入值无效 除非切换回该搜索搜索方式已按Enter搜索，否则搜索值无效
+    let nextValueValide = valueValid ? next < 4 : next == enterSearchType;
+    // 若输入框有内容，则切换搜索类型时立即触发搜索
+    if (next < 4 && keyword && String(keyword).trim().length > 0) {
+
+      //按url搜索时输入中文则无效
+      if (next == 3 && keyword && /[\u4e00-\u9fff]/.test(String(keyword))) nextValueValide = false;
+      if (nextValueValide) { //此时搜索值有效，才触发搜索
+        setNavBarKey(keyword.trim(), next);
+        setEnterSearchType(next);
+      }
+    }
+    setValueValid(nextValueValide);
+  }
 
   return (
     <>
@@ -443,7 +522,6 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
               />
             </SearchHistory> */}
 
-
             <div
               style={{
                 width: 300,
@@ -455,15 +533,27 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
               <Input.Group compact>
                 <Select
                   value={searchType}
-                  onChange={(val) => {
-                    const next = Number(val);
-                    setSearchType(next);
-                    setData([]);//切换搜索类型时清空搜索建议数据
-                    // 若输入框有内容，则切换搜索类型时立即触发搜索
-                    if (!domainOptionSelected && keyword && String(keyword).trim().length > 0) {
-                      setNavBarKey(keyword.trim(), next);
-                    }
-                  }}
+                  onChange={(val) => { handleChange1(val); }}
+                  /*  onChange={(val) => {
+                     const next = Number(val);
+                     setSearchType(next);
+                     setData([]);//切换搜索类型时清空搜索建议数据
+ 
+                     //搜索值有效（valueValid）? 搜索类型在0 1 2 3 之间切换则有效（3按url不能包含中文否则无效）；
+                     //曾切换到4或5则输入值无效 除非切换回该搜索搜索方式已按Enter搜索，否则搜索值无效
+                     let nextValueValide = valueValid ? next < 4 : next == enterSearchType;
+                     // 若输入框有内容，则切换搜索类型时立即触发搜索
+                     if (next < 4 && keyword && String(keyword).trim().length > 0) {
+ 
+                       //按url搜索时输入中文则无效
+                       if (next == 3 && keyword && /[\u4e00-\u9fff]/.test(String(keyword))) nextValueValide = false;
+                       if (nextValueValide) { //此时搜索值有效，才触发搜索
+                         setNavBarKey(keyword.trim(), next);
+                         setEnterSearchType(next);
+                       }
+                     }
+                     setValueValid(nextValueValide);
+                   }} */
                   style={{ width: 70 }}
                   dropdownMenuStyle={{
                     maxHeight: 400, // 👈 调大这个值
@@ -473,8 +563,8 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
                   <Select.Option value={0}>默认</Select.Option>
                   <Select.Option value={1}>标题</Select.Option>
                   <Select.Option value={2}>描述</Select.Option>
-                  <Select.Option value={4} >域名</Select.Option>
-                  <Select.Option value={3} >网址</Select.Option>
+                  <Select.Option value={4}>域名</Select.Option>
+                  <Select.Option value={3}>网址</Select.Option>
                   {pageType === 'bookmarks' && <Select.Option value={5} >日期</Select.Option>}
                 </Select>
                 {
@@ -485,13 +575,13 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
                       placeholder={t['navbar.search.placeholder']}
                       allowClear
                       onSearch={handleSearch}
-                      onSelect={handleSelect}
-                      onChange={handleChange}
-                      defaultValue={'blog.codejerry.cn'}
+                      onSelect={handleDomainSelect}
+                      onChange={handleDomainChange}
+                      value={keyword1}
                       data={data}
                       style={{ width: '76.5%', height: 31 }}
                       triggerElement={<Input.Search />}
-                      onPressEnter={(event) => onEnterPress1(event.target.value)}
+                      onPressEnter={(event) => handleDomainPressEnter(event.target.value)}
                     >
                     </AutoComplete>
 
@@ -502,7 +592,7 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
                         <SearchHistory searchKeyword={searchKeyword} onClickHistory={onClickHistory} inputValue={keyword}>
                           <InputSearch
                             allowClear
-                            value={keyword}
+                            value={valueValid ? keyword : ''}
                             placeholder={t['navbar.search.placeholder']}
                             onChange={onInputChange}
                             style={{ width: '76.5%', height: 31 }}
