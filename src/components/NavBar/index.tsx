@@ -176,6 +176,62 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
 
   const [createNewForm, setCreateNewForm] = useState(false);//添加Tab
 
+  const handleKeywordInputChange = (value: string) => {
+    const nextValue = typeof value === 'string' ? value : '';
+    if (searchType !== 3) {
+      onInputChange(nextValue);
+      return;
+    }
+
+    // 规范化输入值，去除不合法字符
+    const normalizedValue = normalizeUrlInput(nextValue);
+    if (nextValue && normalizedValue !== nextValue) {
+      Message.warning('Only URL-safe characters are allowed.');
+    }
+    // 更新输入值和搜索状态
+    setKeyword(normalizedValue);
+    setValueValid(true);
+    // 如果输入值被清空，则立即触发搜索重置数据
+    if (!normalizedValue || normalizedValue.trim().length === 0) {
+      setNavBarKey(normalizedValue.trim(), searchType);
+    }
+  };
+
+  const handleKeywordPressEnter = (value) => {
+    const rawValue =
+      typeof value === 'string'
+        ? value
+        : value && value.target && typeof value.target.value === 'string'
+          ? value.target.value
+          : keyword || '';
+    const normalizedValue = normalizeUrlInput(rawValue).trim();
+
+    if (searchType !== 3) {
+      onEnterPress(value);
+      return;
+    }
+
+    if (!normalizedValue) {
+      setKeyword('');
+      setNavBarKey('', searchType);
+      setValueValid(true);
+      return;
+    }
+
+    setKeyword(normalizedValue);
+    if (!isValidUrlInput(normalizedValue)) {
+      setValueValid(false);
+      Message.warning('Only URL-safe characters are allowed.');
+      return;
+    }
+
+    setNavBarKey(normalizedValue, searchType);
+    setSearchKeyword(normalizedValue);
+    setKeyword1(null);
+    setEnterSearchType(searchType);
+    setValueValid(true);
+  };
+
   const onCreateNew = () => {
     setCreateNewForm(true);
   }
@@ -396,13 +452,25 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
   const [data, setData] = useState([]);
   // const [domainOptionSelected, setDomainOptionSelected] = useState(false);
   const DOMAIN_INPUT_PATTERN = /^[a-zA-Z0-9.-]*$/;
+  const URL_INPUT_PATTERN = /^[a-zA-Z0-9\-._~:/?#[\]@!$&'()*+,;=%]*$/;
 
+  // 规范化域名输入：只保留字母、数字、点和横杠
   const normalizeDomainInput = (value) => {
     const nextValue = typeof value === 'string' ? value : '';
     return nextValue.replace(/[^a-zA-Z0-9.-]/g, '');
   };
 
   const isValidDomainInput = (value) => DOMAIN_INPUT_PATTERN.test(value || '');
+
+  const normalizeUrlInput = (value) => {
+    const nextValue = typeof value === 'string' ? value : '';
+    return nextValue.replace(/[^a-zA-Z0-9\-._~:/?#[\]@!$&'()*+,;=%]/g, '');
+  };
+
+  const isValidUrlInput = (value) => {
+    const nextValue = typeof value === 'string' ? value.trim() : '';
+    return !!nextValue && URL_INPUT_PATTERN.test(nextValue) && !/\s/.test(nextValue);
+  };
 
   const handleDomainSelect = (value) => {
     const normalizedValue = normalizeDomainInput(value);
@@ -422,22 +490,26 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
     }
   };
 
+  // 按回车键时，如果输入值有效且在domainList中，则触发搜索
   const handleDomainPressEnter = (value: string) => {
     const normalizedValue = normalizeDomainInput(value).trim();
     setKeyword(null);
     setKeyword1(normalizedValue);
+    // setDomainOptionSelected(false);
     if (!normalizedValue) {
       setNavBarKey('', searchType);
       return;
     }
-    if (!isValidDomainInput(value)) {
+    if (!isValidDomainInput(value)) {//输入值包含非法字符时，提示错误并不触发搜索
       Message.warning('Only letters, numbers, "." and "-" are allowed.');
       return;
     }
+    //输入值在domainList中时才触发搜索
     if (domainList.includes(normalizedValue)) {
       setNavBarKey(normalizedValue, searchType);
     }
   };
+
 
   const handleSearch = (inputValue) => {
     const normalizedValue = normalizeDomainInput(inputValue);
@@ -464,7 +536,7 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
     // setDomainOptionSelected(true);
   };
 
-  const handleChange = (value) => {//输入后Enter或选择建议项都会触发这个函数，
+  /* const handleChange = (value) => {//输入后Enter或选择建议项都会触发这个函数，
     // console.log('11111111111111 handleChange value=', value);
     // setDomainOptionSelected(false);
     // setKeyword(value);//本地状态更新
@@ -473,9 +545,9 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
       setNavBarKey(value.trim(), searchType);//搜索跟随输入
       // setSearchKeyword(null);
     }
-  };
+  }; */
 
-  const handleChange1 = (value) => {//输入后Enter或选择建议项都会触发这个函数，
+  const handleSelectTypeChange = (value) => {//输入后Enter或选择建议项都会触发这个函数，
     // onChange = {(val) => {
     const next = Number(value);
     setSearchType(next);
@@ -486,9 +558,10 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
     let nextValueValide = valueValid ? next < 4 : next == enterSearchType;
     // 若输入框有内容，则切换搜索类型时立即触发搜索
     if (next < 4 && keyword && String(keyword).trim().length > 0) {
-
       //按url搜索时输入中文则无效
-      if (next == 3 && keyword && /[\u4e00-\u9fff]/.test(String(keyword))) nextValueValide = false;
+      if (next == 3 && keyword) {
+        nextValueValide = isValidUrlInput(String(keyword).trim());
+      }
       if (nextValueValide) { //此时搜索值有效，才触发搜索
         setNavBarKey(keyword.trim(), next);
         setEnterSearchType(next);
@@ -533,27 +606,7 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
               <Input.Group compact>
                 <Select
                   value={searchType}
-                  onChange={(val) => { handleChange1(val); }}
-                  /*  onChange={(val) => {
-                     const next = Number(val);
-                     setSearchType(next);
-                     setData([]);//切换搜索类型时清空搜索建议数据
- 
-                     //搜索值有效（valueValid）? 搜索类型在0 1 2 3 之间切换则有效（3按url不能包含中文否则无效）；
-                     //曾切换到4或5则输入值无效 除非切换回该搜索搜索方式已按Enter搜索，否则搜索值无效
-                     let nextValueValide = valueValid ? next < 4 : next == enterSearchType;
-                     // 若输入框有内容，则切换搜索类型时立即触发搜索
-                     if (next < 4 && keyword && String(keyword).trim().length > 0) {
- 
-                       //按url搜索时输入中文则无效
-                       if (next == 3 && keyword && /[\u4e00-\u9fff]/.test(String(keyword))) nextValueValide = false;
-                       if (nextValueValide) { //此时搜索值有效，才触发搜索
-                         setNavBarKey(keyword.trim(), next);
-                         setEnterSearchType(next);
-                       }
-                     }
-                     setValueValid(nextValueValide);
-                   }} */
+                  onChange={(val) => { handleSelectTypeChange(val); }}
                   style={{ width: 70 }}
                   dropdownMenuStyle={{
                     maxHeight: 400, // 👈 调大这个值
@@ -594,9 +647,9 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
                             allowClear
                             value={valueValid ? keyword : ''}
                             placeholder={t['navbar.search.placeholder']}
-                            onChange={onInputChange}
+                            onChange={handleKeywordInputChange}
                             style={{ width: '76.5%', height: 31 }}
-                            onPressEnter={(value) => onEnterPress(value)}
+                            onPressEnter={(value) => handleKeywordPressEnter(value)}
                           />
                         </SearchHistory>
                         :

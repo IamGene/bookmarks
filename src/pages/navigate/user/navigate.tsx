@@ -73,10 +73,8 @@ function ListCard({ activeCardTab, dataType, setCardTabActive, searchKeyWord, li
   ); */
 
   useEffect(() => {
-    // const isEmpty = !searchKeyWord.keyword?.trim();
-    // const search = selectedTags.length > 0 ? false : !(!searchKeyWord.keyword?.trim());
     //当有选中标签时，无论关键词是否为空，都认为在搜索；当没有选中标签时，只有关键词非空才认为在搜索
-    const search = selectedTags.length > 0 ? false : !(!(searchKeyWord && searchKeyWord.keyword?.trim()));
+    const search = selectedTags.length > 0 ? false : Boolean(searchKeyWord?.keyword?.trim());
     // console.log('zzzzzzzzzzzzzzzzzzzzzzzzzzz  selectedTags search', selectedTags, search);
     setSearch(search);
   }, [selectedTags]);
