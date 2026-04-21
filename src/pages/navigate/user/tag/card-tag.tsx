@@ -1,16 +1,11 @@
 import './bootstrap.min.css'
 import './index.css'
 import { useEffect, useState } from 'react';
-import {
-    IconMore, IconEdit
-} from '@arco-design/web-react/icon';
-import { Tooltip, Tag, Dropdown, Menu, Checkbox, Popover } from '@arco-design/web-react';
+import { IconMore } from '@arco-design/web-react/icon';
+import { Tooltip, Tag, Dropdown, Menu, Checkbox } from '@arco-design/web-react';
 import { removeConfirm } from '../form/remove-confirm-modal';
 import { WebTag } from '../interface';
 import { useDispatch } from 'react-redux'
-import { fetchBookmarksPageData } from '@/store/modules/global';
-// import useLocale from '@/utils/useLocale';
-// import EditTagForm from '../form/tag-form';
 import { removeWebTag } from '@/db/BookmarksPages';
 
 const api = import.meta.env.VITE_REACT_APP_BASE_API;
@@ -40,8 +35,7 @@ const App = (props: CardBlockType) => {
     // if (tag.id === 'zb5hn8jz9') console.log('xxxxxxxxxxxxxxxxxxxxxx', selectGroup, tag);
     const [visible, setVisible] = useState(false);
     //配置编辑表单展示与否
-    const [editVisible, setEditVisible] = useState(false);
-    const [loading, setLoading] = useState(props.loading);
+    // const [loading, setLoading] = useState(props.loading);
     const dispatch = useDispatch();
 
     const onClickMenuItem = (key: string) => {
@@ -55,10 +49,7 @@ const App = (props: CardBlockType) => {
         } else if (key === '1') {//删除
             //弹出确认框
             // console.log('点击了菜单,删除', key)
-            // confirm(tag);
-            // removeConfirm(tag.id, tag.name, true, '', '书签', handleDelete);
             removeConfirm(tag.id, tag.name, true, '', '书签', handleDelete);
-
         }
     }
 
@@ -124,41 +115,6 @@ const App = (props: CardBlockType) => {
         }
     }; */
 
-
-    //提交成功后关闭或取消关闭Modal窗口
-    function closeModal(success: boolean) {
-        // console.log('close Modal', success)
-        setEditVisible(false)
-        if (success) {//刷新数据
-            getGroupData();
-        }
-        // handleModalToggle();
-    }
-
-    // 确认删除模态框
-    /* function confirm(tag: WebTag) {
-        Modal.confirm({
-            // TODO: 用t local改一下？',
-            title: '删除确认',
-            content: removeContentTips(tag.name),
-            // 'Are you sure you want to delete the 3 selected items? Once you press the delete button, the items will be deleted immediately. You can’t undo this action.',
-            // `确定删除标签"${tag.name}"吗？`,
-            okButtonProps: {
-                status: 'danger',
-            },
-            onOk: (e) => deleteTagPromise(tag.id)
-        });
-    } */
-
-
-    /*  const removeContentTips = (name: string) => {
-         // return `确定删除标签"${tag.name}"吗？`
-         return <p>确定删除标签 "<span style={{ color: '#F53F3F' }}>{name}</span>" 吗？</p>
-     }
-  */
-    const getGroupData = async () => {
-        const data: any = await dispatch(fetchBookmarksPageData(no));
-    }
 
     const [imgSrc, setImgSrc] = useState(tag.icon);
     // const [currentSelected, setCurrentSelected] = useState(false);
@@ -234,27 +190,6 @@ const App = (props: CardBlockType) => {
                     </span>} */}
 
                     <div className="xe-comment">
-                        {/* <a href="#" onClick={() => openUrl(tag.url)}  > */}
-                        {/* {
-                            tag.name.length > 26 || (tag.nameLength && tag.nameLength > 26) ?
-                                <Tooltip position='top' trigger='hover' content={tag.name}>
-                                    <div style={{ paddingRight: "17px" }}>
-                                        
-                                        <a href={tag.url} target='_blank'>
-                                            <strong className="overflowClip_2" >{tag.name}</strong>
-                                        </a>
-                                    </div>
-                                </Tooltip>
-                                :
-                                <div style={{ paddingRight: "17px" }}>
-                                  
-                                    <a href={tag.url} target='_blank'>
-                                        <strong className="overflowClip_2">{tag.name}</strong>
-                                    </a>
-                                </div>
-                        } */}
-                        {/* <a href="#" onClick={() => openUrl(tag.url)}  > */}
-                        {/* <Tooltip position='top' trigger='hover' content={tag.date ? `${tag.name}` + `(` + ` ${tag.date}` + `)` : tag.name}> */}
                         <Tooltip position='top' trigger='hover' content={<div style={{}}>
                             {tag.name}
                             <br />
@@ -267,29 +202,16 @@ const App = (props: CardBlockType) => {
                                 {tag.date && tag.date}
                             </span>}
                         </div>} >
-
-                            <div style={{ paddingRight: "17px" }}>
+                            {/* style={{ maxWidth: '195px' }} */}
+                            <div style={{ paddingLeft: "5px", paddingRight: "10px", maxWidth: '198px' }}>
                                 <a href={tag.url} target='_blank'>
                                     <strong className="overflowClip_2" >{tag.name}</strong>
                                 </a>
                             </div>
                         </Tooltip>
 
-                        {/*   <Popover
-                            content={tag.date ? tag.date : ''}
-                            title={
-                                tag.name
-                            }
-                        >
-                            <div style={{ paddingRight: "17px" }}>
-                                <a href={tag.url} target='_blank'>
-                                    <strong className="overflowClip_2" >{tag.name}</strong>
-                                </a>
-                            </div>
-                        </Popover> */}
-                        {/* target="_blank" */}
                         <Tooltip position='bottom' trigger='hover' content={tag.description}>
-                            <p className="overflowClip_2">{tag.description}
+                            <p className="overflowClip_2" style={{ paddingLeft: "5px", maxWidth: '198px' }}>{tag.description}
                             </p>
                         </Tooltip>
 

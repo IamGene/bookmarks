@@ -1,4 +1,4 @@
-import './bootstrap.min.css'
+// import './bootstrap.min.css'
 import './index.css'
 import React, { useEffect, useState } from 'react';
 import {
@@ -180,7 +180,8 @@ const App = (props: CardBlockType) => {
 
 
                     <div className="xe-comment">
-                        <div style={{ paddingRight: "17px" }}>
+                        {/* <div style={{ paddingRight: "17px" }}> */}
+                        <div style={{ paddingLeft: "5px", paddingRight: "10px", maxWidth: '198px' }}>
                             <a href={tag.url} target='_blank'>
                                 <strong className="overflowClip_2" >{tag.name}</strong>
                             </a>
@@ -200,7 +201,7 @@ const App = (props: CardBlockType) => {
                         </Popover> */}
                         {/* target="_blank" */}
                         <Tooltip position='bottom' trigger='hover' content={tag.description}>
-                            <p className="overflowClip_2">{tag.description}
+                            <p className="overflowClip_2" style={{ paddingLeft: "5px", maxWidth: '198px' }}>{tag.description}
                             </p>
                         </Tooltip>
 

@@ -1,12 +1,10 @@
 import React from 'react';
 import Draggable from 'react-draggable';
 import { useState, useEffect, useRef } from 'react';
-import { FormInstance } from '@arco-design/web-react/es/Form';
-// import { Modal, Upload, Input, Cascader, Switch, Form, Select, Message } from '@arco-design/web-react';
 import {
-    Modal, Input, Typography, Cascader, List, Form, Message
+    Modal, Typography, Cascader, List, Form, Message
 } from '@arco-design/web-react';
-import { IconDelete, IconDown } from '@arco-design/web-react/icon';
+import { IconDelete } from '@arco-design/web-react/icon';
 import useLocale from '@/utils/useLocale';
 import locale from '../locale';
 import { } from '@/api/navigate';

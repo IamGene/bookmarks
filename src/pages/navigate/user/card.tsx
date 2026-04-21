@@ -3630,12 +3630,13 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         if (!list || list.length == 0) {
             return <Empty />;
         }
+        const showList = list.length > 30 ? list.slice(0, 30) : list;
         const nodeKey = groupId;
         const type0path = typeof selectGroup === 'string' ? selectGroup : null;
         return (
             <div style={{ width: '100%' }}>
                 <Grid cols={{ xs: 1, sm: 2, md: 3, lg: 4, xl: 5, xxl: 6 }} colGap={12} rowGap={16} >
-                    {list.map((item, index) => (
+                    {showList.map((item, index) => (
                         ((!item.hide) || (item.hide && showItem)) &&
                         <GridItem key={item.id} className='demo-item'>
                             <TagItem tag={item}
@@ -3667,6 +3668,12 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                             />
                         </GridItem>
                     ))}
+
+                    {list.length > 30 &&
+                        <GridItem span={{ xl: 4, xxl: 6 }} suffix>
+                            <Button type='text'> {`显示更多(${list.length - 30})...`}</Button>
+                        </GridItem>
+                    }
                     {/* 添加 */}
                     {/*  {add && <GridItem key={list.length + 1 + ''} className='demo-item'>
                         <TagAdd selectGroup={selectGroup} />
