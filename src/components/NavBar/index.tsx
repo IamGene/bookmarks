@@ -51,6 +51,7 @@ import SearchHistory from '@/components/SearchHistory';
 import Tags from '@/components/Tags';
 import { TagContext } from '@/components/Tags/context';
 import IconButton from './IconButton';
+import DuplicateDetectionDrawer from './DuplicateDetectionDrawer';
 import Settings from '../Settings';
 import styles from './style/index.module.less';
 import defaultLocale from '@/locale';
@@ -758,6 +759,12 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
               </TagContext.Provider>
             </li>
           }
+
+          {pageType === 'bookmarks' && (
+            <li>
+              <DuplicateDetectionDrawer />
+            </li>
+          )}
 
           <li>
             <Select
