@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef, Children } from 'react';
 import TagItem from './tag/card-tag';
 import { WebTag } from './interface';
-import { Tabs, Card, Switch, Empty, Input, Link, Tag, Dropdown, Menu, Typography, Message, Grid, Form, Button, Space } from '@arco-design/web-react';
-import { IconEyeInvisible, IconSelectAll, IconToTop, IconMore, IconPlus, IconEraser, IconToBottom, IconLink, IconDelete, IconEdit, IconEye, IconCheck } from '@arco-design/web-react/icon';
+import { Tabs, Card, Switch, Empty, Input, Tag, Dropdown, Menu, Typography, Message, Grid, Form, Button, Space } from '@arco-design/web-react';
+import { IconEyeInvisible, IconSelectAll, IconLeft, IconUp, IconDown, IconMore, IconPlus, IconEraser, IconToBottom, IconLink, IconDelete, IconEdit, IconEye, IconCheck } from '@arco-design/web-react/icon';
 import styles from './style/index.module.less';
 import TagForm from './form/tag-form';
 import BookmarksMoveForm from './form/bookmarks-move';
@@ -808,6 +808,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
     const [cardShow, setCardShow] = useState(true);
     // 本Card(Group)显示/隐藏 隐藏项
     const [showItem, setShowItem] = useState(true);//默认false
+    const [expandedBookmarkGroups, setExpandedBookmarkGroups] = useState<Record<string, boolean>>({});
 
     // debug: trace cardShow changes to identify unexpected resets
 
@@ -3616,7 +3617,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         return dis;
     }
 
-    // 渲染标签列表
+    // Render bookmark grid
     const renderTags = (
         // groupHide: boolean,
         // selectOperation: string,
@@ -3630,24 +3631,33 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         if (!list || list.length == 0) {
             return <Empty />;
         }
-        const showList = list.length > 30 ? list.slice(0, 30) : list;
         const nodeKey = groupId;
         const type0path = typeof selectGroup === 'string' ? selectGroup : null;
+        const visibleList = list.filter((item) => (!item.hide) || (item.hide && showItem));
+        if (visibleList.length == 0) {
+            return <Empty />;
+        }
+
+        const hiddenCount = Math.max(0, visibleList.length - 30);
+        const isExpanded = !!expandedBookmarkGroups[nodeKey];
+        const showList = isExpanded ? visibleList : visibleList.slice(0, 30);
+        const hasMore = hiddenCount > 0;
+        const useSuffixToggle = hiddenCount % 6 === 0;
+
         return (
             <div style={{ width: '100%' }}>
                 <Grid cols={{ xs: 1, sm: 2, md: 3, lg: 4, xl: 5, xxl: 6 }} colGap={12} rowGap={16} >
-                    {showList.map((item, index) => (
-                        ((!item.hide) || (item.hide && showItem)) &&
+                    {showList.map((item) => (
                         <GridItem key={item.id} className='demo-item'>
                             <TagItem tag={item}
                                 no={pageId}
                                 groupId={groupId}
                                 searching={searching}
                                 editTag={onEditTag}
-                                select={multiSelect}//显示复选框
-                                //该书签是否被选中
+                                select={multiSelect}// show multi-select checkbox
+                                // whether this bookmark is selected
                                 selected={Array.isArray(selectedMapRef.current[nodeKey]) ? selectedMapRef.current[nodeKey].includes(String(item.id)) : false}
-                                //选中状态变化时更新selectedMap
+                                // update selectedMap when selection changes
                                 onSelectChange={(id, checked) => {
                                     // console.log('sssssssssssss onSelectChange', id, checked, nodeKey, selectedMap[nodeKey]);
                                     const prevArr = Array.isArray(selectedMapRef.current[nodeKey]) ? [...selectedMapRef.current[nodeKey]] : [];
@@ -3656,30 +3666,45 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                                     if (checked && idx === -1) prevArr.push(sid);
                                     else if (!checked && idx !== -1) {
                                         prevArr.splice(idx, 1);
-                                        // console.log('sssssssssssss onSelectChange 取消选中', id, checked, nodeKey, prevArr, idx);
+                                        // console.log('sssssssssssss onSelectChange unselected', id, checked, nodeKey, prevArr, idx);
                                     };
-                                    onNodeSelectionChange(nodeKey, prevArr, type0path);//适用于dataType==0
+                                    onNodeSelectionChange(nodeKey, prevArr, type0path);// applies to dataType == 0
                                 }}
                                 onDeleteSuccess={handleDeleteSuccess}
                                 loading={loading}
                             // path={type0path}
                             // selectGroup={dataType == 0 ? (typeof selectGroup === 'string' ? selectGroup.split(',') : []) : item.path}
-                            // selectGroup={item.path}
                             />
                         </GridItem>
                     ))}
 
-                    {list.length > 30 &&
-                        <GridItem span={{ xl: 4, xxl: 6 }} suffix>
-                            <Button type='text'> {`显示更多(${list.length - 30})...`}</Button>
+                    {!isExpanded && hasMore &&
+                        <GridItem>
+                            <Button
+                                type='text'
+                                onClick={() => setExpandedBookmarkGroups((prev) => ({ ...prev, [nodeKey]: true }))}
+                            >
+                                {`显示更多(${hiddenCount})`}<IconDown />
+                            </Button>
                         </GridItem>
                     }
-                    {/* 添加 */}
-                    {/*  {add && <GridItem key={list.length + 1 + ''} className='demo-item'>
-                        <TagAdd selectGroup={selectGroup} />
-                    </GridItem>} */}
+
+                    {isExpanded && hasMore && (
+                        useSuffixToggle ?
+                            <GridItem span={{ xl: 4, xxl: 6 }}>
+                                <Button type='text' onClick={() => setExpandedBookmarkGroups((prev) => ({ ...prev, [nodeKey]: false }))}>
+                                    {'显示更少'}<IconUp />
+                                </Button>
+                            </GridItem>
+                            :
+                            <GridItem>
+                                <Button type='text' onClick={() => setExpandedBookmarkGroups((prev) => ({ ...prev, [nodeKey]: false }))} >
+                                    {'显示更少'}<IconLeft />
+                                </Button>
+                            </GridItem>
+                    )}
                 </Grid>
-            </div>
+            </div >
         );
     };
 

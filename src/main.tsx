@@ -21,7 +21,6 @@ import store from './store';
 
 // 在应用启动时预加载用户的 pages（从 IndexedDB）到 Redux，避免组件初次渲染时为 null
 
-
 // import PageLayout from './layout';
 // import checkLogin from './utils/checkLogin';
 // import { generatePermission } from '@/routes';

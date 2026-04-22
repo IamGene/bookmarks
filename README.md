@@ -238,8 +238,9 @@ npm run build
 - [x] 按时间分组，多选菜单 菜单改为右键弹出
 - [ ] 检查插件配合网页功能 04.15
 - [ ] 主页搜索结果card展示问题 04.17
-- [x] 书签卡片的省略 https://arco.design/react/components/typography 04.21
 - [ ] 黑暗模式下的背景色问题
+- [x] card的书签列表显示更多/更少 04.21
+- [x] 书签卡片的省略 https://arco.design/react/components/typography 04.21 maxwidth 04.21
 - [x] 按时间搜索不应将参数保存到历史记录 04.20
 - [x] 导航主页不展示标签列表 04.15
 - [x] 主页的tree列表收起时没有显示数据 04.16
