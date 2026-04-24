@@ -14,6 +14,7 @@ import {
   Typography,
 } from '@arco-design/web-react';
 import { IconDelete, IconFindReplace } from '@arco-design/web-react/icon';
+import IconButton from './IconButton';
 import styles from './style/index.module.less';
 
 const { Text } = Typography;
@@ -84,17 +85,17 @@ function DuplicateDetectionDrawer() {
 
   return (
     <>
-      <Button
-        type="outline"
+      <IconButton
+        // type="outline"
         icon={<IconFindReplace />}
-        className={styles['duplicate-entry-btn']}
+        // className={styles['duplicate-entry-btn']}
         onClick={() => setVisible(true)}
       >
-        重复检测
-      </Button>
+        {/* 重复检测 */}
+      </IconButton>
 
       <Drawer
-        width={520}
+        width={450}
         title="重复书签检测"
         visible={visible}
         onCancel={() => setVisible(false)}
@@ -103,10 +104,10 @@ function DuplicateDetectionDrawer() {
         <div className={styles['duplicate-drawer-toolbar']}>
           <Space size={12}>
             <Button type="primary" loading={scanning} icon={<IconFindReplace />} onClick={handleScan}>
-              扫描按钮
+              扫描
             </Button>
             <div className={styles['duplicate-switch-wrap']}>
-              <span>自动检测开关</span>
+              <span>自动检测</span>
               <Switch checked={autoDetect} onChange={setAutoDetect} />
             </div>
           </Space>
@@ -145,7 +146,7 @@ function DuplicateDetectionDrawer() {
                 <Card
                   size="small"
                   className={styles['duplicate-group-card']}
-                  title={`${group.title}（${group.items.length}条）`}
+                // title={`${group.title}（${group.items.length}条）`}
                 >
                   <List
                     dataSource={group.items}
@@ -172,7 +173,7 @@ function DuplicateDetectionDrawer() {
                   />
 
                   <div className={styles['duplicate-action-row']}>
-                    <Tag color="green">保留建议：第{recommendIndex}条</Tag>
+                    {/* <Tag color="green">保留建议：第{recommendIndex}条</Tag> */}
                     <Space wrap>
                       <Button
                         status="danger"

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo, useRef, Children } fr
 import TagItem from './tag/card-tag';
 import { WebTag } from './interface';
 import { Tabs, Card, Switch, Empty, Input, Tag, Dropdown, Menu, Typography, Message, Grid, Form, Button, Space } from '@arco-design/web-react';
-import { IconEyeInvisible, IconSelectAll, IconLeft, IconUp, IconDown, IconMore, IconPlus, IconEraser, IconToBottom, IconLink, IconDelete, IconEdit, IconEye, IconCheck } from '@arco-design/web-react/icon';
+import { IconEyeInvisible, IconSelectAll, IconDoubleLeft, IconDoubleUp, IconDown, IconDoubleDown, IconMore, IconPlus, IconEraser, IconToBottom, IconLink, IconDelete, IconEdit, IconEye, IconCheck } from '@arco-design/web-react/icon';
 import styles from './style/index.module.less';
 import TagForm from './form/tag-form';
 import BookmarksMoveForm from './form/bookmarks-move';
@@ -3684,7 +3684,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                                 type='text'
                                 onClick={() => setExpandedBookmarkGroups((prev) => ({ ...prev, [nodeKey]: true }))}
                             >
-                                {`显示更多(${hiddenCount})`}<IconDown />
+                                {`显示更多(${hiddenCount})`}<IconDoubleDown />
                             </Button>
                         </GridItem>
                     }
@@ -3693,13 +3693,13 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                         useSuffixToggle ?
                             <GridItem span={{ xl: 4, xxl: 6 }}>
                                 <Button type='text' onClick={() => setExpandedBookmarkGroups((prev) => ({ ...prev, [nodeKey]: false }))}>
-                                    {'显示更少'}<IconUp />
+                                    {'显示更少'}<IconDoubleUp />
                                 </Button>
                             </GridItem>
                             :
                             <GridItem>
                                 <Button type='text' onClick={() => setExpandedBookmarkGroups((prev) => ({ ...prev, [nodeKey]: false }))} >
-                                    {'显示更少'}<IconLeft />
+                                    {'显示更少'}<IconDoubleLeft />
                                 </Button>
                             </GridItem>
                     )}

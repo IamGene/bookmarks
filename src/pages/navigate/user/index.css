@@ -197,3 +197,8 @@ label {
   border: none !important; 
   padding: 15px 11px 16px 4px !important; /* 调整日期选择器内边距以匹配输入框 */
 }
+
+.arco-collapse-item-content-box
+ {
+    padding: 8px 13px 8px 13px;
+}

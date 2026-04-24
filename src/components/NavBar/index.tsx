@@ -788,7 +788,6 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
             />
           </li>
 
-
           <li>
             <Tooltip
               content={t['bookmarks.page.group.create']}
