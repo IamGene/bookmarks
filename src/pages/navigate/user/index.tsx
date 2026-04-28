@@ -586,10 +586,8 @@ function UserNavigate() {
         })}
       >
         {/* filterDataByTags={filterDataByTags} */}
-        {/* num={groups.length} */}
         {/* pageNo={currentPage} */}
         <Navbar show={showNavbar} pageType={'bookmarks'} setNavBarKey={getNavBarKey} setAllDisplay={getAllDisplay} />
-
       </div>
       {userLoading ? (
         <Spin className={styles['spin']} />
@@ -656,7 +654,6 @@ function UserNavigate() {
                   searchKeyWord={navbarKeyWord}
                   setCardTabActive={getCardTabActive}
                   list={list}
-                  // tags={tags}
                   // tags={filterTags}
                   loading={loading}>
                 </Navi>

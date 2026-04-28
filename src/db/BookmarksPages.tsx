@@ -551,6 +551,29 @@ export async function getNodePath(node: any) {
     return nodePath(node.pId, node.id);
 }
 
+export async function getNodePathName(node: any) {
+    let ans = node;
+    if (!node.pId) return { pathNames: `${node.name}`, ans };
+    const db = await getDB();
+    async function nodePath(pId: string, pathName: string) {
+        if (pId) {
+            const pGroup = await db.get('groups', pId);
+
+            if (pGroup) {//存在
+                ans = pGroup;
+                // console.log('xxxxxxxxxxxxxx ans 1', ans);
+                const pathNames = pGroup.pId ? nodePath(pGroup.name, pGroup.name + "/" + pathName) : pGroup.name + "/" + pathName;
+                return { pathNames, ans }
+            }
+        }
+        return pathName;
+    }
+    // const pathName = nodePath(node.pId, node.name);
+    const res = nodePath(node.pId, node.name);
+    // console.log('xxxxxxxxxxxxxx ans', ans);
+    return res;
+}
+
 export async function getBookmarksNumByGId(gId) {
     try {
         const db = await getDB();
@@ -1127,7 +1150,8 @@ export async function removeWebTag(id: string): Promise<boolean> {
     }
 }
 
-export async function removeWebTags(ids: string[]): Promise<boolean> {
+// export async function removeWebTags(ids: string[]): Promise<boolean> {
+export async function removeBookmarks(ids: string[]): Promise<boolean> {
     try {
         const db = await getDB();
         for (const id of ids) {
@@ -1135,7 +1159,7 @@ export async function removeWebTags(ids: string[]): Promise<boolean> {
         }
         return true;
     } catch (e) {
-        console.error('removeWebTags error', e);
+        console.error('removeBookmarks error', e);
         return false;
     }
 }
@@ -1200,7 +1224,7 @@ export async function getPageGroupData(groupId: string) {
 
 
 export async function testUpdate() {
-    console.log('11111111111111 testUpdate');
+    // console.log('11111111111111 testUpdate');
     const db = await getDB();
     // const group = await db.get('groups', "i1bk37x58");
     // group.pId = "95rdpjwqy";
@@ -1220,6 +1244,380 @@ export async function testUpdate() {
 }
 
 
+
+
+/* export async function detectDuplicatedBookmarks(pageId) {
+    const db = await getDB();
+    const bookmarks = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
+
+    if (!Array.isArray(bookmarks) || bookmarks.length === 0) {
+        return [];
+    }
+
+    // ✅ 更严谨的 URL 标准化
+    function normalize(urlStr) {
+        if (!urlStr) return '';
+
+        try {
+            const url = new URL(urlStr);
+
+            let host = url.hostname
+                .toLowerCase()
+                .replace(/^www\./, '');
+
+            // 移除默认端口
+            let port = url.port;
+            if ((url.protocol === 'http:' && port === '80') ||
+                (url.protocol === 'https:' && port === '443')) {
+                port = '';
+            }
+
+            let path = url.pathname || '/';
+
+            // 去掉 index.html / index.htm
+            path = path.replace(/\/index\.(html?|php)$/i, '/');
+
+            // 去掉 trailing slash（非根路径）
+            if (path.length > 1 && path.endsWith('/')) {
+                path = path.slice(0, -1);
+            }
+
+            return `${host}${port ? ':' + port : ''}${path}`;
+        } catch {
+            // fallback
+            return String(urlStr)
+                .toLowerCase()
+                .replace(/^https?:\/\//, '')
+                .replace(/^www\./, '')
+                .split(/[?#]/)[0]
+                .replace(/\/$/, '');
+        }
+    }
+
+    // ✅ 分组
+    const map = new Map();
+
+    for (const bm of bookmarks) {
+        const key = normalize(bm.url);
+        if (!key) continue;
+
+        if (!map.has(key)) {
+            map.set(key, []);
+        }
+
+        map.get(key).push(bm);
+    }
+
+    const groups = [];
+
+    for (const [key, items] of map.entries()) {
+        if (items.length < 2) continue;
+
+        // ✅ 更合理的推荐策略
+        const recommend = items.reduce((best, cur) => {
+            if (!best) return cur;
+
+            const score = (item) => {
+                let s = 0;
+
+                try {
+                    const u = new URL(item.url);
+
+                    // 没有 query/hash → 更干净
+                    if (!u.search) s += 2;
+                    if (!u.hash) s += 1;
+
+                    // URL 越短越好
+                    s += Math.max(0, 100 - item.url.length) / 100;
+
+                    // 有 title 加分
+                    if (item.title || item.name) s += 1;
+
+                    // 时间更早加一点权重
+                    if (item.addDate) {
+                        s += 1 / (Number(item.addDate) || 1);
+                    }
+
+                } catch { }
+
+                return s;
+            };
+
+            return score(cur) > score(best) ? cur : best;
+        }, null);
+
+        groups.push({
+            id: `dup-${key}-${uuid()}`,
+            key,
+            title: `疑似重复：${key}`,
+            recommendKeepId: recommend?.id,
+            count: items.length,
+
+            items: items.map(it => ({
+                id: it.id,
+                url: it.url,
+                title: it.name || it.title || '',
+                addDate: it.addDate,
+            })),
+        });
+    }
+    console.log('detectDuplicatedBookmarks result groups', groups);
+    return groups;
+} */
+
+
+export async function detectDuplicatedBookmarks(pageId) {
+    const db = await getDB();
+    const bookmarks = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
+
+    if (!Array.isArray(bookmarks) || bookmarks.length === 0) {
+        return [];
+    }
+
+    // ✅ 1. 忽略的 query 参数（可持续扩展）
+    const IGNORE_PARAMS = [
+        'utm_source',
+        'utm_medium',
+        'utm_campaign',
+        'utm_term',
+        'utm_content',
+        'spm',
+        'from',
+        'ref',
+        'referrer',
+    ];
+
+    // ✅ 2. 标准化（用于“强重复”判断）
+    function normalize(urlStr: string) {
+        if (!urlStr) return '';
+
+        try {
+            const url = new URL(urlStr);
+
+            let host = url.hostname.toLowerCase().replace(/^www\./, '');
+
+            // ✅ 判断是否为 IP 或 localhost
+            const isIP = /^\d{1,3}(\.\d{1,3}){3}$/.test(host);
+            const isLocalhost = host === 'localhost';
+
+            let port = url.port;
+
+            // ✅ 关键逻辑
+            if (!isIP && !isLocalhost) {
+                // 只有“域名”才忽略默认端口
+                if (
+                    (url.protocol === 'http:' && port === '80') ||
+                    (url.protocol === 'https:' && port === '443')
+                ) {
+                    port = '';
+                }
+            }
+            // 👉 IP / localhost 一律保留端口（即使是80）
+
+            let path = url.pathname || '/';
+
+            path = path.replace(/\/index\.(html?|php)$/i, '/');
+
+            if (path.length > 1 && path.endsWith('/')) {
+                path = path.slice(0, -1);
+            }
+
+            const params = new URLSearchParams(url.search);
+
+            IGNORE_PARAMS.forEach(p => params.delete(p));
+
+            const sortedParams = [...params.entries()]
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([k, v]) => `${k}=${v}`);
+
+            const query = sortedParams.length ? `?${sortedParams.join('&')}` : '';
+
+            // ✅ 端口拼接回去
+            return `${host}${port ? ':' + port : ''}${path}${query}`;
+
+        } catch {
+            return String(urlStr)
+                .toLowerCase()
+                .replace(/^https?:\/\//, '')
+                .replace(/^www\./, '')
+                .split('#')[0];
+        }
+    }
+    // ✅ 3. 弱标准化（用于“弱重复”判断：忽略 query）
+    function normalizeWeak(urlStr: string) {
+        if (!urlStr) return '';
+
+        try {
+            const url = new URL(urlStr);
+
+            let host = url.hostname.toLowerCase().replace(/^www\./, '');
+            let path = url.pathname || '/';
+
+            if (path.length > 1 && path.endsWith('/')) {
+                path = path.slice(0, -1);
+            }
+
+            return `${host}${path}`;
+        } catch {
+            return String(urlStr)
+                .toLowerCase()
+                .replace(/^https?:\/\//, '')
+                .replace(/^www\./, '')
+                .split(/[?#]/)[0];
+        }
+    }
+
+    // ✅ 4. 两套分组
+    const strongMap = new Map(); // 完全重复
+    const weakMap = new Map();   // 可能重复
+
+
+    for (const bm of bookmarks) {
+        const strongKey = normalize(bm.url);
+        // const weakKey = normalizeWeak(bm.url);
+        if (strongKey) {
+            if (!strongMap.has(strongKey)) strongMap.set(strongKey, []);
+            strongMap.get(strongKey).push(bm);
+        }
+
+        /*  if (weakKey) {
+             if (!weakMap.has(weakKey)) weakMap.set(weakKey, []);
+             weakMap.get(weakKey).push(bm);
+         } */
+    }
+
+    // ✅ 5. 推荐保留策略（评分机制）
+    function pickRecommend(items) {
+        return items.reduce((best, cur) => {
+            if (!best) return cur;
+
+            const score = (item) => {
+                let s = 0;
+
+                try {
+                    const u = new URL(item.url);
+
+                    if (!u.search) s += 2; // 无 query 更干净
+                    if (!u.hash) s += 1;
+
+                    s += Math.max(0, 100 - item.url.length) / 100;
+
+                    if (item.title || item.name) s += 1;
+
+                    if (item.addDate) {
+                        s += 1 / (Number(item.addDate) || 1);
+                    }
+                } catch { }
+
+                return s;
+            };
+
+            return score(cur) > score(best) ? cur : best;
+        }, null);
+    }
+
+    const groups = [];
+
+    // ✅ 6. 强重复（完全重复）
+    /*  for (const [key, items] of strongMap.entries()) {
+         if (items.length < 2) continue;
+ 
+         const recommend = pickRecommend(items);
+ 
+         groups.push({
+             id: `dup-strong-${key}-${uuid()}`,
+             type: 'strong',
+             title: `重复书签`,
+             key,
+             recommendKeepId: recommend?.id,
+             count: items.length,
+             items: items.map(it => ({
+                 id: it.id,
+                 url: it.url,
+                 title: it.name || it.title || '',
+                 addDate: it.addDate,
+             })),
+         });
+     } */
+
+    let groupIndex = 1;
+    const groupMap = new Map(); // 完全重复
+    const ppMap = new Map(); // 完全重复
+
+    for (const [key, items] of strongMap.entries()) {
+        if (items.length < 2) continue;
+
+        const groupIds = new Set(items.map(bm => bm.gId));
+        for (const gId of groupIds) {
+            const groupName = groupMap.get(gId);
+            if (!groupName) {
+                const group = await getBookmarkGroupById(gId);
+                // groupName = await getNodePathName(group);
+                const res = await getNodePathName(group);
+                // groupMap.set(gId, groupName);
+                const ans = res.ans;
+                console.log('xxxxxxxxxxxxxxx ans', ans);
+                groupMap.set(gId, res.pathNames);
+                ppMap.set(gId, res.ans.id);
+            }
+            // console.log('xxxxxxxxxxxxxxx', group);
+        }
+        // console.log('xxxxxxxxxxxxxxxxxx gIds', groupIds);
+        const recommend = pickRecommend(items);
+        const groupId = `dup-strong-${groupIndex++}`
+        groups.push({
+            // id: `dup-strong-${key}-${uuid()}`,
+            id: groupId,
+            type: 'strong',
+            // title: `重复组 #${groupIndex++}`, // ✅ 关键修改
+            title: `重复组`, // ✅ 关键修改
+            key,
+            recommendKeepId: recommend?.id,
+            count: items.length,
+            items: items.map(it => ({
+                id: it.id,
+                url: it.url,
+                name: it.name || '',
+                group: groupMap.get(it.gId),
+                ppId: ppMap.get(it.gId),
+                gId: groupId,
+                addDate: it.addDate,
+            })),
+        });
+    }
+
+    // ✅ 7. 弱重复（同路径但 query 不同）
+    /*  for (const [key, items] of weakMap.entries()) {
+         if (items.length < 2) continue;
+ 
+         // 如果已经是强重复，就跳过
+         const hasStrong = items.every(it =>
+             strongMap.get(normalize(it.url))?.length > 1
+         );
+ 
+         if (hasStrong) continue;
+ 
+         const recommend = pickRecommend(items);
+ 
+         groups.push({
+             id: `dup-weak-${key}-${uuid()}`,
+             type: 'weak',
+             title: `可能重复（参数不同）`,
+             key,
+             recommendKeepId: recommend?.id,
+             count: items.length,
+             items: items.map(it => ({
+                 id: it.id,
+                 url: it.url,
+                 title: it.name || it.title || '',
+                 addDate: it.addDate,
+             })),
+         });
+     } */
+
+    // console.log('detectDuplicatedBookmarks result groups', groups);
+    return groups;
+}
 
 export async function getPageNodesTree1(pageId, db, includeSelfAsChild = false) {
     // includeSelfAsChild: 如果为 true，则当某个分组有子分组时，

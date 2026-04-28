@@ -202,3 +202,23 @@ label {
  {
     padding: 8px 13px 8px 13px;
 }
+
+/* .arco-collapse-item .arco-list-item-main
+ {
+      flex: none;
+}
+ */
+
+/*  .arco-collapse-item .arco-list-default > .arco-list-footer, .arco-list-default > .arco-list-content > .arco-list-item, .arco-list-default > .arco-list-content .arco-list-row-col > .arco-list-item, .arco-list-default > .arco-list-content.arco-list-virtual .arco-list-item
+ {
+    padding: 13px 0px;
+}  */
+
+.arco-collapse-item .arco-card-size-small .arco-card-body {
+    padding:0;
+}
+
+.arco-collapse-item .arco-list-item-meta {
+    /* align-items: center; */
+    align-items: flex-start;  /* 顶部对齐 */
+}

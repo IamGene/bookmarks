@@ -4,87 +4,190 @@ import {
   Card,
   Checkbox,
   Collapse,
+  Link,
   Divider,
   Drawer,
   List,
   Message,
+  Layout,
   Space,
   Switch,
+  Spin,
   Tag,
   Typography,
 } from '@arco-design/web-react';
+import { detectDuplicatedBookmarks, removeBookmarks } from '@/db/BookmarksPages';
+import {
+  setToUpdateCardGroups,
+} from '@/store/modules/global';
+import { useDispatch } from 'react-redux';
 import { IconDelete, IconFindReplace } from '@arco-design/web-react/icon';
 import IconButton from './IconButton';
 import styles from './style/index.module.less';
-
+import { center } from '@turf/turf';
 const { Text } = Typography;
 const { Item: CollapseItem } = Collapse;
 
-const mockDuplicateGroups = [
-  {
-    id: 'duplicate-group-1',
-    title: '重复组 #1',
-    recommendKeepId: 'bookmark-1',
-    items: [
-      { id: 'bookmark-1', url: 'https://xxx.com/abc', title: '产品主页' },
-      { id: 'bookmark-2', url: 'https://xxx.com/abc?from=xx', title: '产品主页-来源参数' },
-      { id: 'bookmark-3', url: 'https://xxx.com/abc#top', title: '产品主页-锚点链接' },
-    ],
-  },
-  {
-    id: 'duplicate-group-2',
-    title: '重复组 #2',
-    recommendKeepId: 'bookmark-4',
-    items: [
-      { id: 'bookmark-4', url: 'https://docs.demo.dev/start', title: '文档首页' },
-      { id: 'bookmark-5', url: 'https://docs.demo.dev/start/', title: '文档首页/' },
-      { id: 'bookmark-6', url: 'https://docs.demo.dev/start?utm=mail', title: '文档首页-活动入口' },
-    ],
-  },
-  {
-    id: 'duplicate-group-3',
-    title: '重复组 #3',
-    recommendKeepId: 'bookmark-7',
-    items: [
-      { id: 'bookmark-7', url: 'https://community.site.ai/topic/123', title: '社区帖子' },
-      { id: 'bookmark-8', url: 'https://community.site.ai/topic/123#reply-2', title: '社区帖子-回复楼层' },
-    ],
-  },
-];
 
-function DuplicateDetectionDrawer() {
+function DuplicateDetectionDrawer({ currentPage }) {
   const [visible, setVisible] = useState(false);
   const [autoDetect, setAutoDetect] = useState(true);
   const [scanning, setScanning] = useState(false);
-  const [manualSelections, setManualSelections] = useState<Record<string, string[]>>({});
+  const dispatch = useDispatch();
+  const [duplicateGroups, setDuplicateGroups] = useState<any[]>([]);
+  const [activeKeys, setActiveKeys] = useState<string[]>([]);
+  const [allExpanded, setAllExpanded] = useState(false);
+  // const [selectedValues, setSelectedValues] = useState({});
+  const [selectedValues, setSelectedValues] = useState(null);
+  // const [selectedAnsIds, setSelectedAnsIds] = useState(null);
 
   const totalDuplicateCount = useMemo(
-    () => mockDuplicateGroups.reduce((sum, group) => sum + group.items.length, 0),
-    []
+    () => duplicateGroups.reduce((sum, group) => sum + (group.items?.length || 0), 0),
+    [duplicateGroups]
   );
 
-  const handleScan = () => {
+  const [loading, setLoading] = useState(false);
+
+  const handleScan = async () => {
     setScanning(true);
-    window.setTimeout(() => {
+    setLoading(!loading);
+    try {
+      const groups = await detectDuplicatedBookmarks(currentPage);
+      // 初始化 selectedValues（按 group 分组）默认选中的
+      const initialSelectedValues: Record<string, string[]> = {};
+      groups.forEach((group) => {
+        const { id: gId, items, recommendKeepId } = group;
+        initialSelectedValues[gId] = items
+          .filter((item) => item.id !== recommendKeepId)
+          .map((item) => item.id);
+      });
+      // console.log('xxxxxxxxxxxxxxx handleScan', groups, initialSelectedValues);
+      setSelectedValues(initialSelectedValues);
+      const list = Array.isArray(groups) ? groups : [];
+      setDuplicateGroups(list.length ? list : []);
+
+      // 如果处于全部展开状态，扫描后仍保持全部展开
+      if (allExpanded && list.length) {
+        setActiveKeys(list.map((g: any) => g.id));
+      }
+      Message.success(`扫描完成，发现 ${list.length} 组疑似重复书签`);
+    } catch (e) {
+      console.error('detectDuplicatedBookmarks error', e);
+      Message.error('扫描失败');
+    } finally {
       setScanning(false);
-      Message.success(`扫描完成，发现 ${mockDuplicateGroups.length} 组疑似重复书签`);
-    }, 800);
+      setLoading(false);
+    }
   };
 
-  const handleDeleteOthers = (groupId: string, recommendKeepId: string) => {
-    const group = mockDuplicateGroups.find((item) => item.id === groupId);
-    const selectedIds =
-      group?.items.filter((item) => item.id !== recommendKeepId).map((item) => item.id) || [];
-    setManualSelections((prev) => ({ ...prev, [groupId]: selectedIds }));
-    Message.info('已选中推荐保留项之外的书签，当前为模拟界面');
+
+  const handleManualSelect = (gId: string, ids: string[]) => {
+    setSelectedValues((prev) => ({
+      ...prev,
+      [gId]: ids,
+    }));
   };
 
-  const handleManualSelect = (groupId: string, values: string[]) => {
-    setManualSelections((prev) => ({ ...prev, [groupId]: values }));
-  };
+
+  const handleRemoveSelected = async (group: any) => {
+    // console.log('选中...................', selectedValues?.[group.id]);
+    const group1 = duplicateGroups.filter(item => item.id == group.id)[0];
+    const items = group1.items;
+    const ids = selectedValues?.[group.id];
+    if (ids.length > 0) {
+      const selectedItems = items.filter(item => ids.includes(item.id));
+      const res = await removeBookmarks(ids);
+      // const res = true;
+      if (res) {
+        if (selectedValues?.[group.id].length >= items.length - 1) {
+          // console.log('xxxxxxxxxxxxxx 仅剩1条或全部删除', group1);
+          setDuplicateGroups(prev => prev.filter(item => item.id !== group.id));
+        } else {
+          const next = (duplicateGroups).map(dg => {
+            const newItems = dg.items.filter(b => !ids.includes(b.id));
+            return dg.id === group.id ? { ...dg, items: newItems } : dg;
+          });
+          setDuplicateGroups(next);
+        }
+
+        Message.success('删除成功');
+        const ansIds: string[] = Array.from(new Set(selectedItems.map(b => b.ppId)));// 使用 Set 去重，然后再转回数组
+        await dispatch(setToUpdateCardGroups(ansIds));
+      }
+    };
+  }
+
+
+
+
+  const render = (actions, item, index) => (
+
+    <List.Item key={item.id} actions={actions}>
+      <List.Item.Meta
+        avatar={
+          <Checkbox
+            // style={{ position: 'absolute', top: 2 }} selectedValues
+            checked={(selectedValues[item.gId] || []).includes(item.id)}
+            onChange={(checked) => {
+              const groupIds = selectedValues[item.gId] || [];
+
+              let nextGroupIds: string[];
+
+              if (checked) {
+                nextGroupIds = [...groupIds, item.id];
+              } else {
+                nextGroupIds = groupIds.filter((id) => id !== item.id);
+              }
+              handleManualSelect(item.gId, nextGroupIds);
+            }}
+          />
+        }
+
+        title={
+          <div title={item.url}>
+            <a href={item.url} target="_blank">
+              <Typography.Text type='primary'
+                ellipsis={
+                  {
+                    // showTooltip: true,
+                    rows: 1,
+                    expandable: false,
+                    suffix: '',
+                    ellipsisStr: '...',
+                  }
+                }
+              >
+                {item.url}
+              </Typography.Text>
+            </a>
+          </div>
+        }
+        description={
+
+          <Layout>
+            <Typography.Text
+              ellipsis={
+                {
+                  // showTooltip: true,
+                  rows: 2,
+                  expandable: true,
+                  suffix: '',
+                  ellipsisStr: '...',
+                }
+              }
+            >
+              {item.name}
+            </Typography.Text>
+            <Typography.Text underline>{item.group}</Typography.Text>
+          </Layout>
+        }
+      />
+    </List.Item>
+  );
+
 
   return (
-    <>
+    <div id='de-duplicate'>
       <IconButton
         // type="outline"
         icon={<IconFindReplace />}
@@ -96,6 +199,11 @@ function DuplicateDetectionDrawer() {
 
       <Drawer
         width={450}
+        bodyStyle={{
+          overflowY: 'scroll',  // 关键
+          height: '100%',
+          transition: 'none! important'
+        }}
         title="重复书签检测"
         visible={visible}
         onCancel={() => setVisible(false)}
@@ -112,25 +220,56 @@ function DuplicateDetectionDrawer() {
             </div>
           </Space>
           <Text type="secondary">
-            当前展示模拟结果，共 {mockDuplicateGroups.length} 组，涉及 {totalDuplicateCount} 条书签
+            {/* 当前展示检测结果，共 {duplicateGroups.length} 组，涉及 {totalDuplicateCount} 条书签 */}
+            {duplicateGroups.length > 0 ? `检测到 ${duplicateGroups.length} 组重复，涉及 ${totalDuplicateCount} 条书签` :
+              '点击按钮开始检测'}
           </Text>
         </div>
-
         <Divider style={{ margin: '16px 0' }} />
 
-        <div className={styles['duplicate-list-header']}>
-          <Text bold>重复分组列表</Text>
-        </div>
+        {
+          selectedValues &&
+          (Object.keys(selectedValues).length > 0 ?
+            <div className={styles['duplicate-list-header']}>
+              {/* <Text bold>重复分组列表</Text> */}
+              <Typography.Title heading={6}>重复分组列表</Typography.Title>
+              <div>
+                <Button type="outline" size="small" onClick={() => {
+                  if (allExpanded) {
+                    setActiveKeys([]);
+                    setAllExpanded(false);
+                  } else {
+                    const keys = duplicateGroups.map((g) => g.id);
+                    setActiveKeys(keys);
+                    setAllExpanded(true);
+                  }
+                }}>
+                  {allExpanded ? '全部折叠' : '全部展开'}
+                </Button>
+              </div>
+            </div> :
+            <Typography.Title heading={6}>没有检测到重复书签</Typography.Title>)
+        }
 
-        <Collapse
+        {scanning &&
+          <Space direction="vertical" size={16} style={{ width: '100%', textAlign: 'center' }}>
+            <Spin loading={loading}>
+            </Spin>
+          </Space>
+        }
+
+
+        {duplicateGroups.length > 0 && <Collapse
           className={styles['duplicate-collapse']}
-          defaultActiveKey={mockDuplicateGroups.map((group) => group.id)}
+          activeKey={activeKeys}
+          onChange={(keys) => {
+            if (activeKeys.includes(keys)) setActiveKeys(prev => prev.filter(k => k !== keys));
+            else setActiveKeys(prev => [...prev, keys as string]);
+          }}
           bordered={false}
         >
-          {mockDuplicateGroups.map((group) => {
-            const selectedValues = manualSelections[group.id] || [];
-            const recommendIndex =
-              group.items.findIndex((item) => item.id === group.recommendKeepId) + 1;
+          {duplicateGroups.map((group, index) => {
+            const selectedCount = selectedValues?.[group.id]?.length ?? 0;
 
             return (
               <CollapseItem
@@ -138,7 +277,7 @@ function DuplicateDetectionDrawer() {
                 name={group.id}
                 header={
                   <div className={styles['duplicate-collapse-header']}>
-                    <span>{group.title}</span>
+                    <span>{`重复组 #${index + 1}`}</span>
                     <Tag color="arcoblue">{group.items.length}条</Tag>
                   </div>
                 }
@@ -146,72 +285,39 @@ function DuplicateDetectionDrawer() {
                 <Card
                   size="small"
                   className={styles['duplicate-group-card']}
-                // title={`${group.title}（${group.items.length}条）`}
                 >
                   <List
+                    className='list-demo-actions'
                     dataSource={group.items}
-                    render={(item, itemIndex) => (
-                      <List.Item key={item.id}>
-                        <div className={styles['duplicate-item-row']}>
-                          <div className={styles['duplicate-item-main']}>
-                            <Text className={styles['duplicate-item-url']}>{item.url}</Text>
-                            <Text type="secondary" className={styles['duplicate-item-title']}>
-                              {item.title}
-                            </Text>
-                          </div>
-                          <Space size={8}>
-                            {item.id === group.recommendKeepId && <Tag color="green">推荐保留</Tag>}
-                            {item.id === group.recommendKeepId && (
-                              <Tag bordered color="orangered">
-                                第{itemIndex + 1}条
-                              </Tag>
-                            )}
-                          </Space>
-                        </div>
-                      </List.Item>
-                    )}
+                    render={render.bind(null, [
+                    ])}
+                  /*  virtualListProps={{
+                     height: 500,//可视区高度 (2.11.0 开始支持如 80% 的 string 类型)
+                   }} */
                   />
-
-                  <div className={styles['duplicate-action-row']}>
-                    {/* <Tag color="green">保留建议：第{recommendIndex}条</Tag> */}
-                    <Space wrap>
-                      <Button
-                        status="danger"
-                        icon={<IconDelete />}
-                        onClick={() => handleDeleteOthers(group.id, group.recommendKeepId)}
-                      >
-                        删除其余
-                      </Button>
-                      <Button type="outline">手动选择</Button>
-                    </Space>
-                  </div>
-
-                  <div className={styles['duplicate-manual-panel']}>
-                    <Text type="secondary">手动选择待删除项</Text>
-                    <Checkbox.Group
-                      direction="vertical"
-                      value={selectedValues}
-                      onChange={(values) => handleManualSelect(group.id, values as string[])}
+                  <Space wrap style={{ marginTop: '8px', marginLeft: '16px' }}>
+                    <Button
+                      status="danger"
+                      icon={<IconDelete />}
+                      // disabled={(!selectedValues || selectedValues[group.id]?.length === 0)}
+                      disabled={selectedCount === 0}
+                      onClick={() => handleRemoveSelected(group)}
+                    // console.log('选中................... group1', group1);
+                    // Message.info(`已删除 ${selectedValues[group.id]?.length || 0} 条书签（模拟）`);
+                    // setManualSelections((prev) => ({ ...prev, [group.id]: [] }));
                     >
-                      {group.items.map((item) => (
-                        <Checkbox
-                          key={item.id}
-                          value={item.id}
-                          disabled={item.id === group.recommendKeepId}
-                        >
-                          {item.url}
-                        </Checkbox>
-                      ))}
-                    </Checkbox.Group>
-                    <Text type="secondary">已选择 {selectedValues.length} 条待删除</Text>
-                  </div>
+                      删除选中
+                    </Button>
+                  </Space>
                 </Card>
               </CollapseItem>
             );
           })}
-        </Collapse>
+        </Collapse>}
+
       </Drawer>
-    </>
+
+    </div >
   );
 }
 

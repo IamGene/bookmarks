@@ -4,16 +4,10 @@ import {
   Input,
   Avatar,
   Select,
-  Dropdown,
-  Trigger,
-  Tabs,
-  Spin,
   Menu,
-  List,
   AutoComplete,
   Divider,
   Message,
-  Upload,
   DatePicker,
   Button,
 } from '@arco-design/web-react';
@@ -348,9 +342,9 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
   );
 
 
-  useEffect(() => {
-    // selected tags are sourced from Redux now.
-  }, [currentPageId]);
+  /*   useEffect(() => {
+      // selected tags are sourced from Redux now.
+    }, [currentPageId]); */
 
 
   //提交成功后关闭或取消关闭Modal窗口
@@ -474,6 +468,7 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
   };
 
   const handleDomainSelect = (value) => {
+    // console.log('11111111111111 handleDomainSelect value', value);
     const normalizedValue = normalizeDomainInput(value);
     setNavBarKey(normalizedValue, searchType);
     setKeyword1(normalizedValue);
@@ -493,9 +488,10 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
 
   // 按回车键时，如果输入值有效且在domainList中，则触发搜索
   const handleDomainPressEnter = (value: string) => {
+    // console.log('xxxxxxxxxxxxxxxx handleDomainPressEnter value', value);
     const normalizedValue = normalizeDomainInput(value).trim();
     setKeyword(null);
-    setKeyword1(normalizedValue);
+    // setKeyword1(normalizedValue);
     // setDomainOptionSelected(false);
     if (!normalizedValue) {
       setNavBarKey('', searchType);
@@ -749,7 +745,6 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
           </li>
 
           {
-            // pageType === 'bookmarks' && tagsMap && Object.keys(tagsMap).length > 0 && <li>
             pageType === 'bookmarks' && <li>
               {/* 跨组件共享数据Context */}
               <TagContext.Provider value={unselectedTag}>
@@ -762,7 +757,7 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
 
           {pageType === 'bookmarks' && (
             <li>
-              <DuplicateDetectionDrawer />
+              <DuplicateDetectionDrawer currentPage={currentPageId} />
             </li>
           )}
 

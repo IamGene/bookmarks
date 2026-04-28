@@ -80,7 +80,7 @@ function BookmarkPageBox({ children, onTagSwitch, currentPage }) {
   const [popupVisible, setPopupVisible] = React.useState(false);
 
   const [renameActive, setRenameActive] = useState<boolean>(false);
-
+  // console.log('zzzzzzzzzzzzzzzzzzz BookmarkPageBox received currentPage prop:', currentPage);
   // Trigger 自动通知，但不再控制 popupVisible
   const handleVisibleChange = (nextVisible) => {
     // console.log("Trigger reports visible:", nextVisible);

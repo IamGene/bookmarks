@@ -15,7 +15,7 @@ import {
     fetchBookmarksPageDatas, fetchBookmarksPageData0, groupTagUnselected, groupTagSelected, updateBookmarksPage, fetchBookmarksPageDataGoups, updateActiveGroup, updatePageBookmarkTags, updateSearchState
 } from '@/store/modules/global';
 import {
-    getBookmarkGroupById, updatePageBookmarksNum, getAllBookmarksByGroupId, removeCopyGroupById, getBookmarksByIds, removeWebTags, removeWebTagsAndGroups, removeGroupById,
+    getBookmarkGroupById, updatePageBookmarksNum, getAllBookmarksByGroupId, removeCopyGroupById, getBookmarksByIds, removeBookmarks, removeWebTagsAndGroups, removeGroupById,
     getBookmarksGroupById, resortNodes, getBookmarksNumByGId, clearGroupBookmarksById, getThroughChild
 } from '@/db/BookmarksPages';
 import { useDrag, useDrop } from 'react-dnd';
@@ -24,7 +24,7 @@ import { sortGroup } from '@/api/navigate';
 import { RootState } from '@/store';
 import MultiSelectCheckBox from '@/components/NestedTabs/CheckBox';
 const TabPane = Tabs.TabPane;
-const ButtonGroup = Button.Group;
+// const ButtonGroup = Button.Group;
 const { GridItem } = Grid;
 // import locale from './locale';
 // import useLocale from '@/utils/useLocale';
@@ -44,7 +44,6 @@ interface WrapTabNodeProps {
     moveTabNode: (dragIndex: number, hoverIndex: number, node: any) => void;
     children: React.ReactNode;
 }
-
 
 
 const WrapTabNode = (props: WrapTabNodeProps) => {
@@ -1034,27 +1033,59 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
 
     // 当前全局 pageId（切换书签页时用于触发本组件的重新初始化）
     const currentGlobalPageId = useSelector((state: RootState) => state.global.currentPage?.pageId ?? state.global.pageId);
+    const toUpdateCardGroupIds = useSelector((state: RootState) => state.global.toUpdateCardGroups);
     // console.log('bbbbbbbbbbbbbbbbbbbbbbbbbb currentGlobalPageId', currentGlobalPageId);
+
     useEffect(() => {
         //重新进行一次搜索
         // console.log('bbbbbbbbbbbbbbbbbbbbbbbbbb useEffect >>>>>>>>>>>>>>>>>>>>> cardData tags currentGlobalPageId', cardData.name, cardData.id, currentGlobalPageId);
-        setData(cardData);
+        /* setData(cardData);
         setFilterTags(cardData.tagsList || []);
         if (selectedTags && selectedTags.length > 0) {//导航栏中标签筛选
             onNavTagsFilterChange(selectedTags, cardData.tagsList || [], cardData, searchInput);
         } else {
             processSearchKeywordChange(cardData, searchInput, currentSearch, false);//从data中搜索 根据当前Card展示与否
         }
-        //当非标签筛选时，进行搜索
-        // setShowByDisplayAndGroupHide(cardData.hide, display);
-        /*  if (cardData.tags && cardData.tags.length > 0) {
-             setSelectedTags(cardData.tags);
-         } else */
         if (!activeMap[cardData.id] && dataType == 0) {
             initActiveMap(cardData.id);
-        }//初始化第一层tabs的active项
+        }//初始化第一层tabs的active项 */
+        processNewCardData(cardData);
         //标签筛选与关键词筛选互斥
-    }, [cardData, currentGlobalPageId]);//cardData 或 全局当前 pageId 发生变化时，重新处理（解决同 id 不更新问题）
+    }, [cardData, currentGlobalPageId]);//cardData 或 全局当前 pageId 发生变化时，重新处理（解决同 id 不更新问题 按时间分组）
+
+
+    const processNewCardData = async (newData: any) => {
+        setData(newData);
+        // console.log('aaaaaaaaaaaaaaaaaaa refresh Data', data);
+        setFilterTags(newData.tagsList || []);
+        if (selectedTags && selectedTags.length > 0) {//导航栏中标签筛选
+            onNavTagsFilterChange(selectedTags, newData.tagsList || [], newData, searchInput);
+        } else {
+            processSearchKeywordChange(newData, searchInput, currentSearch, false);//从data中搜索 根据当前Card展示与否
+        }
+        if (!activeMap[newData.id] && dataType == 0) {
+            initActiveMap(newData.id);
+        }
+        return newData;
+    }
+
+    const getNewCardData = async (id: string) => {
+        const resultData = await getBookmarksGroupById(id);
+        if (resultData) {
+            const newData = resultData.groupData;
+            processNewCardData(newData);
+            return newData;
+        }
+        return data;
+    }
+
+    useEffect(() => {
+        if (toUpdateCardGroupIds.length > 0 && toUpdateCardGroupIds.includes(cardData.id)) {
+            // console.log('useEffect >>>>>>>>>>>>>>>>>>>>> cardData toUpdateCardGroupIds', cardData.name, toUpdateCardGroupIds);
+            getNewCardData(cardData.id);
+        }
+
+    }, [toUpdateCardGroupIds]);//cardData 或 全局当前 pageId 发生变化时，重新处理（解决同 id 不更新问题 按时间分组）
 
     const getThroughChildHasResult = (data) => {
         if (!data || !Array.isArray(data.children) || data.children.length === 0) {
@@ -2247,7 +2278,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
             if (searching) {//搜索模式
                 const bookmarkIds: string[] = Array.from(new Set(data.searchResult.map(b => (b && b.id) || null).filter(Boolean)));
                 // console.log('0000000000000000000-11 processRemoveGroup1 按时间分组 searching', bookmarkIds);
-                const response = await removeWebTags(bookmarkIds);
+                const response = await removeBookmarks(bookmarkIds);
                 if (response) {
                     setData(prev => {
                         const newSearchResult = [];
@@ -2282,7 +2313,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                         for (const t of tags) toRemoveTags.push({ tag: t, add: false, id: bookmark.id });
                     }
                 }
-                const response = await removeWebTags(bookmarkIds);
+                const response = await removeBookmarks(bookmarkIds);
                 if (response) {
                     if (toRemoveTags.length > 0) {
                         // console.log('0000000000000000000-11 processRemoveGroup1 按时间分组 !searching toRemoveTags', toRemoveTags);
@@ -2322,7 +2353,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                     }
                 }
 
-                const response = await removeWebTags(allBookmarkIds);//删除全部筛选/搜索结果
+                const response = await removeBookmarks(allBookmarkIds);//删除全部筛选/搜索结果
                 // console.log('0000000000000000000-22 processRemoveGroup1 按域名分组 搜索模式 删除大分组的搜索结果', allBookmarks);
                 // const response = false;
                 if (response) {
@@ -2392,7 +2423,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                 }
 
                 // console.log('0000000000000000000-22 processRemoveGroup1 按域名分组 非搜索模式 toRemoveTags', allBookmarks, toRemoveTags);
-                const response = await removeWebTags(allBookmarkIds);
+                const response = await removeBookmarks(allBookmarkIds);
                 if (response) {
                     if (toRemoveTags.length > 0) {
                         dispatch(updatePageBookmarkTags(toRemoveTags));//删除标签
@@ -3716,7 +3747,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         const bookmarkIds = (Array.isArray(data.searchResult) ? data.searchResult.map(b => b && b.id).filter(Boolean) : []);
         if (bookmarkIds.length > 0) {
             // const res = true;//删除书签数组
-            const res = await removeWebTags(bookmarkIds);//删除书签数组
+            const res = await removeBookmarks(bookmarkIds);//删除书签数组
 
             const toRemoveTags = [];
             for (const bookmark of data.searchResult) {
@@ -3775,7 +3806,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
     const removeSearchResultDataType1 = async () => {
         const bookmarkIds = (Array.isArray(data.searchResult) ? data.searchResult.map(b => b && b.id).filter(Boolean) : []);
         if (bookmarkIds.length > 0) {
-            const res = await removeWebTags(bookmarkIds);//删除书签数组
+            const res = await removeBookmarks(bookmarkIds);//删除书签数组
             // const res = true;//删除书签数组
 
             const toRemoveTags = [];
@@ -3825,7 +3856,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                     for (const t of tags) toRemoveTags.push({ tag: t, add: false, id: bookmark.id });
                 }
             }
-            const res = await removeWebTags(bookmarkIds);//只删除书签 不删除分组
+            const res = await removeBookmarks(bookmarkIds);//只删除书签 不删除分组
 
             // const res = true;//删除书签数组
             if (res) {//删除书签成功
@@ -4109,7 +4140,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                                     }
                                 }
 
-                                const res = await removeWebTags(bookmarkIds);//删除书签数组
+                                const res = await removeBookmarks(bookmarkIds);//删除书签数组
                                 if (res) {//删除书签成功
                                     await processUpdatePageBookmarksNum(pageId, -1 * bookmarkIds.length);
                                     if (toRemoveTags.length > 0) dispatch(updatePageBookmarkTags(toRemoveTags));
@@ -4183,7 +4214,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                                         }
                                     }
 
-                                    const res = await removeWebTags(bookmarkIds);
+                                    const res = await removeBookmarks(bookmarkIds);
 
                                     if (res) {//删除书签成功
                                         await processUpdatePageBookmarksNum(pageId, -1 * bookmarkIds.length);
@@ -4615,7 +4646,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
 
         const deleteSelectedBookmarks = async (ids, groupPath) => {
             try {
-                const ok = await removeWebTags(ids);
+                const ok = await removeBookmarks(ids);
                 // const ok = true;
                 if (ok) {
 

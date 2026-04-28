@@ -123,6 +123,7 @@ export interface GlobalState {
   dateGroups: TagGroups;
   dataGroups: TagGroups;
   domainGroups: TagGroups;
+  toUpdateCardGroups: string[];
   pageId: number,
   currentPage: Page,
   defaultPage: number;
@@ -153,7 +154,7 @@ const initialState: GlobalState = {
     searchResultNum: 0,
     searchType: 0,
   },
-
+  toUpdateCardGroups: [],
   dataByDate: null,//当前标签分组列表,用于新增
   dataByGroup: null,//当前标签分组列表（按时间排列）,用于新增
   dataByDomain: null,//当前标签分组列表（按域名排列）,用于新增
@@ -299,6 +300,10 @@ const globalSlice = createSlice({
     },
     setSearchHistory: (state, action) => {
       state.search.searchHistory = action.payload.historyWords;
+    },
+
+    updateRefreshCardGroups: (state, action) => {
+      state.toUpdateCardGroups = action.payload.toUpdateCardGroups;
     },
     switchTagSelected: (state, action) => {
       const tag = action.payload.switchTag;
@@ -923,9 +928,15 @@ const loadSearchHistory = () => {
   }
 };
 
+const setToUpdateCardGroups = (toUpdateCardGroups: string[]) => {
+  return async (dispatch) => {
+    dispatch(updateRefreshCardGroups({ toUpdateCardGroups: toUpdateCardGroups }));
+  }
+};
+
 // export const { updateSettings, updateUserInfo, updateHasResult, updateBookmarks } = globalSlice.actions;
 //updateSearchHistory 
-const { updateSettings, updateUserInfo, switchTagSelected,
+const { updateSettings, updateUserInfo, switchTagSelected, updateRefreshCardGroups,
   updateGroupTypes, updateSearchState, updatePageGroupList, updateTagSelected, updateTagUnSelected,
   updateUserPage, updateTagsMap, updateBookmarks, setUserPages,
   setSearchHistory,
@@ -933,7 +944,7 @@ const { updateSettings, updateUserInfo, switchTagSelected,
 export {
   updateSettings, updateUserInfo, updateSearchState, updateBookmarks, updateActiveGroup,
   loadSearchHistory, updatePageBookmarkTags, oneTagSelectedSwitch,
-  updatePageDataState, reloadUserPages, fetchBookmarksPageData,
+  updatePageDataState, reloadUserPages, fetchBookmarksPageData, setToUpdateCardGroups,
   fetchBookmarksPageData0, fetchBookmarksPageData1, fetchBookmarksPageData2, updateBookmarksPage, fetchBookmarksPageDatas, fetchBookmarksPageDataGoups,
   loadNewAddedBookmarks, updatePageGroupsDataByType, groupTagUnselected, groupTagSelected
 };
