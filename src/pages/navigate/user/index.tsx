@@ -256,14 +256,11 @@ function UserNavigate() {
 
   const [dataType, setDataType] = useState(0);//数据组织类型：0：按分组；1：按时间
 
-  const [hasResult, setHasResult] = useState(true);
   // const [data, setData] = useState(hiddenGroup ? filterHideItems(groups) : groups);
-
   // const [filterFromAll, setFilterFromAll] = useState(hiddenGroup ? filterHideItems(groups) : groups);
   // const [filterFromAll, setFilterFromAll] = useState(groups);
   // const [filterFromAll, setFilterFromAll] = useState(dataGroups);
   // const [bookmarkPages, setBookmarkPages] = useState([]);
-  // const [currentPage, setCurrentPage] = useState(null);
 
   const [routes, defaultRoute] = useNavi(userInfo?.permissions);
   const defaultSelectedKeys = [currentComponent || defaultRoute];

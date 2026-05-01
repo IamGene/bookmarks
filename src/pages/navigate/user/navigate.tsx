@@ -123,7 +123,6 @@ function ListCard({ activeCardTab, dataType, setCardTabActive, searchKeyWord, li
   };
 
 
-
   const getMockCardList = (
     list: Array<WebTag>
   ) => {

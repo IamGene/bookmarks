@@ -11,9 +11,11 @@ import CardBlock1 from './card-block1';
 import CardItem from './card';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import SearchResult from '@/components/SearchResult/index';
 // import CardEmpty from './card-empty';
 // import EmptyCard from '@/components/EmptyCard/index';
 import EmptyCard from '@/components/EmptyCard/index';
+import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 // const TabPane = Tabs.TabPane;
 // import AddCard from './card-add';
 import { WebTag } from './interface';
@@ -30,6 +32,11 @@ function ListCard({ activeCardTab, display, setCardTabActive, keyWord, list, has
   // console.log('zzzzzzzzzzzzzzzzzz has activeCardTab', activeCardTab);
   // const { activeCardTab, display, activeGroup, setCardTabActive, keyWord, list, hasResult, loading } = props;
   let search: boolean = keyWord && keyWord.length > 0;
+
+
+  const searchState = useSelector((state: any) => state.global.search);
+  const { searchResultNum } = searchState;
+  console.log('111111111111 searchResultNum  searchResultNum', searchResultNum);
 
   const [activeKey, setActiveKey] = useState('tags');
 
@@ -143,7 +150,7 @@ function ListCard({ activeCardTab, display, setCardTabActive, keyWord, list, has
               // first={index == 0}
               // activeGroup={activeGroup}
               treeSelectedNode={activeCardTab}
-              keyWord={keyWord}
+              searchKeyWord={keyWord}
             >
             </CardItem>
           })}
@@ -152,7 +159,9 @@ function ListCard({ activeCardTab, display, setCardTabActive, keyWord, list, has
 
 
       {/* {(search  && (list && list.length > 0)) && <SearchResult></SearchResult>} */}
-      {(search || (!list || list.length === 0)) && <EmptyCard search={search}></EmptyCard>}
+      {/* {(search || (!list || list.length === 0)) && <EmptyCard search={search}></EmptyCard>} */}
+
+      {(search && searchResultNum == 0 || (!list || list.length === 0)) && <EmptyCard search={search}></EmptyCard>}
       {/* {(!hasResult || (list && list.length === 0)) && <EmptyCard search={search}></EmptyCard>} */}
       {/* {!hasResult && search && <EmptyCard search={search}></EmptyCard>} */}
     </div>

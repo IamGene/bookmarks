@@ -155,12 +155,20 @@ const Highlight = (parts, keyword) => {
 };
 
 
-// 递归聚合版本搜索：在保留原有 searchData 行为的同时，增加每个节点的聚合字段 searchDataAggregated
+// 递归聚合版本搜索：在保留原有 searchData 行为的同时，增加每个节点的聚合字段 
 // 返回的节点包含原有的 `searchResult` 与 `noHiddenSearchResult` 字段，
 // 并额外添加 `childrenMatchCount`（直接子节点命中数）和 `totalMatchCount`（子树内总命中数）。
 
 function searchDataAggregated(inputValue, searchType, cardData) {
-    const regex = new RegExp(`(${inputValue})`, 'gi');
+    // const regex = new RegExp(`(${inputValue})`, 'gi');
+    const safeInput = escapeRegExp(inputValue || '');
+    const regex = new RegExp(`(${safeInput})`, 'gi');
+    // if (cardData.name === '测试A') console.log('xxxxxxxxxxxxxxx  inputValue searchType cardData', inputValue, searchType, cardData);
+
+    //把所有正则特殊字符转义掉
+    function escapeRegExp(str: string): string {
+        return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
 
     function extractHostname(url) {
         try {
@@ -213,23 +221,40 @@ function searchDataAggregated(inputValue, searchType, cardData) {
                 }
             }
 
+
             if (searchType === 4) {
-                const host = extractHostname(bookmark.url || '');
-                // 去除 inputValue 末尾可能存在的斜杠，再去掉协议进行比较
+                const rawUrl = String(bookmark.url || '');
+                const host = extractHostname(rawUrl);
+
                 const trimmed = String(inputValue || '').replace(/\/+$/, '');
                 const q = trimmed.replace(/^https?:\/\//i, '');
                 const qLower = q.toLowerCase();
-                if (host && host.toLowerCase().indexOf(qLower) !== -1) {
+
+                if (host && host.toLowerCase().includes(qLower)) {
                     contains = true;
                 }
-                // 尝试对 url 字段做高亮（若包含关键词）
+
                 try {
-                    const partsUrl = String(url || '').split(regex);
-                    if (partsUrl.length >= 3) {
-                        displayUrl = Highlight(partsUrl, inputValue);
+                    if (host && q) {
+                        const regex = new RegExp(`(${q})`, 'ig');
+
+                        // 高亮 host（JSX）
+                        const highlightedHost = Highlight(host.split(regex), q);
+
+                        // 拆分 URL
+                        const parts = rawUrl.split(host);
+
+                        // 用 JSX 拼回去（关键）
+                        displayUrl = (
+                            <>
+                                {parts[0]}
+                                {highlightedHost}
+                                {parts.slice(1).join(host)}
+                            </>
+                        );
                     }
                 } catch (e) {
-                    // 忽略高亮错误，保留原始 url
+                    // 忽略错误
                 }
             }
 
@@ -331,7 +356,7 @@ function searchDataAggregated(inputValue, searchType, cardData) {
     return processNode(cardData, 0);
 }
 
-function searchDataAggregated1(dateRange: string[], searchType: number, cardData: any) {
+/* function searchDataAggregated1(dateRange: string[], searchType: number, cardData: any) {
     function processLeaf(data) {
         const bookmarks = [];
         const searchResult = [];
@@ -362,7 +387,6 @@ function searchDataAggregated1(dateRange: string[], searchType: number, cardData
                     }
                 } else if (Array.isArray(dateRange) && dateRange.length === 1) {
                     // 单元素范围视为精确匹配或当天范围
-                    // console.log('1111111111111111 searchDataAggregated1 dateRange single', dateRange);
                     const d = dateStr ? Date.parse(dateStr) : NaN;
                     const target = Date.parse(dateRange[0]);
                     if (!isNaN(d) && !isNaN(target)) {
@@ -456,7 +480,7 @@ function searchDataAggregated1(dateRange: string[], searchType: number, cardData
         return processLeaf(cardData);
     }
     return processNode(cardData, 0);
-}
+} */
 
 
 
@@ -1202,8 +1226,9 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
 
     useEffect(() => {
         const keyWord = searchKeyWord ? searchKeyWord.keyword : '';
+        // const keyWord = searchKeyWord && searchKeyWord.keyword ? searchKeyWord.keyword : '';
         const searchType = searchKeyWord ? searchKeyWord.searchType : 0;
-        // console.log('xxxxxxxxxxxxxxxxxx useEffect keyWord', keyWord, searchKeyWord, cardData.name);
+        // if (data.name === '测试A') console.log('xxxxxxxxxxxxxxxxxx useEffect keyWord searchType', searchType, keyWord, searchKeyWord, cardData.name);
 
         setSearchType(searchType);
         searchTypeRef.current = searchType;
@@ -1262,7 +1287,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
             }
         } else {
             setSearching(true);//
-            const result = searchDataAggregated1(dateRange, searchType, data);
+            const result = searchDataAggregated(dateRange, searchType, data);
             setData(result);
             // console.log(cardData.name + ' processNotEmptySearch 搜索结果', result, data);
             if (result.totalMatchCount > 0) {//有搜索结果
@@ -3551,7 +3576,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                 // setData({ ...data, bookmarks: newBookmarks });
                 const newData = { ...data, bookmarks: newBookmarks };
                 if (searching) {//搜索模式中删除，结果数-1
-                    const result = searchDataAggregated(searchInput.trim(), newData);
+                    const result = searchDataAggregated(searchInput.trim(), searchType, newData);
                     // setSearchResult(result.searchResult); //（全部）搜索结果
                     setData(result);
                     if (result.searchResult.length == 0) {//搜索结果为空

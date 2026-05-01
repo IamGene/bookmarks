@@ -1,10 +1,11 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   Button,
   Card,
   Checkbox,
   Collapse,
   Link,
+  Tooltip,
   Divider,
   Drawer,
   List,
@@ -25,11 +26,14 @@ import { IconDelete, IconFindReplace } from '@arco-design/web-react/icon';
 import IconButton from './IconButton';
 import styles from './style/index.module.less';
 import { center } from '@turf/turf';
+import useLocale from '@/utils/useLocale';
 const { Text } = Typography;
 const { Item: CollapseItem } = Collapse;
 
-
 function DuplicateDetectionDrawer({ currentPage }) {
+
+  const t = useLocale();
+
   const [visible, setVisible] = useState(false);
   const [autoDetect, setAutoDetect] = useState(true);
   const [scanning, setScanning] = useState(false);
@@ -47,6 +51,11 @@ function DuplicateDetectionDrawer({ currentPage }) {
   );
 
   const [loading, setLoading] = useState(false);
+
+  //设置-自动检测
+  useEffect(() => {
+    if (visible) handleScan();
+  }, [visible]);//
 
   const handleScan = async () => {
     setScanning(true);
@@ -119,7 +128,6 @@ function DuplicateDetectionDrawer({ currentPage }) {
 
 
 
-
   const render = (actions, item, index) => (
 
     <List.Item key={item.id} actions={actions}>
@@ -187,7 +195,10 @@ function DuplicateDetectionDrawer({ currentPage }) {
 
 
   return (
-    <div id='de-duplicate'>
+    <Tooltip
+      content={t['bookmarks.page.duplicated.find']}
+    >
+      {/* <div id='de-duplicate'> */}
       <IconButton
         // type="outline"
         icon={<IconFindReplace />}
@@ -317,7 +328,8 @@ function DuplicateDetectionDrawer({ currentPage }) {
 
       </Drawer>
 
-    </div >
+      {/* </div > */}
+    </Tooltip>
   );
 }
 

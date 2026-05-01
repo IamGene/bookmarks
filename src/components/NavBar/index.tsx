@@ -94,10 +94,8 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
 
   const setCurrentPageBookmarksData = async (pages) => {
     if (pages && pages.length > 0 && pageType === 'bookmarks') {//只有用户存在标签数据才能查询
-      // const defaultPage = pages.find(page => page.default === true);
       const currentPage = pages.find(page => page.current === true);
       const pageId = currentPage ? currentPage.pageId : pages[0].pageId;//获取默认展示的书签页
-      // setCurrentPage(pageId);
       setCurrentPageId(pageId);
       const data: any = await dispatch(fetchBookmarksPageData(pageId));//获取当前书签页的分组和书签数据
     }
@@ -405,7 +403,10 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
   const [unselectedTag, setUnselectedTag] = useState<any>(null);
 
   function downloadPlugin() {
-    window.location.href = '/plugin-add2Bookmarks-v1.0.zip';
+    // console.log('>>>>>>>>>>>>>>>>>>> downloadPlugin window.location', window.location);
+    window.location.href = window.location.hostname === 'iamgene.github.io' ?
+      '/plugin-add2Bookmarks-G-v1.0.zip' :
+      '/plugin-add2Bookmarks-V-v1.0.zip';
   }
 
 
@@ -414,7 +415,6 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
   }
 
   function onChange(dateString, date) {
-    // console.log('111111111111 onChange: ', dateString, date);
     setNavBarKey(dateString, searchType);//搜索跟随输入
     setKeyword1(null);//重置按域名搜索的输入值
     setKeyword(null);//
@@ -544,6 +544,145 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
     }
   }; */
 
+  function SearchInputComp() {
+    return (
+      <div
+        style={{
+          width: 300,
+          height: 33,
+          display: 'inline-block',
+        }}
+        className="custom-input-group"
+      >
+        <Input.Group compact>
+          <Select
+            value={searchType}
+            onChange={(val) => { handleSelectTypeChange(val); }}
+            style={{ width: 70 }}
+            dropdownMenuStyle={{
+              maxHeight: 400, // 👈 调大这个值
+              // overflowY: 'auto', // 或者 'visible'
+            }}
+          >
+            <Select.Option value={0}>默认</Select.Option>
+            <Select.Option value={1}>标题</Select.Option>
+            <Select.Option value={2}>描述</Select.Option>
+            <Select.Option value={4}>域名</Select.Option>
+            {/* <Select.Option value={3}>网址</Select.Option> */}
+            {pageType === 'bookmarks' && <Select.Option value={3} >网址</Select.Option>}
+            {pageType === 'bookmarks' && <Select.Option value={5} >日期</Select.Option>}
+          </Select>
+          {
+
+            searchType === 4 ?
+              <AutoComplete
+                // placeholder='Please Enter'
+                placeholder={t['navbar.search.placeholder']}
+                allowClear
+                onSearch={handleSearch}
+                onSelect={handleDomainSelect}
+                onChange={handleDomainChange}
+                value={keyword1}
+                data={data}
+                style={{ width: '76.5%', height: 31 }}
+                triggerElement={<Input.Search />}
+                onPressEnter={(event) => handleDomainPressEnter(event.target.value)}
+              >
+              </AutoComplete>
+
+              :
+
+              (
+                searchType !== 5 ?
+                  <SearchHistory searchKeyword={searchKeyword} onClickHistory={onClickHistory} inputValue={keyword}>
+                    <InputSearch
+                      allowClear
+                      value={valueValid ? keyword : ''}
+                      placeholder={t['navbar.search.placeholder']}
+                      onChange={handleKeywordInputChange}
+                      style={{ width: '76.5%', height: 31 }}
+                      onPressEnter={(value) => handleKeywordPressEnter(value)}
+                    />
+                  </SearchHistory>
+                  :
+                  <DatePicker.RangePicker
+                    style={{ width: 228 }}
+                    shortcutsPlacementLeft
+                    onChange={onChange}
+                    onSelect={onSelect}
+                    shortcuts={[
+                      {
+                        text: 'Today',
+                        value: () => [dayjs(), dayjs()],
+                        key: 'today',
+                      },
+                      {
+                        text: 'Yesterday',
+                        value: () => [dayjs().subtract(1, 'day'), dayjs().subtract(1, 'day')],
+                        key: 'yesterday',
+                      },
+                      {
+                        text: 'Last week',
+                        value: () => [dayjs().add(-1, 'week'), dayjs()],
+                        key: '1week',
+                      },
+                      {
+                        text: 'Last 30 days',
+                        value: () => [dayjs().subtract(30, 'day'), dayjs()],
+                        key: '30days',
+                      },
+
+                      {
+                        text: 'This month', // 本月至今
+                        value: () => [dayjs().startOf('month'), dayjs()],
+                        key: 'thisMonth',
+                      },
+                      {
+                        // text: 'Last month', // 上个月 (3月)
+                        text: dayjs().subtract(1, 'month').format('MMMM'), // 上个月 (3月)
+                        value: () => [dayjs().subtract(1, 'month').startOf('month'), dayjs().subtract(1, 'month').endOf('month')],
+                        key: 'last-1-month',
+                      },
+                      {
+                        text: dayjs().subtract(2, 'month').format('MMMM'), // 上上个月 (2月)
+                        value: () => [dayjs().subtract(2, 'month').startOf('month'), dayjs().subtract(2, 'month').endOf('month')],
+                        key: 'last-2-month',
+                      },
+                      {
+                        text: dayjs().subtract(3, 'month').format('MMMM'), // 上上上个月 (1月)
+                        value: () => [dayjs().subtract(3, 'month').startOf('month'), dayjs().subtract(3, 'month').endOf('month')],
+                        key: 'last-3-month',
+                      },
+                      /*   {
+                          text: 'Last month',
+                          value: () => [dayjs().add(-1, 'month'), dayjs()],
+                          key: '1month',
+                        }, */
+                      /*  {
+                         text: 'Last 3 months',
+                         value: () => [dayjs().add(-3, 'month'), dayjs()],
+                         key: '3month',
+                       },
+                      {
+                        text: 'Last year',
+                        value: () => [dayjs().add(-1, 'year'), dayjs()],
+                        key: '12months',
+                      },*/
+                      {
+                        text: 'This year', // 今年至今
+                        value: () => [dayjs().startOf('year'), dayjs()],
+                        key: 'thisYear',
+                      },
+                    ]}
+                  />
+              )
+          }
+        </Input.Group>
+      </div>
+    );
+  }
+
+
   const handleSelectTypeChange = (value) => {//输入后Enter或选择建议项都会触发这个函数，
     // onChange = {(val) => {
     const next = Number(value);
@@ -554,7 +693,15 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
     //曾切换到4或5则输入值无效 除非切换回该搜索搜索方式已按Enter搜索，否则搜索值无效
     let nextValueValide = valueValid ? next < 4 : next == enterSearchType;
     // 若输入框有内容，则切换搜索类型时立即触发搜索
-    if (next < 4 && keyword && String(keyword).trim().length > 0) {
+    if (!keyword) {//搜索关键词为空
+      if (next < 5) {
+        // console.log('xxxxxxxxxxxxxx handleSelectTypeChange next 11', keyword, next);
+        setNavBarKey('', next);
+      }
+    }
+    //0默认 /  1标题 /  2描述 /  3网址  /  4域名（排除，Enter触发）  / 5时间（排除，另外触发）
+    else if (next < 4 && String(keyword).trim().length > 0) {//&& keyword
+      // console.log('xxxxxxxxxxxxxx handleSelectTypeChange', keyword);
       //按url搜索时输入中文则无效
       if (next == 3 && keyword) {
         nextValueValide = isValidUrlInput(String(keyword).trim());
@@ -591,139 +738,7 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
                 onPressEnter={(value) => onEnterPress(value)}
               />
             </SearchHistory> */}
-
-            <div
-              style={{
-                width: 300,
-                height: 33,
-                display: 'inline-block',
-              }}
-              className="custom-input-group"
-            >
-              <Input.Group compact>
-                <Select
-                  value={searchType}
-                  onChange={(val) => { handleSelectTypeChange(val); }}
-                  style={{ width: 70 }}
-                  dropdownMenuStyle={{
-                    maxHeight: 400, // 👈 调大这个值
-                    // overflowY: 'auto', // 或者 'visible'
-                  }}
-                >
-                  <Select.Option value={0}>默认</Select.Option>
-                  <Select.Option value={1}>标题</Select.Option>
-                  <Select.Option value={2}>描述</Select.Option>
-                  <Select.Option value={4}>域名</Select.Option>
-                  <Select.Option value={3}>网址</Select.Option>
-                  {pageType === 'bookmarks' && <Select.Option value={5} >日期</Select.Option>}
-                </Select>
-                {
-
-                  searchType === 4 ?
-                    <AutoComplete
-                      // placeholder='Please Enter'
-                      placeholder={t['navbar.search.placeholder']}
-                      allowClear
-                      onSearch={handleSearch}
-                      onSelect={handleDomainSelect}
-                      onChange={handleDomainChange}
-                      value={keyword1}
-                      data={data}
-                      style={{ width: '76.5%', height: 31 }}
-                      triggerElement={<Input.Search />}
-                      onPressEnter={(event) => handleDomainPressEnter(event.target.value)}
-                    >
-                    </AutoComplete>
-
-                    :
-
-                    (
-                      searchType !== 5 ?
-                        <SearchHistory searchKeyword={searchKeyword} onClickHistory={onClickHistory} inputValue={keyword}>
-                          <InputSearch
-                            allowClear
-                            value={valueValid ? keyword : ''}
-                            placeholder={t['navbar.search.placeholder']}
-                            onChange={handleKeywordInputChange}
-                            style={{ width: '76.5%', height: 31 }}
-                            onPressEnter={(value) => handleKeywordPressEnter(value)}
-                          />
-                        </SearchHistory>
-                        :
-                        <DatePicker.RangePicker
-                          style={{ width: 228 }}
-                          shortcutsPlacementLeft
-                          onChange={onChange}
-                          onSelect={onSelect}
-                          shortcuts={[
-                            {
-                              text: 'Today',
-                              value: () => [dayjs(), dayjs()],
-                              key: 'today',
-                            },
-                            {
-                              text: 'Yesterday',
-                              value: () => [dayjs().subtract(1, 'day'), dayjs().subtract(1, 'day')],
-                              key: 'yesterday',
-                            },
-                            {
-                              text: 'Last week',
-                              value: () => [dayjs().add(-1, 'week'), dayjs()],
-                              key: '1week',
-                            },
-                            {
-                              text: 'Last 30 days',
-                              value: () => [dayjs().subtract(30, 'day'), dayjs()],
-                              key: '30days',
-                            },
-
-                            {
-                              text: 'This month', // 本月至今
-                              value: () => [dayjs().startOf('month'), dayjs()],
-                              key: 'thisMonth',
-                            },
-                            {
-                              // text: 'Last month', // 上个月 (3月)
-                              text: dayjs().subtract(1, 'month').format('MMMM'), // 上个月 (3月)
-                              value: () => [dayjs().subtract(1, 'month').startOf('month'), dayjs().subtract(1, 'month').endOf('month')],
-                              key: 'last-1-month',
-                            },
-                            {
-                              text: dayjs().subtract(2, 'month').format('MMMM'), // 上上个月 (2月)
-                              value: () => [dayjs().subtract(2, 'month').startOf('month'), dayjs().subtract(2, 'month').endOf('month')],
-                              key: 'last-2-month',
-                            },
-                            {
-                              text: dayjs().subtract(3, 'month').format('MMMM'), // 上上上个月 (1月)
-                              value: () => [dayjs().subtract(3, 'month').startOf('month'), dayjs().subtract(3, 'month').endOf('month')],
-                              key: 'last-3-month',
-                            },
-                            /*   {
-                                text: 'Last month',
-                                value: () => [dayjs().add(-1, 'month'), dayjs()],
-                                key: '1month',
-                              }, */
-                            /*  {
-                               text: 'Last 3 months',
-                               value: () => [dayjs().add(-3, 'month'), dayjs()],
-                               key: '3month',
-                             },
-                            {
-                              text: 'Last year',
-                              value: () => [dayjs().add(-1, 'year'), dayjs()],
-                              key: '12months',
-                            },*/
-                            {
-                              text: 'This year', // 今年至今
-                              value: () => [dayjs().startOf('year'), dayjs()],
-                              key: 'thisYear',
-                            },
-                          ]}
-                        />
-                    )
-                }
-              </Input.Group>
-            </div>
+            {SearchInputComp()}
           </li>
 
           <li>
@@ -823,8 +838,7 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
               }
             >
               <IconButton onClick={() => downloadPlugin()}>
-                <Plugins
-                />
+                <Plugins />
               </IconButton>
             </Tooltip>
           </li>

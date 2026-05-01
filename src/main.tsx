@@ -231,38 +231,67 @@ function Index() {
 
   return (
     // <Router>
-    <BrowserRouter>
-      {/* <HashRouter> */}
-      <ConfigProvider
-        locale={getArcoLocale()}
-        componentConfig={{
-          Card: {
-            bordered: false,
-          },
-          List: {
-            bordered: false,
-          },
-          Table: {
-            border: false,
-          },
-        }}
-      >
-        <Provider store={store}>
-          <GlobalContext.Provider value={contextValue}>
-            <Switch>
-              <Route path="/login" exact component={Login} />
-              {/* 以下2个直接匹配，不能交给/PageLayout，因为布局不一样 */}
-              {/* 导航主页 */}
-              <Route path="/index" exact component={DefaultNavigate} />
-              <Route path="/bookmarks" exact component={UserBookmarks} />
-              <Route path="/" component={DefaultNavigate} />
-            </Switch>
-          </GlobalContext.Provider>
-        </Provider>
-      </ConfigProvider>
-    </BrowserRouter>
-    // </HashRouter>
-
+    // <HashRouter>
+    window.location.hostname === 'iamgene.github.io' ?
+      <HashRouter>
+        <ConfigProvider
+          locale={getArcoLocale()}
+          componentConfig={{
+            Card: {
+              bordered: false,
+            },
+            List: {
+              bordered: false,
+            },
+            Table: {
+              border: false,
+            },
+          }}
+        >
+          <Provider store={store}>
+            <GlobalContext.Provider value={contextValue}>
+              <Switch>
+                <Route path="/login" exact component={Login} />
+                {/* 以下2个直接匹配，不能交给/PageLayout，因为布局不一样 */}
+                {/* 导航主页 */}
+                <Route path="/index" exact component={DefaultNavigate} />
+                <Route path="/bookmarks" exact component={UserBookmarks} />
+                <Route path="/" component={DefaultNavigate} />
+              </Switch>
+            </GlobalContext.Provider>
+          </Provider>
+        </ConfigProvider>
+      </HashRouter>
+      :
+      <BrowserRouter >
+        <ConfigProvider
+          locale={getArcoLocale()}
+          componentConfig={{
+            Card: {
+              bordered: false,
+            },
+            List: {
+              bordered: false,
+            },
+            Table: {
+              border: false,
+            },
+          }}
+        >
+          <Provider store={store}>
+            <GlobalContext.Provider value={contextValue}>
+              <Switch>
+                <Route path="/login" exact component={Login} />
+                {/* 以下2个直接匹配，不能交给/PageLayout，因为布局不一样 */}
+                {/* 导航主页 */}
+                <Route path="/index" exact component={DefaultNavigate} />
+                <Route path="/bookmarks" exact component={UserBookmarks} />
+                <Route path="/" component={DefaultNavigate} />
+              </Switch>
+            </GlobalContext.Provider>
+          </Provider>
+        </ConfigProvider>
+      </BrowserRouter >
   );
 }
 

@@ -13,6 +13,8 @@ import { useDispatch } from 'react-redux'
 import { fetchBookmarksPageData } from '@/store/modules/global';
 import { useDrag, useDrop } from 'react-dnd';
 import TabsContainer from '../../../components/NestedTabs/TabsContainer0';
+import { updateSearchState } from '@/store/modules/global';
+
 const TabPane = Tabs.TabPane;
 const { Row, Col, GridItem } = Grid;
 // import locale from './locale';
@@ -119,8 +121,16 @@ const Highlight = (parts, keyword) => {
 // 并额外添加 `childrenMatchCount`（直接子节点命中数）和 `totalMatchCount`（子树内总命中数）。
 
 
-function searchDataAggregated(inputValue, cardData) {
-    const regex = new RegExp(`(${inputValue})`, 'gi');
+/* function searchDataAggregated(inputValue, cardData) {
+    // const regex = new RegExp(`(${inputValue})`, 'gi');
+    const safeInput = escapeRegExp(inputValue || '');
+    const regex = new RegExp(`(${safeInput})`, 'gi');
+    // if (cardData.name === '测试A') console.log('xxxxxxxxxxxxxxx  inputValue searchType cardData', inputValue, searchType, cardData);
+
+    //把所有正则特殊字符转义掉
+    function escapeRegExp(str: string): string {
+        return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
 
     function processLeaf(data) {
         const bookmarks = [];
@@ -228,10 +238,208 @@ function searchDataAggregated(inputValue, cardData) {
         return processLeaf(cardData);
     }
     return processNode(cardData, 0);
+} */
+
+
+function searchDataAggregated(inputValue, searchType, cardData) {
+    // const regex = new RegExp(`(${inputValue})`, 'gi');
+    const safeInput = escapeRegExp(inputValue || '');
+    const regex = new RegExp(`(${safeInput})`, 'gi');
+    // if (cardData.name === '测试A') console.log('xxxxxxxxxxxxxxx  inputValue searchType cardData', inputValue, searchType, cardData);
+
+    //把所有正则特殊字符转义掉
+    function escapeRegExp(str: string): string {
+        return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function extractHostname(url) {
+        try {
+            return new URL(url).hostname || '';
+        } catch (e) {
+            const m = String(url || '').match(/^(?:https?:\/\/)?(?:www\.)?([^\/]+)/i);
+            return m ? m[1] : '';
+        }
+    }
+
+    function processLeaf(data) {
+        const bookmarks = [];
+        const searchResult = [];
+        const filterHiddenSearchResult = [];
+        let totalMatchCount = 0;
+
+        (data.bookmarks).forEach((bookmark) => {
+            let contains = false;
+            const originalName = bookmark.name || '';
+            const originalDescription = bookmark.description || '';
+            const originalUrl = bookmark.url || '';
+
+            let name = bookmark.name || '';
+            let description = bookmark.description || '';
+            let url = bookmark.url || '';
+            let displayName = name;
+            let displayUrl = url;
+
+            // 根据 searchType 决定在哪些字段进行匹配：
+            // 0: 默认（标题 + 描述）
+            // 1: 标题（仅）
+            // 2: 描述（仅）
+            // 3: 域名
+            // 4: 整个 URL
+            if (searchType === 0 || searchType === 1) {
+                const parts = name.split(regex);
+                if (parts.length >= 3) {
+                    contains = true;
+                    // 仅当在标题匹配时对标题做高亮
+                    displayName = Highlight(parts, inputValue);
+                }
+            }
+
+            if (searchType === 0 || searchType === 2) {
+                const parts1 = (description || '').split(regex);
+                if (parts1.length >= 3) {
+                    contains = true;
+                    // 仅当在描述匹配时对描述做高亮
+                    description = Highlight(parts1, inputValue);
+                }
+            }
+
+
+            if (searchType === 4) {
+                const rawUrl = String(bookmark.url || '');
+                const host = extractHostname(rawUrl);
+
+                const trimmed = String(inputValue || '').replace(/\/+$/, '');
+                const q = trimmed.replace(/^https?:\/\//i, '');
+                const qLower = q.toLowerCase();
+
+                if (host && host.toLowerCase().includes(qLower)) {
+                    contains = true;
+                }
+
+                try {
+                    if (host && q) {
+                        const regex = new RegExp(`(${q})`, 'ig');
+
+                        // 高亮 host（JSX）
+                        const highlightedHost = Highlight(host.split(regex), q);
+
+                        // 拆分 URL
+                        const parts = rawUrl.split(host);
+
+                        // 用 JSX 拼回去（关键）
+                        displayUrl = (
+                            <>
+                                {parts[0]}
+                                {highlightedHost}
+                                {parts.slice(1).join(host)}
+                            </>
+                        );
+                    }
+                } catch (e) {
+                    // 忽略错误
+                }
+            }
+
+            if (searchType === 3) {
+                const u = String(bookmark.url || '');
+                if (u && u.toLowerCase().indexOf(String(inputValue).toLowerCase()) !== -1) {
+                    contains = true;
+                }
+                // 对整个 URL 做高亮
+                try {
+                    const partsUrl = String(url || '').split(regex);
+                    if (partsUrl.length >= 3) {
+                        displayUrl = Highlight(partsUrl, inputValue);
+                    }
+                } catch (e) {
+                    // 忽略高亮错误
+                }
+            }
+
+            // 默认行为(searchType===0) 也应兼容此前只检索标题和描述的逻辑
+            if (contains) {
+                const resultBookmark = { ...bookmark, nameLength: (displayName || '').length, originalName, originalDescription, originalUrl, name: displayName, description, url: displayUrl };
+                bookmarks.push(resultBookmark);
+                searchResult.push(resultBookmark);
+                if (!bookmark.hide) filterHiddenSearchResult.push(resultBookmark);
+                totalMatchCount += 1;
+            }
+        });
+
+        return {
+            ...data,
+            bookmarks: data.bookmarks,
+            searchResult,
+            filterHiddenSearchResult,
+            // 兼容旧字段名：noHiddenSearchResult
+            noHiddenSearchResult: filterHiddenSearchResult,
+            totalMatchCount,
+        };
+    }
+
+    function processNode(node, level = 0) {
+        // 叶子（只有 urlList）：处理搜索
+        if ((!node.children || node.children.length === 0) && node.bookmarks) {
+            return processLeaf(node);
+        }
+
+        // 含 children 的节点：递归处理子节点
+        if (Array.isArray(node.children) && node.children.length > 0) {
+            let childrenMatchCount = 0;
+            let totalMatchCount = 0;
+            const newChildren = node.children.map((child) => {
+                const updated = processNode(child, level + 1);
+                const childTotal = Number(updated.totalMatchCount || 0);
+                if (childTotal > 0) childrenMatchCount += 1;
+                totalMatchCount += childTotal;//汇总子分组的查询结果总数
+                return updated;
+            });
+
+            // const filteredChildren = newChildren;
+
+            // 保留原有顺序：先收集有命中的子节点，再收集无命中的子节点
+            const nonZero = newChildren.filter(c => Number(c.totalMatchCount || 0) > 0);
+            const zero = newChildren.filter(c => Number(c.totalMatchCount || 0) === 0);
+            //保持稳定性排序
+            nonZero.sort((a, b) => ((a.order ?? a.addDate ?? 0) - (b.order ?? b.addDate ?? 0)));
+
+            const searchChildren = [...nonZero, ...zero];
+
+            // 汇总子节点的 searchResult 与 filterHiddenSearchResult（基于过滤后的子节点）
+            const aggregatedSearchResult = [];
+            const aggregatedFilterHidden = [];   //过滤掉隐藏的搜索结果
+            searchChildren.forEach((c) => {
+                if (c.searchResult && c.searchResult.length) aggregatedSearchResult.push(...c.searchResult);
+                if (c.filterHiddenSearchResult && c.filterHiddenSearchResult.length) aggregatedFilterHidden.push(...c.filterHiddenSearchResult);
+            });
+
+
+            const res = {
+                ...node,
+                children: searchChildren,
+                // searchChildren: searchChildren,
+                searchResult: aggregatedSearchResult,
+                filterHiddenSearchResult: aggregatedFilterHidden,
+                // 兼容旧字段名：noHiddenSearchResult
+                noHiddenSearchResult: aggregatedFilterHidden,
+                totalMatchCount,
+            };
+            return res;
+        }
+
+        // 无 children 且无 urlList 的节点
+        return { ...node, searchResult: [], filterHiddenSearchResult: [], childrenMatchCount: 0, totalMatchCount: 0 };
+    }
+
+    // 入口：保留和 searchData 一致的判断逻辑
+    if (cardData.bookmarks && (!cardData.children || cardData.children.length === 0)) {
+        return processLeaf(cardData);
+    }
+    return processNode(cardData, 0);
 }
 
 // function renderCard({ cardData, display, activeCardTab, setCardTabActive, keyWord, hasResult }) {//hasResult
-function renderCard({ cardData, treeSelectedNode, setCardTabActive, keyWord }) {//hasResult
+function renderCard({ cardData, treeSelectedNode, setCardTabActive, searchKeyWord }) {//hasResult
 
     // if (cardData.id === 'vu2pi7002')
     // console.log(cardData.name + ' 渲染了>>>>>>>>>>>>>>', keyWord, hasResult);
@@ -377,13 +585,21 @@ function renderCard({ cardData, treeSelectedNode, setCardTabActive, keyWord }) {
          if (!dataUpdated) setData(cardData);//组件中数据未更新时，才更新cardData数据(未从)
      } */
 
+    const searchTypeRef = useRef<number>(0);
+    const [searchType, setSearchType] = useState<number>(0);
 
     const processNotEmptySearch = (data, keyWord, showItem, searchTab) => {
         setSearching(true);
         // const result = searchData(keyWord.trim(), cardData);
         // const result = searchDataAggregated(keyWord.trim(), cardData);
-        const result = searchDataAggregated(keyWord.trim(), data);
+        const searchType = searchTypeRef.current; // 始终是最新值
+
+        const result = searchDataAggregated(keyWord.trim(), searchType, data);
         console.log('--------------------------' + cardData.name + "search keyword=" + keyWord + ",result=", result);
+        if (result.totalMatchCount > 0) {//有搜索结果
+            dispatch(updateSearchState({ searchResultNum: result.totalMatchCount }));//全局搜索下 累加搜索结果数
+        }
+
         setData(result);
         // setSearchResult(result.searchResult); //（全部）搜索结果
         // setNoHiddenSearchResult(result.noHiddenSearchResult)//没有隐藏项的搜索结果
@@ -442,11 +658,21 @@ function renderCard({ cardData, treeSelectedNode, setCardTabActive, keyWord }) {
         processSearchKeywordChange(cardData, searchInput, currentSearch, false)//从data中搜索 根据当前Card展示与否
     }, [cardData]);//cardData发生变化，
 
-    useEffect(() => {
-        console.log(data.name + ' useEffect keyword >>>>>>>>>>>>>>>>>>>>>', keyWord);
-        onKeywordChange(keyWord, false);
-    }, [keyWord]);//第一次渲染就会触发,全局搜索关键词
+    /*   useEffect(() => {
+          console.log(data.name + ' useEffect keyword >>>>>>>>>>>>>>>>>>>>>', keyWord);
+          onKeywordChange(keyWord, false);
+      }, [keyWord]);//第一次渲染就会触发,全局搜索关键词 */
 
+    useEffect(() => {
+        const keyWord = searchKeyWord ? searchKeyWord.keyword : '';
+        // const keyWord = searchKeyWord && searchKeyWord.keyword ? searchKeyWord.keyword : '';
+        const searchType = searchKeyWord ? searchKeyWord.searchType : 0;
+        // if (data.name === '测试A') console.log('xxxxxxxxxxxxxxxxxx useEffect keyWord searchType', searchType, keyWord, searchKeyWord, cardData.name);
+        setSearchType(searchType);
+        searchTypeRef.current = searchType;
+        // setKeyWord(keyWord);
+        onKeywordChange(keyWord, false);
+    }, [searchKeyWord]);//第一次渲染就会触发,全局搜索关键词
 
     const onKeywordChange = (searchKeyword: string, currentSearch: boolean) => {
         const keyword = searchKeyword.trim();

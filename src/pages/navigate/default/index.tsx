@@ -117,8 +117,8 @@ function DefaultNavigate() {
   const pathname = history.location.pathname;
   const currentComponent = qs.parseUrl(pathname).url.slice(1);
   const locale = useLocale();
-  const [navbarKeyWord, setNavbarKeyWord] = useState('');
-
+  // const [navbarKeyWord, setNavbarKeyWord] = useState('');
+  const [navbarKeyWord, setNavbarKeyWord] = useState(null);
   const {
     settings,
     userLoading,
@@ -250,19 +250,42 @@ function DefaultNavigate() {
 
   // let hasResult = true;
   // 接收NavBar传过来的搜索关键词
-  const getNavBarKey = (keyword) => {
-    setNavbarKeyWord(keyword);
-    dispatch(updateSearchState({ keyword: keyword }));
-    // 关键词过滤
-    if (!keyword || !keyword.trim()) {
-      setHasResult(true);
-    } else {//不为空
-      const hasResult = searchData2(list, keyword);
-      // console.log('00000000000 search', keyword, hasResult);
-      setHasResult(hasResult);
-      saveSearchHistory(keyword.trim());
+  /*   const getNavBarKey = (keyword) => {
+      setNavbarKeyWord(keyword);
+      dispatch(updateSearchState({ keyword: keyword }));
+      // 关键词过滤
+      if (!keyword || !keyword.trim()) {
+        setHasResult(true);
+      } else {//不为空
+        const hasResult = searchData2(list, keyword);
+        // console.log('00000000000 search', keyword, hasResult);
+        setHasResult(hasResult);
+        saveSearchHistory(keyword.trim());
+      }
+      // setNavbarKeyWord(keyword)
+    } */
+
+  const getNavBarKey = (keyword, searchType) => {
+
+    // console.log('0000000000000000000000 user navigate getNavBarKey keyword, searchType', keyword, searchType);
+    let keywordToUse = keyword;
+    let keywordString = keyword;
+
+    if (searchType == 5) {
+      if (keyword) {
+        const kw = keyword;
+        if (kw[0] === kw[1]) {//如果两个日期相同，取一个即可
+          keywordToUse = kw.slice(0, 1);
+        }
+        keywordString = keywordToUse.join(' — ');
+      } else {
+        keywordToUse = [];
+        keywordString = null;
+      }
     }
-    // setNavbarKeyWord(keyword)
+    setNavbarKeyWord({ keyword: keywordToUse, searchType });
+    dispatch(updateSearchState({ keyword: keywordString, searchType: searchType }));
+    // 关键词过滤
   }
 
   const dispatch = useDispatch();
