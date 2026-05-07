@@ -161,12 +161,14 @@ const Highlight = (parts, keyword) => {
 
 function searchDataAggregated(inputValue, searchType, cardData) {
     // const regex = new RegExp(`(${inputValue})`, 'gi');
-    const safeInput = escapeRegExp(inputValue || '');
+    // if (searchType === 0) cardData;
+    const safeInput = searchType === 5 ? '' : escapeRegExp(inputValue || '');//5按日期搜索
     const regex = new RegExp(`(${safeInput})`, 'gi');
-    // if (cardData.name === '测试A') console.log('xxxxxxxxxxxxxxx  inputValue searchType cardData', inputValue, searchType, cardData);
+    if (cardData.name === '测试A') console.log('xxxxxxxxxxxxxxx  inputValue searchType cardData', inputValue, searchType, cardData);
 
     //把所有正则特殊字符转义掉
     function escapeRegExp(str: string): string {
+        // console.log('11 xxxxxxxxxxxxxxxxxxxxx', str);
         return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
@@ -177,6 +179,23 @@ function searchDataAggregated(inputValue, searchType, cardData) {
             const m = String(url || '').match(/^(?:https?:\/\/)?(?:www\.)?([^\/]+)/i);
             return m ? m[1] : '';
         }
+    }
+
+    function isDateInRange(dateStr, dateRange) {
+        if (!dateStr || !dateRange || dateRange.length === 0) return false;
+        const [startStr, endStr] = dateRange;
+        const date = Date.parse(dateStr);
+        if (isNaN(date)) return false;
+        const start = startStr ? Date.parse(startStr) : NaN;
+        const end = endStr ? Date.parse(endStr) : NaN;
+        if (!isNaN(start) && !isNaN(end)) {
+            return date >= start && date <= end;
+        } else if (!isNaN(start)) {
+            return date >= start;
+        } else if (!isNaN(end)) {
+            return date <= end;
+        }
+        return false;
     }
 
     function processLeaf(data) {
@@ -203,6 +222,19 @@ function searchDataAggregated(inputValue, searchType, cardData) {
             // 2: 描述（仅）
             // 3: 域名
             // 4: 整个 URL
+            if (searchType === 5) {
+                // 判断 bookmark.date（字符串）是否处于 dateRange 范围内
+                try {
+                    const dateStr = bookmark.date || '';
+                    const inRange = isDateInRange(dateStr, inputValue);
+                    if (inRange) {
+                        contains = true;
+                    }
+                } catch (e) {
+                    // 若解析失败，则不匹配
+                }
+            }
+
             if (searchType === 0 || searchType === 1) {
                 const parts = name.split(regex);
                 if (parts.length >= 3) {
@@ -220,7 +252,6 @@ function searchDataAggregated(inputValue, searchType, cardData) {
                     description = Highlight(parts1, inputValue);
                 }
             }
-
 
             if (searchType === 4) {
                 const rawUrl = String(bookmark.url || '');
@@ -1005,6 +1036,8 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         // if (data.name === '测试A')
         // console.log(cardData.id, cardData.name + ' processNotEmptySearch 搜索关键词', keyWord, searchType);
 
+        // onSelectDateChange
+
         const result = searchDataAggregated(searchKeyWord, searchType, data);
         // console.log(cardData.name + ' processNotEmptySearch 搜索结果', result, data);
         if (result.totalMatchCount > 0) {//有搜索结果
@@ -1215,39 +1248,32 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
     const searchTypeRef = useRef<number>(0);
     const [searchType, setSearchType] = useState<number>(0);
 
-    /*  const handleSelectChange = (val) => {
-         const next = Number(val);
-         setSearchType(next);
-         searchTypeRef.current = next;
-     }; */
-
-    // const type = searchTypeRef.current; // 始终是最新值
-
-
+    /// testing
     useEffect(() => {
+        if (!searchKeyWord) return;
         const keyWord = searchKeyWord ? searchKeyWord.keyword : '';
-        // const keyWord = searchKeyWord && searchKeyWord.keyword ? searchKeyWord.keyword : '';
-        const searchType = searchKeyWord ? searchKeyWord.searchType : 0;
-        // if (data.name === '测试A') console.log('xxxxxxxxxxxxxxxxxx useEffect keyWord searchType', searchType, keyWord, searchKeyWord, cardData.name);
+        const searchType1 = searchKeyWord && searchKeyWord.searchType ? searchKeyWord.searchType : 0;
+        // if (searchType1 === -1) return;
 
-        setSearchType(searchType);
-        searchTypeRef.current = searchType;
+        setSearchType(searchType1);
+        searchTypeRef.current = searchType1;
 
-        if (searchType !== 5) {
+        //执行搜索处理
+        if (searchType1 !== 5) {
             setKeyWord(keyWord);
             onKeywordChange(keyWord, false);
         } else { //按日期筛选
-            onSelectDateChange(keyWord);
-            // console.log('xxxxxxxxxxxxxxxxxx useEffect data keyword', searchKeyWord, cardData.name);
+            if (keyWord) onSelectDateChange(keyWord);
         }
-        if (keyWord) {
+
+        if (keyWord) {//有搜索关键词时，如果当前是标签筛选模式，则先取消标签筛选，保持搜索与标签筛选互斥
             inactiveTagsFilter(); //分组的所有展示的标签取消高亮
         } else {
-            if (selectedTags.length > 0) {
+            if (selectedTags.length > 0) {//恢复标签筛选
                 onNavTagsFilterChange(selectedTags, filterTags, data, keyWord);
-                // console.log('xxxxxxxxxxxxxxxxxx 搜索关键词为空，有标签筛选', cardData.name, keyWord, selectedTags);
             }
         }
+
     }, [searchKeyWord]);//第一次渲染就会触发,全局搜索关键词
 
 
@@ -1272,8 +1298,12 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
     }
 
     const onSelectDateChange = (dateRange: string[]) => {
+        // console.log('gggggggggggggggggggg onSelectDateChange dateRange', cardData.name, dateRange);
         setCurrentSearch(false);
         setSearchInput('');
+
+        const searchType = searchTypeRef.current; // 始终是最新值
+
         setActiveCardTab([]);//相当于tree选中节点失效,除非重新点击
         if (dateRange.length === 0) {
             setCardShow(true);

@@ -25,7 +25,6 @@ import { useDispatch } from 'react-redux';
 import { IconDelete, IconFindReplace } from '@arco-design/web-react/icon';
 import IconButton from './IconButton';
 import styles from './style/index.module.less';
-import { center } from '@turf/turf';
 import useLocale from '@/utils/useLocale';
 const { Text } = Typography;
 const { Item: CollapseItem } = Collapse;
@@ -52,14 +51,17 @@ function DuplicateDetectionDrawer({ currentPage }) {
 
   const [loading, setLoading] = useState(false);
 
-  //设置-自动检测
   useEffect(() => {
-    if (visible) handleScan();
-  }, [visible]);//
+    if (visible && autoDetect) handleScan();
+  }, [visible, autoDetect, currentPage]);
 
   const handleScan = async () => {
+    if (currentPage == null) {
+      Message.warning('请先选择书签页后再检测重复书签');
+      return;
+    }
     setScanning(true);
-    setLoading(!loading);
+    setLoading(true);
     try {
       const groups = await detectDuplicatedBookmarks(currentPage);
       // 初始化 selectedValues（按 group 分组）默认选中的
@@ -88,7 +90,6 @@ function DuplicateDetectionDrawer({ currentPage }) {
       setLoading(false);
     }
   };
-
 
   const handleManualSelect = (gId: string, ids: string[]) => {
     setSelectedValues((prev) => ({

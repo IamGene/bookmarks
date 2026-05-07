@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react';
+﻿import React, { useContext, useEffect, useMemo, useState } from 'react';
 import {
   Tooltip,
   Input,
@@ -55,10 +55,52 @@ import { removeToken } from '@/utils1/auth';
 import { useStore } from '@/store1';
 import CreatePageGroup from '@/pages/navigate/user/form/add_page_group';
 import { reloadUserPages, oneTagSelectedSwitch, fetchBookmarksPageData } from '@/store/modules/global';
+import { naviData } from '@/pages/navigate/default/naviData';
 // const api = import.meta.env.VITE_REACT_APP_BASE_API; updatePageSelectedTags
 import { useHistory } from 'react-router-dom';
 import { set } from 'mobx';
 // filterDataByTags
+
+function getDomainFromUrl(url: string) {
+  if (!url || typeof url !== 'string') return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+
+  const parseUrl = (value: string) => {
+    try {
+      return new URL(value);
+    } catch {
+      return null;
+    }
+  };
+
+  const parsed = parseUrl(trimmed) || parseUrl(`https://${trimmed}`);
+  const hostname = parsed?.hostname?.toLowerCase().replace(/^www\./, '');
+  return hostname || null;
+}
+
+function collectDomainsFromNodes(nodes: any[], domains: Set<string>) {
+  if (!Array.isArray(nodes)) return;
+
+  nodes.forEach((node) => {
+    const domain = getDomainFromUrl(node?.url);
+    if (domain) {//只有在二级以下分组才有
+      // console.log('zzzzzzzzzzzzzz getDefaultPageDomainList getDomainFromUrl=', node);
+      domains.add(domain);
+    }
+
+    collectDomainsFromNodes(node?.bookmarks, domains);
+    collectDomainsFromNodes(node?.children, domains);
+  });
+}
+
+function getDefaultPageDomainList() {
+  const domains = new Set<string>();
+
+  collectDomainsFromNodes(naviData, domains);
+  return Array.from(domains).sort((a, b) => a.localeCompare(b));
+}
+
 function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
 
   const t = useLocale();
@@ -68,15 +110,18 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
   const globalState = useSelector((state: any) => state.global);
   const { userInfo, userLoading, pages, domainGroups, currentPage } = globalState;
 
-  //将domainGroups（数组）按属性name转换为map，key为name，value为属性children（数组）中各个元素的name组成的数组，
-  // 存储在domainGroupsMap中，供搜索建议使用
-  /* const domainGroupsMap = domainGroups && domainGroups.reduce((acc, group) => {
-    acc[group.name] = group.children.map(child => child.name);
-    return acc;
-  }, {} as Record<string, string[]>);
- */
-  // 将domainGroups中的每个元素的属性children（数组）中每个元素的属性name组成一个新的数组，存储在domainList中，供搜索建议使用
-  const domainList = domainGroups ? domainGroups.flatMap(group => group.children.map(child => child.name)) : [];
+  const bookmarkPageDomainList = useMemo(
+    () => Array.isArray(domainGroups)
+      ? domainGroups.flatMap(group =>
+        Array.isArray(group?.children)
+          ? group.children.map(child => child?.name).filter(Boolean)
+          : []
+      )
+      : [],
+    [domainGroups]
+  );
+  const defaultPageDomainList = useMemo(() => getDefaultPageDomainList(), []);
+  const domainList = pageType === 'bookmarks' ? bookmarkPageDomainList : defaultPageDomainList;
 
   const history = useHistory();
   const [currentPageId, setCurrentPageId] = useState(null);//pageNo
@@ -128,8 +173,12 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
 
   useEffect(() => {
     setBookmarkPages(pages);
-    if (!currentPage) setCurrentPageBookmarksData(pages);//初始化默认书签页数据
-  }, [pages]);//书签页数据
+    if (currentPage?.pageId) {
+      setCurrentPageId(currentPage.pageId);
+      return;
+    }
+    setCurrentPageBookmarksData(pages);//初始化默认书签页数据
+  }, [pages, currentPage?.pageId]);//书签页数据
 
   // 监听搜索框输入变化
   const onInputChange = (key: string) => {
@@ -409,12 +458,12 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
       '/plugin-add2Bookmarks-V-v1.0.zip';
   }
 
-
   function onSelect(dateString, date) {
     // console.log('111111111111 onSelect', dateString, date);
   }
 
   function onChange(dateString, date) {
+    console.log('onChange 111111111111', dateString, searchType);
     setNavBarKey(dateString, searchType);//搜索跟随输入
     setKeyword1(null);//重置按域名搜索的输入值
     setKeyword(null);//
