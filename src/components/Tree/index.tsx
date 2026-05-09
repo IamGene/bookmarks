@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Tree, Switch, Input, Typography, Anchor, Select, Message, Space } from '@arco-design/web-react';
-import { RootState } from '@/store';
+import { Tree, Switch, Divider, Input, Typography, Anchor, Select, Message, Space } from '@arco-design/web-react';
 import { useDispatch, useSelector } from 'react-redux';
+import { IconFileImage, IconUser, IconPen } from '@arco-design/web-react/icon';
+const { Paragraph, Title } = Typography;
 import { fetchBookmarksPageData0, fetchBookmarksPageData1, updateSearchState, fetchBookmarksPageData2 } from '@/store/modules/global';
 const AnchorLink = Anchor.Link;
 const TreeNode = Tree.Node;
+// import { RootState } from '@/store';
 
 const Option = Select.Option;
 const options = [
@@ -403,7 +405,7 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
         // console.log('非展开树被渲染了')
         const autoExpandParent = false;
         return (
-            <Tree
+            <>  <Tree
                 // onSelect={onTreeSelect}
                 treeData={treeData}
                 autoExpandParent={autoExpandParent}
@@ -469,6 +471,64 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
             >
                 {/* <Anchor hash={false} affix={false} animation={false} lineless ></Anchor> */}
             </Tree >
+
+                <>
+                    <div className='divider-demo'>
+                        <Divider />
+                        <Paragraph>
+                            A design is a plan or specification for the construction of an object.
+                        </Paragraph>
+                        <Divider
+                            style={{
+                                borderBottomStyle: 'dashed',
+                            }}
+                        />
+                        <Paragraph>
+                            A design is a plan or specification for the construction of an object.
+                        </Paragraph>
+                        <Divider
+                            style={{
+                                borderBottomWidth: 2,
+                                borderBottomStyle: 'dotted',
+                            }}
+                        />
+                        <Paragraph>
+                            A design is a plan or specification for the construction of an object.
+                        </Paragraph>
+                    </div>
+                    <div
+                        className='divider-demo'
+                        style={{ marginTop: 48 }}
+                    >
+                        <div className='divider-demo-flex-content'>
+                            <span className='avatar'>
+                                <IconFileImage />
+                            </span>
+                            <div className='content'>
+                                <Title heading={6}>Image</Title>May 4, 2010
+                            </div>
+                        </div>
+                        <Divider className='half-divider' />
+                        <div className='divider-demo-flex-content'>
+                            <span className='avatar'>
+                                <IconUser />
+                            </span>
+                            <div className='content'>
+                                <Title heading={6}>Avatar</Title>May 4, 2010
+                            </div>
+                        </div>
+                        <Divider className='half-divider' />
+                        <div className='divider-demo-flex-content'>
+                            <span className='avatar'>
+                                <IconPen />
+                            </span>
+                            <div className='content'>
+                                <Title heading={6}>Icon</Title>May 4, 2010
+                            </div>
+                        </div>
+                    </div>
+                </>
+            </>
         );
     }
 
@@ -513,6 +573,7 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
             />
 
             {getTree1(treeData)}
+
 
             {/*   <Tree
                 fieldNames={{

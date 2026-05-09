@@ -224,6 +224,7 @@ function App({ setTreeSelected, data }) {
                     // console.log('aaaaaaaaaaaaaaaaaaaaaaaaas', value, extra);
                     // setSelectedKeys(value);
                     // onTreeSelect(value, extra);
+
                 }}
                 virtualListProps={{ height: 780 }}
                 fieldNames={{
@@ -282,19 +283,12 @@ function App({ setTreeSelected, data }) {
 
     return (
         <div>
-            {/* 设置项 */}
-            {/* <div style={{ marginLeft: '5px' }}>
-                <Typography.Text>显示连接线</Typography.Text>
-                <Switch size='small' style={{ marginLeft: 12 }} checked={checked} onChange={setChecked}></Switch>
-            </div> */}
-            <div style={{ margin: '2px 0 2px 10px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: 6 }}>
+            {/*  <div style={{ margin: '2px 0 2px 10px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Typography.Text style={{ color: 'var(--color-text-2)' }}>收起</Typography.Text>
-                {/* <Switch size='small' checked={expand} onChange={switchExpand}></Switch> */}
                 <Switch size='small' checked={expand} onChange={switchExpand}></Switch>
                 <Typography.Text style={{ color: 'var(--color-text-2)' }}>展开</Typography.Text>
             </div>
 
-            {/* 输入搜索框 */}
             <Input.Search
                 style={{
                     marginBottom: 8,
@@ -304,7 +298,7 @@ function App({ setTreeSelected, data }) {
                 value={inputValue}
                 placeholder='输入关键词搜索'
                 onChange={onInputChange}
-            />
+            /> */}
 
             {getTree1(treeData)}
 
