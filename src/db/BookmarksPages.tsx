@@ -759,7 +759,7 @@ export async function getAllBookmarksByGroupId(groupId) {
                 await getByGroupAndChildren(child.id);
             }
 
-            const urls = await db.getAllFromIndex('bookmarks', 'gId', id);
+            const urls = getActiveBookmarks(await db.getAllFromIndex('bookmarks', 'gId', id));
             if (urls && urls.length > 0) {
                 for (const url of urls) {
                     allBookmarks++;
@@ -1121,10 +1121,10 @@ export async function getThroughChild(groupId: string, path: string) {
 export async function clearGroupBookmarksById(groupId) {
     try {
         const db = await getDB();
-        const urls = await db.getAllFromIndex('bookmarks', 'gId', groupId);
+        const urls = getActiveBookmarks(await db.getAllFromIndex('bookmarks', 'gId', groupId));
         if (urls.length > 0) {//删除标签
             for (const url of urls) {
-                await db.delete('bookmarks', url.id);
+                await db.put('bookmarks', { ...url, deleted: true, deletedAt: Date.now() });
             }
         }
         return true;
@@ -1142,7 +1142,8 @@ export async function clearGroupBookmarksById(groupId) {
 export async function removeWebTag(id: string): Promise<boolean> {
     try {
         const db = await getDB();
-        await db.delete('bookmarks', id);
+        const bookmark = await db.get('bookmarks', id);
+        if (bookmark) await db.put('bookmarks', { ...bookmark, deleted: true, deletedAt: Date.now() });
         return true;
     } catch (e) {
         console.error('removeWebTag error', e);
@@ -1155,7 +1156,8 @@ export async function removeBookmarks(ids: string[]): Promise<boolean> {
     try {
         const db = await getDB();
         for (const id of ids) {
-            await db.delete('bookmarks', id);
+            const bookmark = await db.get('bookmarks', id);
+            if (bookmark) await db.put('bookmarks', { ...bookmark, deleted: true, deletedAt: Date.now() });
         }
         return true;
     } catch (e) {
@@ -1172,7 +1174,8 @@ export async function removeWebTagsAndGroups(bookmarks: any[], allGroup: boolean
         const gIds = (Array.isArray(bookmarks) ? Array.from(new Set(bookmarks.map(b => b && b.gId).filter(Boolean))) : []);
         // 删除书签
         for (const id of ids) {
-            await db.delete('bookmarks', id);
+            const bookmark = await db.get('bookmarks', id);
+            if (bookmark) await db.put('bookmarks', { ...bookmark, deleted: true, deletedAt: Date.now() });
         }
 
         // 递归向上删除没有书签且没有子分组的分组，同时统计被删除的分组数量
@@ -1183,7 +1186,7 @@ export async function removeWebTagsAndGroups(bookmarks: any[], allGroup: boolean
             if (!group) return;
 
             // 如果该分组还有书签，不删除
-            const urls = await db.getAllFromIndex('bookmarks', 'gId', groupId);
+            const urls = (await db.getAllFromIndex('bookmarks', 'gId', groupId)).filter(item => !item?.deleted);
             if (urls && urls.length > 0) return;
 
             // 如果该分组还有子分组，不删除
@@ -1191,8 +1194,7 @@ export async function removeWebTagsAndGroups(bookmarks: any[], allGroup: boolean
             if (children && children.length > 0) return;
 
             // 可以删除当前分组
-            await db.delete('groups', groupId);
-            deletedGroups++;
+            return;
 
             // 继续向上检查父分组
             if (allGroup) {
@@ -1248,7 +1250,7 @@ export async function testUpdate() {
 
 /* export async function detectDuplicatedBookmarks(pageId) {
     const db = await getDB();
-    const bookmarks = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
+    const bookmarks = getActiveBookmarks(await db.getAllFromIndex('bookmarks', 'pageId', pageId));
 
     if (!Array.isArray(bookmarks) || bookmarks.length === 0) {
         return [];
@@ -1368,7 +1370,7 @@ export async function testUpdate() {
 
 export async function detectDuplicatedBookmarks(pageId) {
     const db = await getDB();
-    const bookmarks = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
+    const bookmarks = getActiveBookmarks(await db.getAllFromIndex('bookmarks', 'pageId', pageId));
 
     if (!Array.isArray(bookmarks) || bookmarks.length === 0) {
         return [];
@@ -1678,7 +1680,7 @@ export async function getCollectPageGroups() {
 
 export async function getPageTreeGroups(pageId) {
     const db = await getDB();
-    const nodes = await db.getAllFromIndex('groups', 'pageId', pageId);
+    const nodes = (await db.getAllFromIndex('groups', 'pageId', pageId)).filter(node => !node?.deleted);
     function buildTree(parentId, parentPath) {
         return nodes
             .filter(node => node.pId === parentId)
@@ -1708,8 +1710,8 @@ export async function getPageTreeGroups(pageId) {
 
 export async function getPageTreeGroupsData(pageId) {
     const db = await getDB();
-    const nodes = await db.getAllFromIndex('groups', 'pageId', pageId);
-    const bookmarks = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
+    const nodes = (await db.getAllFromIndex('groups', 'pageId', pageId)).filter(node => !node?.deleted);
+    const bookmarks = getActiveBookmarks(await db.getAllFromIndex('bookmarks', 'pageId', pageId));
 
     function buildTree(parentId, parentPath) {
         return nodes
@@ -1804,10 +1806,22 @@ async function setBookmarksGroupPath(bookmarks, db) {
     return result;
 }
 
+function isDeletedBookmark(bookmark: any) {
+    return bookmark?.deleted === true;
+}
+
+function getActiveBookmarks(bookmarks: any[]) {
+    return (Array.isArray(bookmarks) ? bookmarks : []).filter(bookmark => !isDeletedBookmark(bookmark));
+}
+
+function getDeletedBookmarks(bookmarks: any[]) {
+    return (Array.isArray(bookmarks) ? bookmarks : []).filter(bookmark => isDeletedBookmark(bookmark));
+}
+
 export async function testUpdateData(pageId) {
     // console.log('11111111111111 testUpdateData');
     const db = await getDB();
-    const bookmarks = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
+    const bookmarks = getActiveBookmarks(await db.getAllFromIndex('bookmarks', 'pageId', pageId));
     for (const bm of bookmarks) {
         if (bm.url.startsWith('https://www.etdown.net/')) {
             // console.log('11111111111111 updateBookmarksIcon', bm);
@@ -1853,8 +1867,8 @@ export async function testUpdateData(pageId) {
 export async function getPageTree(pageId) {
 
     const db = await getDB();
-    const nodes = await db.getAllFromIndex('groups', 'pageId', pageId);
-    const bookmarks = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
+    const nodes = (await db.getAllFromIndex('groups', 'pageId', pageId)).filter(node => !node?.deleted);
+    const bookmarks = getActiveBookmarks(await db.getAllFromIndex('bookmarks', 'pageId', pageId));
     // testUpdateData(pageId);
     const page = await db.get('pages', pageId);
     page.bookmarksNum = bookmarks.length;
@@ -2004,11 +2018,75 @@ export async function getPageTree(pageId) {
 
 }
 
+export async function getDeletedPageTree(pageId) {
+    const db = await getDB();
+    const nodes = await db.getAllFromIndex('groups', 'pageId', pageId);
+    const deletedBookmarks = getDeletedBookmarks(await db.getAllFromIndex('bookmarks', 'pageId', pageId));
+    const urls = await setBookmarksGroupPath(deletedBookmarks, db);
+    const expandedKeysSet = new Set<string>();
+
+    function buildTree(parentId, parentPath) {
+        const result = [];
+        const childGroups = nodes
+            .filter(node => node.pId === parentId)
+            .sort((a, b) => !parentId ? ((b.addDate ?? 0) - (a.addDate ?? 0)) : ((a.order ?? a.addDate ?? 0) - (b.order ?? b.addDate ?? 0)));
+
+        for (const node of childGroups) {
+            const currentPath = parentPath ? parentPath + ',' + node.id : node.id;
+            const children = buildTree(node.id, currentPath);
+            const urlList = urls.filter(n => n.gId === node.id);
+            urlList.sort((a, b) => (b.deletedAt ?? b.addDate ?? 0) - (a.deletedAt ?? a.addDate ?? 0));
+
+            if (urlList.length === 0 && children.length === 0) continue;
+
+            let finalChildren = children;
+            let resultNode: any;
+            if (urlList.length > 0 && children.length > 0) {
+                const selfNode = {
+                    ...node,
+                    children: [],
+                    copy: true,
+                    id: node.id + '_copy',
+                    order: node.order1 ? node.order1 : 0,
+                    list: false,
+                    bookmarks: urlList,
+                    bookmarksNum: urlList.length,
+                    path: currentPath + ',' + node.id + '_copy',
+                };
+                finalChildren = [selfNode, ...children];
+                resultNode = { ...node, children: finalChildren, path: currentPath, list: true };
+            } else {
+                resultNode = { ...node, children, bookmarks: urlList, path: currentPath };
+            }
+
+            let bookmarksNum = Array.isArray(resultNode.bookmarks) ? resultNode.bookmarks.length : 0;
+            for (const ch of finalChildren || []) {
+                bookmarksNum += typeof ch.bookmarksNum === 'number'
+                    ? ch.bookmarksNum
+                    : (Array.isArray(ch.bookmarks) ? ch.bookmarks.length : 0);
+            }
+            resultNode.bookmarksNum = bookmarksNum;
+            if (finalChildren && finalChildren.length > 0) expandedKeysSet.add(node.id);
+            result.push(resultNode);
+        }
+
+        return result;
+    }
+
+    const data = buildTree(null, null);
+    return {
+        data,
+        treeData: data,
+        deletedBookmarksNum: urls.length,
+        expandedKeys: Array.from(expandedKeysSet),
+    };
+}
+
 export async function getPageTreeByDate(pageId) {//pageId
     // 新实现：按书签的 addDate（年-月）分组，返回扁平的每月组数组，
     // 每组包含字段：id, date ("YYYY-MM"), name, bookmarks: []
     const db = await getDB();
-    const bookmarks1 = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
+    const bookmarks1 = getActiveBookmarks(await db.getAllFromIndex('bookmarks', 'pageId', pageId));
 
     const bookmarks = await setBookmarksGroupPath(bookmarks1, db);
 
@@ -2112,7 +2190,7 @@ export async function getPageTreeByDate(pageId) {//pageId
 
 export async function getPageTreeByDomain2(pageId) {
     const db = await getDB();
-    const bookmarks = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
+    const bookmarks = getActiveBookmarks(await db.getAllFromIndex('bookmarks', 'pageId', pageId));
 
     // console.log(pageId, 'getPageTreeByDomain bookmarks', bookmarks.length);
     setBookmarksGroupPath(bookmarks, db);
@@ -2268,7 +2346,7 @@ export async function getPageTreeByDomain2(pageId) {
 export async function getPageTreeByDomain(pageId) {
     // 新实现：按书签链接的域名分组（不包含协议），保持返回结构与原来相同
     const db = await getDB();
-    const oriBookmarks = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
+    const oriBookmarks = getActiveBookmarks(await db.getAllFromIndex('bookmarks', 'pageId', pageId));
     // await setBookmarksGroupPath(bookmarks, db);
     const bookmarks = await setBookmarksGroupPath(oriBookmarks, db);
     // console.log(pageId, 'getPageTreeByDomain bookmarks', bookmarks.length);
@@ -2513,7 +2591,7 @@ export function processPageTree(originalTree) {
 export async function getPageBookmarks(pageId) {
     try {
         const db = await getDB();
-        const urls = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
+        const urls = getActiveBookmarks(await db.getAllFromIndex('bookmarks', 'pageId', pageId));
         // 格式化数据以匹配 HTML 导出逻辑
         return urls.map(url => ({
             name: url.name,
@@ -2704,10 +2782,10 @@ export async function removeGroupById(groupId) {
                 await deleteGroupAndChildren(child.id);
             }
 
-            const urls = await db.getAllFromIndex('bookmarks', 'gId', id);
+            const urls = getActiveBookmarks(await db.getAllFromIndex('bookmarks', 'gId', id));
             if (urls && urls.length > 0) {
                 for (const url of urls) {
-                    await db.delete('bookmarks', url.id);
+                    await db.put('bookmarks', { ...url, deleted: true, deletedAt: Date.now() });
                     deletedBookmarks++;
                     const tags = url.tags;
                     if (Array.isArray(tags) && tags.length > 0) {
@@ -2715,7 +2793,8 @@ export async function removeGroupById(groupId) {
                     }
                 }
             }
-            await db.delete('groups', id);
+            const group = await db.get('groups', id);
+            if (group) await db.put('groups', { ...group, deleted: true, deletedAt: Date.now() });
         }
 
         await deleteGroupAndChildren(groupId);
@@ -2734,14 +2813,14 @@ export async function removeCopyGroupById(groupId) {
         if (!root) return { success: false, error: 'group not found' };
         const toRemoveTags = [];
         let deletedBookmarks = 0;
-        const urls = await db.getAllFromIndex('bookmarks', 'gId', groupId);
+        const urls = getActiveBookmarks(await db.getAllFromIndex('bookmarks', 'gId', groupId));
         if (urls && urls.length > 0) {
             for (const url of urls) {
                 const tags = url.tags;
                 if (Array.isArray(tags) && tags.length > 0) {
                     for (const t of tags) toRemoveTags.push({ tag: t, add: false, id: url.id });
                 }
-                await db.delete('bookmarks', url.id);
+                await db.put('bookmarks', { ...url, deleted: true, deletedAt: Date.now() });
                 deletedBookmarks++;
             }
         }

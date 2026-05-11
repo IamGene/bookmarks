@@ -67,7 +67,7 @@ export default store
 import { createSlice } from '@reduxjs/toolkit';
 import defaultSettings from '../../settings.json';
 // import { getUserNaviate } from '@/api/navigate';
-import { getPageTree, getPageTreeByDate, getPages, getPageTreeGroupsData, getPageTreeByDomain, getPage, getSearchHistory } from "@/db/BookmarksPages";
+import { getPageTree, getPageTreeByDate, getPages, getPageTreeGroupsData, getPageTreeByDomain, getPage, getSearchHistory, getDeletedPageTree } from "@/db/BookmarksPages";
 import { WebTag } from '@/pages/navigate/user/interface';
 import { set } from 'mobx';
 export interface GroupNode {
@@ -138,6 +138,13 @@ export interface GlobalState {
   },
   activeGroup: GroupNode;
   loadedBookmarks: WebTag[];
+  recycleBin: {
+    active: boolean,
+    deletedBookmarksNum: number,
+    dataByGroup: TagGroups,
+    dataGroups: TagGroups,
+    expandedKeys: string[],
+  };
 }
 
 const initialState: GlobalState = {
@@ -177,7 +184,14 @@ const initialState: GlobalState = {
   },
   pages: null,
   activeGroup: null,
-  loadedBookmarks: null
+  loadedBookmarks: null,
+  recycleBin: {
+    active: false,
+    deletedBookmarksNum: 0,
+    dataByGroup: [],
+    dataGroups: [],
+    expandedKeys: [],
+  }
 }
 
 
@@ -632,6 +646,14 @@ const globalSlice = createSlice({
     },
     setLoadBookmarks: (state, action) => {
       state.loadedBookmarks = action.payload;
+    },
+    updateRecycleBin: (state, action) => {
+      const payload = action.payload || {};
+      if (payload.active !== undefined) state.recycleBin.active = payload.active;
+      if (payload.deletedBookmarksNum !== undefined) state.recycleBin.deletedBookmarksNum = payload.deletedBookmarksNum;
+      if (payload.dataByGroup !== undefined) state.recycleBin.dataByGroup = payload.dataByGroup;
+      if (payload.dataGroups !== undefined) state.recycleBin.dataGroups = payload.dataGroups;
+      if (payload.expandedKeys !== undefined) state.recycleBin.expandedKeys = payload.expandedKeys;
     }
   },
 });
@@ -905,6 +927,26 @@ const loadNewAddedBookmarks = (bookmarks: WebTag[]) => {
   }
 };
 
+const fetchRecycleBinData = (pageId: number) => {
+  return async (dispatch) => {
+    if (pageId == null) return null;
+    const res = await getDeletedPageTree(pageId);
+    dispatch(updateRecycleBin({
+      dataByGroup: res.data || [],
+      dataGroups: res.treeData || [],
+      deletedBookmarksNum: res.deletedBookmarksNum || 0,
+      expandedKeys: res.expandedKeys || [],
+    }));
+    return res;
+  }
+};
+
+const updateRecycleBinState = (payload: any) => {
+  return async (dispatch) => {
+    dispatch(updateRecycleBin(payload || {}));
+  }
+};
+
 const reloadUserPages = () => {
   return async (dispatch) => {
     const pages = await getPages();
@@ -940,13 +982,14 @@ const { updateSettings, updateUserInfo, switchTagSelected, updateRefreshCardGrou
   updateGroupTypes, updateSearchState, updatePageGroupList, updateTagSelected, updateTagUnSelected,
   updateUserPage, updateTagsMap, updateBookmarks, setUserPages,
   setSearchHistory,
-  updateActiveGroup, setLoadBookmarks } = globalSlice.actions;
+  updateActiveGroup, setLoadBookmarks, updateRecycleBin } = globalSlice.actions;
 export {
   updateSettings, updateUserInfo, updateSearchState, updateBookmarks, updateActiveGroup,
   loadSearchHistory, updatePageBookmarkTags, oneTagSelectedSwitch,
   updatePageDataState, reloadUserPages, fetchBookmarksPageData, setToUpdateCardGroups,
   fetchBookmarksPageData0, fetchBookmarksPageData1, fetchBookmarksPageData2, updateBookmarksPage, fetchBookmarksPageDatas, fetchBookmarksPageDataGoups,
-  loadNewAddedBookmarks, updatePageGroupsDataByType, groupTagUnselected, groupTagSelected
+  loadNewAddedBookmarks, updatePageGroupsDataByType, groupTagUnselected, groupTagSelected,
+  fetchRecycleBinData, updateRecycleBinState
 };
 export default globalSlice.reducer;
 // export { dispatchTagGroupsData }; updatePageSelectedTags

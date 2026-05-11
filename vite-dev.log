@@ -1,18 +1,17 @@
 
 > bookmarks-pro@1.0.0 dev
-> vite --host 127.0.0.1
+> vite --host 127.0.0.1 --port 3001
 
 当前模式 mode: development
 当前模式: {
   ALLUSERSPROFILE: 'C:\\ProgramData',
   APPCODE_VM_OPTIONS: 'C:\\DevTools\\JetBrains-2024-全家桶激活\\jetbra\\vmoptions\\appcode.vmoptions',
   APPDATA: 'C:\\Users\\zbj\\AppData\\Roaming',
-  APPLICATION_INSIGHTS_NO_STATSBEAT: 'true',
-  CHROME_CRASHPAD_PIPE_NAME: '\\\\.\\pipe\\crashpad_13232_XNRPGEQEDLEIYYFI',
+  CHROME_CRASHPAD_PIPE_NAME: '\\\\.\\pipe\\crashpad_15996_PCKTKHSVDGQAMCND',
   CLASSPATH: '.;C:\\DevEnv\\Java\\jdk-21.0.2\\lib\\dt.jar;C:\\DevEnv\\Java\\jdk-21.0.2\\lib\\tools.jar;C:\\DevEnv\\Java\\jdk-21.0.2\\lib;',
   CLION_VM_OPTIONS: 'C:\\DevTools\\JetBrains-2024-全家桶激活\\jetbra\\vmoptions\\clion.vmoptions',
   CODEX_INTERNAL_ORIGINATOR_OVERRIDE: 'codex_vscode',
-  CODEX_THREAD_ID: '019e0df4-4878-7983-aeba-91f0fe7ec2b3',
+  CODEX_THREAD_ID: '019e1598-0f97-7c52-9307-21868c293435',
   COLOR: '0',
   CommonProgramFiles: 'C:\\Program Files\\Common Files',
   'CommonProgramFiles(x86)': 'C:\\Program Files (x86)\\Common Files',
@@ -79,7 +78,7 @@
   OS: 'Windows_NT',
   OSS_ACCESS_KEY_ID: 'LTAI5tRZbDBZBKhS8DM6zovW',
   OSS_ACCESS_KEY_SECRET: 'qhO0vK1y13dHDqFzHH2lsK2LE5paPL',
-  PATH: 'C:\\projects\\bookmarks-pro\\bookmarks-local-2\\node_modules\\.bin;C:\\projects\\bookmarks-pro\\node_modules\\.bin;C:\\projects\\node_modules\\.bin;C:\\node_modules\\.bin;C:\\DevEnv\\node.js\\node-v20.17.0-win-x64\\node_modules\\npm\\node_modules\\@npmcli\\run-script\\lib\\node-gyp-bin;C:\\Users\\zbj\\.codex\\tmp\\arg0\\codex-arg0yAPfVZ;C:\\Users\\zbj\\AppData\\Local\\Programs\\Microsoft VS Code;C:\\Program Files (x86)\\VMware\\VMware Workstation\\bin\\;C:\\DevEnv\\Java\\jdk-21.0.2\\bin;C:\\DevEnv\\mysql-8.0.37-winx64\\bin;C:\\DevEnv\\node.js\\node-v20.17.0-win-x64;%NODE_PATH\\node_global%;%NODE_PATH\\node_global\\node_modules\\yarn\\bin%;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\Windows\\System32\\OpenSSH\\;C:\\Program Files\\Git\\cmd;C:\\DevTools\\apache-maven-3.9.9\\bin;C:\\DevTools\\python-3.12.8-embed-amd64;C:\\DevTools\\python-3.12.8-embed-amd64\\Scripts;C:\\DevTools\\pandoc-3.7.0.2;;C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\NvDLISR;C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common;C:\\Users\\zbj\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Program Files\\JetBrains\\IntelliJ IDEA 2023.3.7\\bin;;C:\\DevEnv\\node.js\\node-v20.17.0-win-x64\\node_global;C:\\Users\\zbj\\AppData\\Local\\Programs\\Microsoft VS Code\\bin;C:\\Software\\ffmpeg-master-latest-win64-gpl-shared\\bin;C:\\Program Files\\qpdf 11.10.0\\bin;C:\\Users\\zbj\\AppData\\Local\\Programs\\Ollama;c:\\Users\\zbj\\.vscode\\extensions\\openai.chatgpt-26.5506.31421-win32-x64\\bin\\windows-x86_64',
+  PATH: 'C:\\projects\\bookmarks-pro\\bookmarks-local-2\\node_modules\\.bin;C:\\projects\\bookmarks-pro\\node_modules\\.bin;C:\\projects\\node_modules\\.bin;C:\\node_modules\\.bin;C:\\DevEnv\\node.js\\node-v20.17.0-win-x64\\node_modules\\npm\\node_modules\\@npmcli\\run-script\\lib\\node-gyp-bin;C:\\Users\\zbj\\.codex\\tmp\\arg0\\codex-arg0riNZtQ;C:\\Users\\zbj\\AppData\\Local\\Programs\\Microsoft VS Code;C:\\Program Files (x86)\\VMware\\VMware Workstation\\bin\\;C:\\DevEnv\\Java\\jdk-21.0.2\\bin;C:\\DevEnv\\mysql-8.0.37-winx64\\bin;C:\\DevEnv\\node.js\\node-v20.17.0-win-x64;%NODE_PATH\\node_global%;%NODE_PATH\\node_global\\node_modules\\yarn\\bin%;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\Windows\\System32\\OpenSSH\\;C:\\Program Files\\Git\\cmd;C:\\DevTools\\apache-maven-3.9.9\\bin;C:\\DevTools\\python-3.12.8-embed-amd64;C:\\DevTools\\python-3.12.8-embed-amd64\\Scripts;C:\\DevTools\\pandoc-3.7.0.2;;C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\NvDLISR;C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common;C:\\Users\\zbj\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Program Files\\JetBrains\\IntelliJ IDEA 2023.3.7\\bin;;C:\\DevEnv\\node.js\\node-v20.17.0-win-x64\\node_global;C:\\Users\\zbj\\AppData\\Local\\Programs\\Microsoft VS Code\\bin;C:\\Software\\ffmpeg-master-latest-win64-gpl-shared\\bin;C:\\Program Files\\qpdf 11.10.0\\bin;C:\\Users\\zbj\\AppData\\Local\\Programs\\Ollama;c:\\Users\\zbj\\.vscode\\extensions\\openai.chatgpt-26.5506.31421-win32-x64\\bin\\windows-x86_64',
   PATHEXT: '.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC;.CPL',
   PHPSTORM_VM_OPTIONS: 'C:\\DevTools\\JetBrains-2024-全家桶激活\\jetbra\\vmoptions\\phpstorm.vmoptions',
   PROCESSOR_ARCHITECTURE: 'AMD64',
@@ -114,16 +113,15 @@
   VSCODE_HANDLES_UNCAUGHT_ERRORS: 'true',
   VSCODE_IPC_HOOK: '\\\\.\\pipe\\222314fa-1.118.1-main-sock',
   VSCODE_NLS_CONFIG: '{"userLocale":"zh-cn","osLocale":"zh-cn","resolvedLanguage":"zh-cn","defaultMessagesFile":"C:\\\\Users\\\\zbj\\\\AppData\\\\Local\\\\Programs\\\\Microsoft VS Code\\\\034f571df5\\\\resources\\\\app\\\\out\\\\nls.messages.json","languagePack":{"translationsConfigFile":"C:\\\\Users\\\\zbj\\\\AppData\\\\Roaming\\\\Code\\\\clp\\\\b912e1cc94c8380c6bb426bdce2c540f.zh-cn\\\\tcf.json","messagesFile":"C:\\\\Users\\\\zbj\\\\AppData\\\\Roaming\\\\Code\\\\clp\\\\b912e1cc94c8380c6bb426bdce2c540f.zh-cn\\\\034f571df509819cc10b0c8129f66ef77a542f0e\\\\nls.messages.json","corruptMarkerFile":"C:\\\\Users\\\\zbj\\\\AppData\\\\Roaming\\\\Code\\\\clp\\\\b912e1cc94c8380c6bb426bdce2c540f.zh-cn\\\\corrupted.info"},"locale":"zh-cn","availableLanguages":{"*":"zh-cn"},"_languagePackId":"b912e1cc94c8380c6bb426bdce2c540f.zh-cn","_languagePackSupport":true,"_translationsConfigFile":"C:\\\\Users\\\\zbj\\\\AppData\\\\Roaming\\\\Code\\\\clp\\\\b912e1cc94c8380c6bb426bdce2c540f.zh-cn\\\\tcf.json","_cacheRoot":"C:\\\\Users\\\\zbj\\\\AppData\\\\Roaming\\\\Code\\\\clp\\\\b912e1cc94c8380c6bb426bdce2c540f.zh-cn","_resolvedLanguagePackCoreLocation":"C:\\\\Users\\\\zbj\\\\AppData\\\\Roaming\\\\Code\\\\clp\\\\b912e1cc94c8380c6bb426bdce2c540f.zh-cn\\\\034f571df509819cc10b0c8129f66ef77a542f0e","_corruptedFile":"C:\\\\Users\\\\zbj\\\\AppData\\\\Roaming\\\\Code\\\\clp\\\\b912e1cc94c8380c6bb426bdce2c540f.zh-cn\\\\corrupted.info"}',
-  VSCODE_PID: '13232',
+  VSCODE_PID: '15996',
   WEBIDE_VM_OPTIONS: 'C:\\DevTools\\JetBrains-2024-全家桶激活\\jetbra\\vmoptions\\webide.vmoptions',
   WEBSTORM_VM_OPTIONS: 'C:\\DevTools\\JetBrains-2024-全家桶激活\\jetbra\\vmoptions\\webstorm.vmoptions',
   windir: 'C:\\Windows'
 }
-Port 3000 is in use, trying another one...
 [36m
   vite v2.9.18[39m[32m dev server running at:
 [39m
   > Local: [36mhttp://127.0.0.1:[1m3001[22m/[39m
 
-  [36mready in 437ms.[39m
+  [36mready in 448ms.[39m
 

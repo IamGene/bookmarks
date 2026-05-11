@@ -197,6 +197,7 @@ function UserNavigate() {
     dataByGroup,
     dataByDate,
     dataByDomain,
+    recycleBin,
     loadedBookmarks,
   } = useSelector(
     (state: RootState) => ({
@@ -206,6 +207,7 @@ function UserNavigate() {
       dataByDate: state.global.dataByDate,
       // toUpdateGroupTypes: state.global.toUpdateGroupTypes,
       dataByDomain: state.global.dataByDomain,
+      recycleBin: state.global.recycleBin,
       // hiddenGroup: state.global.hiddenGroup,
       loadedBookmarks: state.global.loadedBookmarks,
     }),
@@ -226,11 +228,17 @@ function UserNavigate() {
 
 
   useEffect(() => {
+    if (recycleBin?.active) {
+      setDataType(0);
+      setList(Array.isArray(recycleBin.dataByGroup) ? recycleBin.dataByGroup : []);
+      group3Ref.current = group3Bookmarks;
+      return;
+    }
     const data = group3Bookmarks.find(g => g.value === dataType)?.data || [];
     // console.log('1111111111111111 useEffect group3Bookmarks group3Bookmarks', dataType, group3Bookmarks);
     setList(data);
     group3Ref.current = group3Bookmarks;
-  }, [group3Bookmarks]);//书签页数据发生变化
+  }, [group3Bookmarks, recycleBin?.active, recycleBin?.dataByGroup]);//书签页数据发生变化
 
   const group3Ref = useRef(group3Bookmarks);
 
@@ -247,6 +255,10 @@ function UserNavigate() {
   function onTreeTypeChange(value) {
     // const data = group3Bookmarks.find(g => g.value === value)?.data || [];
     setDataType(value);
+    if (recycleBin?.active) {
+      setList(Array.isArray(recycleBin.dataByGroup) ? recycleBin.dataByGroup : []);
+      return;
+    }
     const data = group3Ref.current.find(g => g.value === value)?.data || [];
     setList(data);
   }
