@@ -1,14 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Tree, Switch, Divider, Input, Typography, Anchor, Select, Message, Space } from '@arco-design/web-react';
+import { Tree, Switch, Input, Typography, Anchor, Select } from '@arco-design/web-react';
 import { useDispatch, useSelector } from 'react-redux';
-import { IconFileImage, IconUser, IconPen } from '@arco-design/web-react/icon';
-const { Paragraph, Title } = Typography;
+import { IconDelete, IconDriveFile, IconFolder } from '@arco-design/web-react/icon';
 import { fetchBookmarksPageData0, fetchBookmarksPageData1, updateSearchState, fetchBookmarksPageData2 } from '@/store/modules/global';
 const AnchorLink = Anchor.Link;
-const TreeNode = Tree.Node;
 // import { RootState } from '@/store';
 
 const Option = Select.Option;
+const RECYCLE_BIN_NODE_ID = '__bookmarks_tree_recycle_bin__';
 const options = [
     { label: '按名称', value: 0 },
     { label: '按时间', value: 1 },
@@ -102,6 +101,19 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
     //搜索输入内容
     const [groupType, setGroupType] = useState(options[0].value);
     const [treeData, setTreeData] = useState(dataGroups);
+    const treeDataWithRecycleBin = useMemo(() => {
+        const normalizedTreeData = Array.isArray(treeData) ? treeData : [];
+
+        return [
+            ...normalizedTreeData,
+            {
+                id: RECYCLE_BIN_NODE_ID,
+                name: '回收站',
+                disabled: true,
+                isRecycleBin: true,
+            },
+        ];
+    }, [treeData]);
     // console.log('>>>>>>>>>>>>>>>>>>>>> tree组件渲染了11, treeData', expandedKeys);
     const [checked, setChecked] = useState(true);
     const [expand, setExpand] = useState(false);
@@ -401,11 +413,37 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
         }
     }
 
+    const getNodeIcons = (nodeProps: any) => {
+        const { children, childrenData, dataRef, isLeaf, isRecycleBin } = nodeProps;
+        const nodeIsRecycleBin = isRecycleBin || dataRef?.isRecycleBin;
+        const hasChildren = Boolean(
+            (Array.isArray(children) && children.length) ||
+            (Array.isArray(childrenData) && childrenData.length) ||
+            (Array.isArray(dataRef?.children) && dataRef.children.length)
+        );
+
+        if (nodeIsRecycleBin) {
+            return {
+                switcherIcon: <IconDelete style={{ color: 'var(--color-text-3)' }} />,
+            };
+        }
+
+        if (isLeaf || !hasChildren) {
+            return {
+                switcherIcon: <IconDriveFile style={{ color: 'var(--color-text-3)' }} />,
+            };
+        }
+
+        return {
+            switcherIcon: <IconFolder style={{ color: 'var(--color-text-3)' }} />,
+        };
+    };
+
     const getTree1 = (treeData) => {
         // console.log('非展开树被渲染了')
         const autoExpandParent = false;
         return (
-            <>  <Tree
+            <Tree
                 // onSelect={onTreeSelect}
                 treeData={treeData}
                 autoExpandParent={autoExpandParent}
@@ -421,11 +459,56 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
                     // onTreeSelect(value, extra);
                 }}
                 virtualListProps={{ height: 780 }}
+                icons={getNodeIcons}
                 fieldNames={{
                     key: 'id',
                     title: 'name',
                 }}
-                renderTitle={({ id, name, pId, path, list, icon }) => {
+
+                renderExtra={({ bookmarksNum }) => {
+                    return (
+                        bookmarksNum > 0 && <span
+                            style={{
+                                position: 'absolute',
+                                right: 8,
+                                fontSize: 12,
+                                top: 10,
+                                // color: '#3370ff',
+                            }}
+                        >{bookmarksNum}</span>
+                    );
+                }}
+
+                renderTitle={({ id, name, pId, path, list, icon, isRecycleBin }) => {
+                    if (isRecycleBin) {
+                        return (
+                            <div
+                                style={{
+                                    color: 'var(--color-text-2)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    marginTop: 4,
+                                    paddingLeft: '8px',
+                                    position: 'relative',
+                                    width: '100%',
+                                }}
+                            >
+                                <span
+                                    aria-hidden
+                                    style={{
+                                        borderTop: '1px solid var(--color-border-2)',
+                                        left: -999,
+                                        position: 'absolute',
+                                        right: -999,
+                                        top: 0,
+                                    }}
+                                />
+                                <span>回收站</span>
+                            </div>
+                        );
+                    }
+
                     const hrefId = pId ? pId : id
                     if (inputValue) {
                         const index = name.toLowerCase().indexOf(inputValue.toLowerCase());
@@ -471,64 +554,6 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
             >
                 {/* <Anchor hash={false} affix={false} animation={false} lineless ></Anchor> */}
             </Tree >
-
-                <>
-                    <div className='divider-demo'>
-                        <Divider />
-                        <Paragraph>
-                            A design is a plan or specification for the construction of an object.
-                        </Paragraph>
-                        <Divider
-                            style={{
-                                borderBottomStyle: 'dashed',
-                            }}
-                        />
-                        <Paragraph>
-                            A design is a plan or specification for the construction of an object.
-                        </Paragraph>
-                        <Divider
-                            style={{
-                                borderBottomWidth: 2,
-                                borderBottomStyle: 'dotted',
-                            }}
-                        />
-                        <Paragraph>
-                            A design is a plan or specification for the construction of an object.
-                        </Paragraph>
-                    </div>
-                    <div
-                        className='divider-demo'
-                        style={{ marginTop: 48 }}
-                    >
-                        <div className='divider-demo-flex-content'>
-                            <span className='avatar'>
-                                <IconFileImage />
-                            </span>
-                            <div className='content'>
-                                <Title heading={6}>Image</Title>May 4, 2010
-                            </div>
-                        </div>
-                        <Divider className='half-divider' />
-                        <div className='divider-demo-flex-content'>
-                            <span className='avatar'>
-                                <IconUser />
-                            </span>
-                            <div className='content'>
-                                <Title heading={6}>Avatar</Title>May 4, 2010
-                            </div>
-                        </div>
-                        <Divider className='half-divider' />
-                        <div className='divider-demo-flex-content'>
-                            <span className='avatar'>
-                                <IconPen />
-                            </span>
-                            <div className='content'>
-                                <Title heading={6}>Icon</Title>May 4, 2010
-                            </div>
-                        </div>
-                    </div>
-                </>
-            </>
         );
     }
 
@@ -572,7 +597,9 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
                 onChange={onInputChange}
             />
 
-            {getTree1(treeData)}
+            <div style={{ overflow: 'hidden' }}>
+                {getTree1(treeDataWithRecycleBin)}
+            </div>
 
 
             {/*   <Tree
