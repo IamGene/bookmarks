@@ -1140,6 +1140,7 @@ export async function clearGroupBookmarksById(groupId) {
  * @returns {Promise<boolean>}
  */
 export async function removeWebTag(id: string): Promise<boolean> {
+    console.log('zzzzzzzzzzzzzzzzz removeWebTag id', id);
     try {
         const db = await getDB();
         const bookmark = await db.get('bookmarks', id);
@@ -1712,7 +1713,6 @@ export async function getPageTreeGroupsData(pageId) {
     const db = await getDB();
     const nodes = (await db.getAllFromIndex('groups', 'pageId', pageId)).filter(node => !node?.deleted);
     const bookmarks = getActiveBookmarks(await db.getAllFromIndex('bookmarks', 'pageId', pageId));
-
     function buildTree(parentId, parentPath) {
         return nodes
             .filter(node => node.pId === parentId)
@@ -1868,13 +1868,17 @@ export async function getPageTree(pageId) {
 
     const db = await getDB();
     const nodes = (await db.getAllFromIndex('groups', 'pageId', pageId)).filter(node => !node?.deleted);
-    const bookmarks = getActiveBookmarks(await db.getAllFromIndex('bookmarks', 'pageId', pageId));
+    const allBookmarks = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
+    const bookmarks = getActiveBookmarks(allBookmarks);
+    const deletedBookmarks = getDeletedBookmarks(allBookmarks);//被删除书签
     // testUpdateData(pageId);
     const page = await db.get('pages', pageId);
     page.bookmarksNum = bookmarks.length;
     db.put('pages', page);
     // updateBookmarksIcon(pageId, db, urls.length);//测试 更新
     const addUrls = [];
+
+    // console.log(pageId, 'getPageTreeByDomain deletedBookmarks1', deletedBookmarks1);
     /* const k = 'a';
     const regex = new RegExp(escapeRegExp(k), 'i');
     let count = 0;
@@ -2014,7 +2018,14 @@ export async function getPageTree(pageId) {
         console.error('compute diff error', e);
     }
 
-    return { page: page, data: data, tagsMap: (tagsMapResult && tagsMapResult.allTags) || new Map(), bookmarksNum: urls.length, expandedKeys: Array.from(expandedKeysSet) }; // 根节点
+    return {
+        page: page,
+        data: data,
+        tagsMap: (tagsMapResult && tagsMapResult.allTags) || new Map(),
+        bookmarksNum: urls.length,
+        deletedBookmarksNum: deletedBookmarks.length,
+        expandedKeys: Array.from(expandedKeysSet)
+    }; // 根节点
 
 }
 
@@ -2197,6 +2208,9 @@ export async function getPageTreeByDomain2(pageId) {
     // ========= 1. 构建 path 缓存 =========
     const pathCache = new Map();
     const uniqueGIds = Array.from(new Set(bookmarks.map(b => b && b.gId).filter(Boolean)));
+
+
+
 
     for (const gid of uniqueGIds) {
         if (pathCache.has(gid)) continue;

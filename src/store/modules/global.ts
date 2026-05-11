@@ -492,9 +492,9 @@ const globalSlice = createSlice({
       if (action.payload.domainGroups) state.domainGroups = action.payload.domainGroups;
       if (action.payload.currentPage) state.currentPage = action.payload.currentPage;
       if (action.payload.tagsMap) state.tags.tagsMap = action.payload.tagsMap;
+      if (action.payload.deletedBookmarksNum) state.recycleBin.deletedBookmarksNum = action.payload.deletedBookmarksNum;
       const pageKey = getCurrentPageCacheKey(state);
       const currentSelectedTags = state.tags.selectedTags;
-      // console.log('xxxxxxxxxxxxxxxxxxx updateBookmarks', action.payload.tagsMap);
       if (action.payload.clearSearchResultNum || action.payload.clearSearchResultNum === undefined)//
         state.search.searchResultNum = 0;//每次更新书签数据，重置搜索结果数 仅更新分组数据的时候除外
       if (action.payload.updateSelectedTags || action.payload.updateSelectedTags === undefined)//
@@ -726,7 +726,7 @@ const fetchBookmarksPageData = (pageId: number) => {
       const list = data;
       const hideGroup: boolean = hasHidden(list);
       const treeData = filterChildrenArrayByPath(list);
-      // console.log('999999999999 fetchTagGroupsData treeData', treeData);
+      // console.log('999999999999 fetchTagGroupsData treeData', res.deletedBookmarksNum);
       dispatch(updateBookmarks({
         dataByGroup: list,
         dataByDate: list1,
@@ -734,6 +734,7 @@ const fetchBookmarksPageData = (pageId: number) => {
         hideGroup: hideGroup,
         expandedKeys: expandedKeys,
         dateGroups: dateGroups,
+        deletedBookmarksNum: res.deletedBookmarksNum,
         domainGroups: domainGroups,
         dataGroups: treeData,
         tagsMap: tagsMap,
@@ -931,6 +932,7 @@ const fetchRecycleBinData = (pageId: number) => {
   return async (dispatch) => {
     if (pageId == null) return null;
     const res = await getDeletedPageTree(pageId);
+    console.log('--------------------fetchRecycleBinData res', res);
     dispatch(updateRecycleBin({
       dataByGroup: res.data || [],
       dataGroups: res.treeData || [],

@@ -251,6 +251,7 @@ npm run build
 - [x] 主页下不同类型的搜索失效问题 04.31
 - [x] 从主页跳转到书签页后检测重复书签 数据错误 04.31
 - [ ] 黑暗模式下的背景色问题 
+- [ ] 按域名搜索结果，点击链接错误
 - [x] 书签检测重复ok 04.24
 - [x] card的书签列表显示更多/更少 04.21
 - [x] 书签卡片的省略 https://arco.design/react/components/typography 04.21 maxwidth 04.21

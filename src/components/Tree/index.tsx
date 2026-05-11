@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Tree, Switch, Input, Typography, Anchor, Select } from '@arco-design/web-react';
 import { useDispatch, useSelector } from 'react-redux';
-import { IconDelete, IconDriveFile, IconFolder } from '@arco-design/web-react/icon';
-import { fetchBookmarksPageData0, fetchBookmarksPageData1, updateSearchState, fetchBookmarksPageData2, fetchRecycleBinData, updateRecycleBinState } from '@/store/modules/global';
+import { IconDelete, IconUndo, IconDriveFile, IconFolder } from '@arco-design/web-react/icon';
+import { fetchBookmarksPageData0, fetchBookmarksPageData1, updateSearchState, fetchBookmarksPageData2, updateRecycleBinState, fetchRecycleBinData } from '@/store/modules/global';
 const AnchorLink = Anchor.Link;
 // import { RootState } from '@/store';
 
@@ -71,7 +71,7 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
 
     const [inputValue, setInputValue] = useState(null);
     const globalState = useSelector((state: any) => state.global);
-    const { dateGroups, dataGroups, expandedKeys, domainGroups, toUpdateGroupTypes, recycleBin } = globalState;
+    const { dateGroups, dataGroups, expandedKeys, domainGroups, toUpdateGroupTypes } = globalState;
     const pageId = globalState.currentPage?.pageId ?? (Array.isArray(dataGroups) && dataGroups.length ? dataGroups[0].pageId : null);
     const dispatch = useDispatch();
 
@@ -93,43 +93,51 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
 
 
     useEffect(() => {
-        if (recycleBin?.active) return;
-        const data = recycleBin?.active
-            ? (Array.isArray(recycleBin.dataGroups) ? recycleBin.dataGroups : [])
-            : (allDataGroups.find(g => g.value === groupType)?.data || [])
+        const data = allDataGroups.find(g => g.value === groupType)?.data || []
         setTreeData(data);
         if (groupType == 2) setTreeExpandedKeys(data.map((item) => item.id));   //切换到按域名分组 自动展开
-    }, [allDataGroups, recycleBin?.active]);//书签页数据发生变化
-
-    useEffect(() => {
-        if (pageId == null) return;
-        dispatch(fetchRecycleBinData(pageId));
-    }, [pageId, dataGroups, dateGroups, domainGroups]);
-
-    useEffect(() => {
-        if (!recycleBin?.active) return;
-        const data = Array.isArray(recycleBin.dataGroups) ? recycleBin.dataGroups : [];
-        setTreeData(data);
-        setTreeExpandedKeys(Array.isArray(recycleBin.expandedKeys) ? recycleBin.expandedKeys : []);
-    }, [recycleBin?.active, recycleBin?.dataGroups, recycleBin?.expandedKeys]);
+    }, [allDataGroups]);//书签页数据发生变化
 
     //搜索输入内容
     const [groupType, setGroupType] = useState(options[0].value);
     const [treeData, setTreeData] = useState(dataGroups);
     const treeDataWithRecycleBin = useMemo(() => {
-        const normalizedTreeData = Array.isArray(treeData) ? treeData : [];
-
+        const recycleActive = !!globalState?.recycleBin?.active;
+        const normalizedTreeData = recycleActive ?
+            globalState.recycleBin.dataGroups
+            : (Array.isArray(treeData) ? treeData : []);
+        const deletedNum = globalState?.recycleBin?.deletedBookmarksNum || 0;
+        // const deletedNum = 2;
+        // console.log('==================== treeDataWithRecycleBin', deletedNum);
         return [
             ...normalizedTreeData,
             {
                 id: RECYCLE_BIN_NODE_ID,
-                name: '回收站',
-                disabled: !(recycleBin?.deletedBookmarksNum > 0),
+                name: recycleActive ? '返回' : '回收站',
+                disabled: !recycleActive && deletedNum <= 0,
                 isRecycleBin: true,
-                bookmarksNum: recycleBin?.deletedBookmarksNum || 0,
+                // 始终携带被删除书签数量，用于右侧显示
+                bookmarksNum: deletedNum,
             },
         ];
-    }, [treeData, recycleBin?.deletedBookmarksNum]);
+    }, [treeData, globalState?.recycleBin?.deletedBookmarksNum, globalState?.recycleBin?.active]);
+
+    // 当回收站被激活或其数据更新时，使用回收站的数据作为分组展示
+    useEffect(() => {
+        const recycleActive = !!globalState?.recycleBin?.active;
+        if (recycleActive) {
+            const rbData = Array.isArray(globalState.recycleBin.dataGroups) ? globalState.recycleBin.dataGroups : [];
+            setTreeData(rbData);
+            // 激活回收站时默认展开回收站下所有分组（若有）
+            setTreeExpandedKeys(Array.isArray(rbData) ? rbData.map((item) => item.id) : []);
+        } else {
+            // 退出回收站时，恢复为当前分组类型的数据
+            const data = allDataGroups.find(g => g.value === groupType)?.data || [];
+            setTreeData(data);
+            if (!expand) setTreeExpandedKeys([]);
+        }
+    }, [globalState?.recycleBin?.active, globalState?.recycleBin?.dataGroups]);
+
     // console.log('>>>>>>>>>>>>>>>>>>>>> tree组件渲染了11, treeData', expandedKeys);
     const [checked, setChecked] = useState(true);
     const [expand, setExpand] = useState(false);
@@ -171,7 +179,6 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
         }); */
 
         setInputValue(null);
-        dispatch(updateRecycleBinState({ active: false }));
         if (toUpdateGroupTypes.length > 0) {
             if (value === 0 && toUpdateGroupTypes.includes(0)) {
                 console.log('xxxxxxxxxxxxxxxxxxx tree onTypeSelectChange fetchBookmarksPageData0')
@@ -206,9 +213,7 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
 
     useEffect(() => {
         // console.log('>>>>>>>>>>>>>>>>>>>>> tree组件渲染了22, inputValue', inputValue);
-        const data = recycleBin?.active
-            ? (Array.isArray(recycleBin.dataGroups) ? recycleBin.dataGroups : [])
-            : (allDataGroups.find(g => g.value === groupType)?.data || [])
+        const data = allDataGroups.find(g => g.value === groupType)?.data || []
         if (!inputValue || !inputValue.trim()) {//搜索词为空
             setTreeData(data);
             //搜索清空时不能恢复到收起状态
@@ -218,13 +223,12 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
             setTreeData(result);
             //展开所有结果
             setTreeExpandedKeys(
-                recycleBin?.active ? (Array.isArray(recycleBin.expandedKeys) ? recycleBin.expandedKeys : []) :
-                    groupType == 0 ? (Array.isArray(expandedKeys) ? expandedKeys : []) :
+                groupType == 0 ? (Array.isArray(expandedKeys) ? expandedKeys : []) :
                     groupType == 1 ? (Array.isArray(dateGroups) ? dateGroups.map((item) => item.id) : []) :
                         (Array.isArray(domainGroups) ? domainGroups.map((item) => item.id) : [])
             );
         }
-    }, [inputValue, recycleBin?.active, recycleBin?.dataGroups]);//书签页数据发生变化
+    }, [inputValue]);//书签页数据发生变化
 
 
 
@@ -241,34 +245,6 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
 
     const onInputChange = (inputValue) => {
         setInputValue(inputValue);
-    }
-
-    function findFirstBookmarkPath(nodes) {
-        if (!Array.isArray(nodes)) return null;
-        for (const node of nodes) {
-            if (!node) continue;
-            if (Array.isArray(node.bookmarks) && node.bookmarks.length > 0) {
-                return node.path || node.id;
-            }
-            const childPath = findFirstBookmarkPath(node.children);
-            if (childPath) return childPath;
-        }
-        return null;
-    }
-
-    async function openRecycleBin() {
-        if (!(recycleBin?.deletedBookmarksNum > 0) || pageId == null) return;
-        setInputValue(null);
-        setGroupType(0);
-        setTreeType(0);
-        const res: any = await dispatch(fetchRecycleBinData(pageId));
-        await dispatch(updateRecycleBinState({ active: true }));
-        const data = res?.treeData || [];
-        setTreeData(data);
-        setExpand(true);
-        setTreeExpandedKeys(res?.expandedKeys || []);
-        const firstPath = findFirstBookmarkPath(data);
-        if (firstPath) setTreeSelected(firstPath);
     }
     // const [selectedKeys, setSelectedKeys] = useState(['si180dbs5', 'hndt1j4kw']);
 
@@ -472,7 +448,9 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
 
         if (nodeIsRecycleBin) {
             return {
-                switcherIcon: <IconDelete style={{ color: 'var(--color-text-3)' }} />,
+                // switcherIcon: <IconDelete style={{ color: 'var(--color-text-3)' }} />
+                switcherIcon: globalState?.recycleBin?.active ? <IconUndo style={{ color: 'var(--color-text-3)' }} />
+                    : <IconDelete style={{ color: 'var(--color-text-3)' }} />
             };
         }
 
@@ -487,7 +465,7 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
         };
     };
 
-    const getTree1 = (treeData) => {
+    const getTree = (treeData) => {
         // console.log('非展开树被渲染了')
         const autoExpandParent = false;
         return (
@@ -502,39 +480,48 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
                     changeExpandedKeys(keys, extra);
                 }}
                 onSelect={(value, extra) => {
-                    // console.log('aaaaaaaaaaaaaaaaaaaaaaaaas', value, extra);
-                    // setSelectedKeys(value);
-                    // onTreeSelect(value, extra);
+                    const selectedKey = Array.isArray(value) ? value[0] : value;
+                    const nodeIsRecycleBin = extra?.node?.props?.isRecycleBin || extra?.node?.props?.dataRef?.isRecycleBin || selectedKey === RECYCLE_BIN_NODE_ID;
+                    if (nodeIsRecycleBin) {
+                        const deletedNum = globalState?.recycleBin?.deletedBookmarksNum || 0;
+                        if (deletedNum > 0) {
+                            // 激活回收站视图并加载回收站数据
+                            dispatch(fetchRecycleBinData(pageId));
+                            dispatch(updateRecycleBinState({ active: true }));
+                        }
+                        return;
+                    }
+                    // 非回收站节点的选择逻辑（保留原行为）
                 }}
-                virtualListProps={{ height: 780 }}
+                // virtualListProps={{ height: 780 }}
+                virtualListProps={{ height: 755 }}
                 icons={getNodeIcons}
                 fieldNames={{
                     key: 'id',
                     title: 'name',
                 }}
 
-                renderExtra={({ bookmarksNum }) => {
+                renderExtra={({ bookmarksNum, isRecycleBin }) => {
                     return (
-                        bookmarksNum > 0 && <span
+                        bookmarksNum > 0 && (isRecycleBin && !globalState?.recycleBin?.active || !isRecycleBin) && <span
                             style={{
                                 position: 'absolute',
                                 right: 8,
                                 fontSize: 12,
                                 top: 10,
-                                // color: '#3370ff',
                             }}
                         >{bookmarksNum}</span>
                     );
                 }}
 
-                renderTitle={({ id, name, pId, path, list, icon, isRecycleBin }) => {
+
+                renderTitle={({ id, name, bookmarksNum, pId, path, list, icon, isRecycleBin }) => {
                     if (isRecycleBin) {
+                        const recycleActive = !!globalState?.recycleBin?.active;
                         return (
                             <div
-                                onClick={openRecycleBin}
                                 style={{
-                                    color: recycleBin?.deletedBookmarksNum > 0 ? 'var(--color-text-1)' : 'var(--color-text-3)',
-                                    cursor: recycleBin?.deletedBookmarksNum > 0 ? 'pointer' : 'not-allowed',
+                                    color: 'var(--color-text-2)',
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: 8,
@@ -551,10 +538,27 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
                                         left: -999,
                                         position: 'absolute',
                                         right: -999,
-                                        top: 0,
+                                        top: "-3px",
                                     }}
                                 />
-                                <span>回收站</span>
+                                {recycleActive ? (
+                                    <span
+                                        onClick={() => {
+                                            // 退出回收站视图，回到正常分组显示
+                                            dispatch(updateRecycleBinState({ active: false }));
+                                            if (typeof setTreeType === 'function') setTreeType(groupType);
+                                            const data = allDataGroups.find(g => g.value === groupType)?.data || [];
+                                            setTreeData(data);
+                                            if (!expand) setTreeExpandedKeys([]);
+                                        }}
+                                        style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                                    >
+                                        {/* <span style={{ transform: 'rotate(180deg)', display: 'inline-block' }}>→</span> */}
+                                        <span>返回</span>
+                                    </span>
+                                ) : (
+                                    <span>回收站</span>
+                                )}
                             </div>
                         );
                     }
@@ -648,23 +652,9 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
             />
 
             <div style={{ overflow: 'hidden' }}>
-                {getTree1(treeDataWithRecycleBin)}
+                {getTree(treeDataWithRecycleBin)}
             </div>
 
-
-            {/*   <Tree
-                fieldNames={{
-                    key: 'path',
-                    // key: 'id',
-                    title: 'name',
-                    // isLeaf: ''
-                }}
-                treeData={treeData}
-                showLine={checked}>
-                selectedKeys={selectedKeys}
-                actionOnClick="expand"
-                expandedKeys={treeExpandedKeys}
-            </Tree> */}
         </div>
     );
 }
