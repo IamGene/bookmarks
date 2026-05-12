@@ -391,6 +391,15 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
 
     }
 
+    // 使用已预加载的回收站数据在本地展示（不改变 redux.recycleBin.active）
+    function showPreloadedRecycleBin() {
+        const rbData = Array.isArray(globalState.recycleBin.dataGroups) ? globalState.recycleBin.dataGroups : [];
+        setTreeData(rbData);
+        setTreeExpandedKeys(Array.isArray(rbData) ? rbData.map((item) => item.id) : []);
+        // 设置回收站为激活态，以让界面显示“返回”并保持 redux 状态一致
+        dispatch(updateRecycleBinState({ active: true }));
+    }
+
     //按分组
     function scrollToAnchor1(event, path) {
         const pathArr: string[] = path.split(",");
@@ -519,11 +528,14 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
                     if (nodeIsRecycleBin) {
                         const deletedNum = globalState?.recycleBin?.deletedBookmarksNum || 0;
                         const recycleActive = !!globalState?.recycleBin?.active;
-                        // console.log('zzzzzzzzzzzzzzzzzzzzz onSelect recycleActive', recycleActive);
-                        // 仅在当前不是回收站视图时，才激活并加载回收站数据，避免与“返回”点击产生冲突
-                        if (!recycleActive) {//&& deletedNum > 0
-                            dispatch(fetchRecycleBinData(pageId));
-                            dispatch(updateRecycleBinState({ active: true }));
+                        const preloaded = Array.isArray(globalState?.recycleBin?.dataGroups) && globalState.recycleBin.dataGroups.length > 0;
+                        // 仅在当前不是回收站视图时，才激活回收站视图；优先使用已预加载的数据，避免重复请求 dispatch(updateRecycleBinState({ active: true }));
+                        if (!recycleActive) {
+                            if (deletedNum > 0 && preloaded) {
+                                showPreloadedRecycleBin();
+                            } else if (deletedNum > 0) {
+                                dispatch(fetchRecycleBinData(pageId));
+                            }
                         }
                         return;
                     }
@@ -685,9 +697,13 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
                                 setTreeExpandedKeys(Array.isArray(expandedKeys) ? expandedKeys : []);
                             } else {
                                 const deletedNum = globalState?.recycleBin?.deletedBookmarksNum || 0;
+                                const preloaded = Array.isArray(globalState?.recycleBin?.dataGroups) && globalState.recycleBin.dataGroups.length > 0;
                                 if (deletedNum > 0) {
-                                    dispatch(fetchRecycleBinData(pageId));
-                                    dispatch(updateRecycleBinState({ active: true }));
+                                    if (preloaded) {
+                                        showPreloadedRecycleBin();
+                                    } else {
+                                        dispatch(fetchRecycleBinData(pageId));
+                                    }
                                 }
                             }
                         }}
@@ -708,8 +724,12 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
                     onClick={() => {
                         const deletedNum = globalState?.recycleBin?.deletedBookmarksNum || 0;
                         if (deletedNum > 0) {
-                            dispatch(fetchRecycleBinData(pageId));
-                            dispatch(updateRecycleBinState({ active: true }));
+                            const preloaded = Array.isArray(globalState?.recycleBin?.dataGroups) && globalState.recycleBin.dataGroups.length > 0;
+                            if (preloaded) {
+                                showPreloadedRecycleBin();
+                            } else {
+                                dispatch(fetchRecycleBinData(pageId));
+                            }
                         }
                     }}
                 >

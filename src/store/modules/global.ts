@@ -727,7 +727,7 @@ const fetchBookmarksPageData = (pageId: number) => {
       const list = data;
       const hideGroup: boolean = hasHidden(list);
       const treeData = filterChildrenArrayByPath(list);
-      // console.log('999999999999 fetchTagGroupsData treeData', res.deletedBookmarksNum);
+      // console.log('999999999999 fetchTagGroupsData treeData', res.deletedBookmarksNum);res.deletedBookmarksNum
       dispatch(updateBookmarks({
         dataByGroup: list,
         dataByDate: list1,
@@ -741,6 +741,27 @@ const fetchBookmarksPageData = (pageId: number) => {
         tagsMap: tagsMap,
         currentPage: currentPage,
       }));
+
+      // 若存在已删除的书签，提前异步预加载回收站数据到 redux（不激活回收站视图）
+      try {
+        if (res.deletedBookmarksNum && res.deletedBookmarksNum > 0) {
+          // 不 await，后台加载以免阻塞主流程
+          getDeletedPageTree(pageId).then((delRes) => {
+            try {
+              dispatch(updateRecycleBin({
+                dataByGroup: delRes.data || [],
+                dataGroups: delRes.treeData || [],
+                deletedBookmarksNum: delRes.deletedBookmarksNum || 0,
+                expandedKeys: delRes.expandedKeys || [],
+              }));
+            } catch (e) {
+              // ignore dispatch error
+            }
+          }).catch(() => { /* ignore preload error */ });
+        }
+      } catch (e) {
+        // ignore
+      }
 
       return res; // 直接返回整个响应对象
     } else {
