@@ -1253,7 +1253,6 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         if (!searchKeyWord) return;
         const keyWord = searchKeyWord ? searchKeyWord.keyword : '';
         const searchType1 = searchKeyWord && searchKeyWord.searchType ? searchKeyWord.searchType : 0;
-        // if (searchType1 === -1) return;
 
         setSearchType(searchType1);
         searchTypeRef.current = searchType1;

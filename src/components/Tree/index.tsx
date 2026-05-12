@@ -515,11 +515,13 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
                 onSelect={(value, extra) => {
                     const selectedKey = Array.isArray(value) ? value[0] : value;
                     const nodeIsRecycleBin = extra?.node?.props?.isRecycleBin || extra?.node?.props?.dataRef?.isRecycleBin || selectedKey === RECYCLE_BIN_NODE_ID;
+                    // console.log('zzzzzzzzzzzzzzzzzzzzz onSelect recycleActive', nodeIsRecycleBin);
                     if (nodeIsRecycleBin) {
                         const deletedNum = globalState?.recycleBin?.deletedBookmarksNum || 0;
                         const recycleActive = !!globalState?.recycleBin?.active;
+                        // console.log('zzzzzzzzzzzzzzzzzzzzz onSelect recycleActive', recycleActive);
                         // 仅在当前不是回收站视图时，才激活并加载回收站数据，避免与“返回”点击产生冲突
-                        if (!recycleActive && deletedNum > 0) {
+                        if (!recycleActive) {//&& deletedNum > 0
                             dispatch(fetchRecycleBinData(pageId));
                             dispatch(updateRecycleBinState({ active: true }));
                         }
@@ -536,8 +538,10 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
                 }}
 
                 renderExtra={({ bookmarksNum, isRecycleBin }) => {
+                    // 当回收站视图被激活（页面显示“返回”）时，不显示任何数量
+                    // if (globalState?.recycleBin?.active) return null;
                     return (
-                        bookmarksNum > 0 && (isRecycleBin && !globalState?.recycleBin?.active || !isRecycleBin) && <span
+                        bookmarksNum > 0 && <span
                             style={{
                                 position: 'absolute',
                                 right: 8,
@@ -695,7 +699,7 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
 
                 </div>
 
-                <span
+                {!globalState?.recycleBin?.active && <span
                     // style={{ fontSize: 12, color: 'var(--color-text-3)' }}
                     style={{
                         cursor: (globalState?.recycleBin?.deletedBookmarksNum || 0) > 0 ? 'pointer' : 'default',
@@ -711,6 +715,7 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
                 >
                     {globalState?.recycleBin?.deletedBookmarksNum || 0}
                 </span>
+                }
                 {/*  <div>
                     {globalState?.recycleBin?.active ? (
                         <span

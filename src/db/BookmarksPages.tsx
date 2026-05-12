@@ -2080,7 +2080,6 @@ export async function getDeletedPageTree(pageId) {
             if (finalChildren && finalChildren.length > 0) expandedKeysSet.add(node.id);
             result.push(resultNode);
         }
-
         return result;
     }
 
