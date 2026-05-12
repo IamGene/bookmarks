@@ -401,7 +401,7 @@ function UserNavigate() {
       }
     }
     const keyWordObject = { keyword: keywordToUse, searchType };
-    console.log('zzzzzzzzzzzzzzzzzzzzz getNavBarKey', keyWordObject);
+    // console.log('zzzzzzzzzzzzzzzzzzzzz getNavBarKey', keyWordObject);
     setNavbarKeyWord(keyWordObject);
     dispatch(updateSearchState({ keyword: keywordString, searchType: searchType }));
     // 关键词过滤

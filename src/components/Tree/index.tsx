@@ -101,45 +101,78 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
     //搜索输入内容
     const [groupType, setGroupType] = useState(options[0].value);
     const [treeData, setTreeData] = useState(dataGroups);
+
+    // const [recycleActive, setRecycleActive] = useState(false);
+
+    // 不再把回收站节点加入到树数据中，改为在树外固定显示
     const treeDataWithRecycleBin = useMemo(() => {
         const recycleActive = !!globalState?.recycleBin?.active;
         const normalizedTreeData = recycleActive ?
             globalState.recycleBin.dataGroups
             : (Array.isArray(treeData) ? treeData : []);
         const deletedNum = globalState?.recycleBin?.deletedBookmarksNum || 0;
-        // const deletedNum = 2;
-        // console.log('==================== treeDataWithRecycleBin', deletedNum);
-        return [
-            ...normalizedTreeData,
-            {
-                id: RECYCLE_BIN_NODE_ID,
-                name: recycleActive ? '返回' : '回收站',
-                disabled: !recycleActive && deletedNum <= 0,
-                isRecycleBin: true,
-                // 始终携带被删除书签数量，用于右侧显示
-                bookmarksNum: deletedNum,
-            },
-        ];
-    }, [treeData, globalState?.recycleBin?.deletedBookmarksNum, globalState?.recycleBin?.active]);
+        return normalizedTreeData;
+    }, [treeData, globalState?.recycleBin?.dataGroups, globalState?.recycleBin?.active]);
 
     // 当回收站被激活或其数据更新时，使用回收站的数据作为分组展示
+    /*   useEffect(() => {
+          const recycleActive = !!globalState?.recycleBin?.active;
+          if (recycleActive) {
+              const rbData = Array.isArray(globalState.recycleBin.dataGroups) ? globalState.recycleBin.dataGroups : [];
+              setTreeData(rbData);
+              // 激活回收站时默认展开回收站下所有分组（若有）
+              setTreeExpandedKeys(Array.isArray(rbData) ? rbData.map((item) => item.id) : []);
+          } else {
+              // 退出回收站时，恢复为当前分组类型的数据
+              const data = allDataGroups.find(g => g.value === groupType)?.data || [];
+              setTreeData(data);
+              if (!expand) setTreeExpandedKeys([]);
+          }
+      }, [globalState?.recycleBin?.active, globalState?.recycleBin?.dataGroups]); */
+
+
     useEffect(() => {
         const recycleActive = !!globalState?.recycleBin?.active;
+        // console.log('gggggggggggggggggggg useEffect recycleActive', recycleActive);
         if (recycleActive) {
-            const rbData = Array.isArray(globalState.recycleBin.dataGroups) ? globalState.recycleBin.dataGroups : [];
+            const rbData = Array.isArray(globalState.recycleBin.dataGroups)
+                ? globalState.recycleBin.dataGroups
+                : [];
+
             setTreeData(rbData);
             // 激活回收站时默认展开回收站下所有分组（若有）
-            setTreeExpandedKeys(Array.isArray(rbData) ? rbData.map((item) => item.id) : []);
+            setTreeExpandedKeys(
+                Array.isArray(rbData)
+                    ? rbData.map((item) => item.id)
+                    : []
+            );
         } else {
             // 退出回收站时，恢复为当前分组类型的数据
             const data = allDataGroups.find(g => g.value === groupType)?.data || [];
             setTreeData(data);
-            if (!expand) setTreeExpandedKeys([]);
+            if (!expand) {
+                setTreeExpandedKeys([]);
+            } else {
+                setTreeExpandedKeys(
+                    groupType === 0
+                        ? (Array.isArray(expandedKeys) ? expandedKeys : [])
+                        : data.map((item) => item.id)
+                );
+            }
         }
-    }, [globalState?.recycleBin?.active, globalState?.recycleBin?.dataGroups]);
+    }, [
+        globalState?.recycleBin?.active,
+        globalState?.recycleBin?.dataGroups,
+        // recycleActive,
+        groupType,
+        allDataGroups,
+        expandedKeys,
+    ]);
+
 
     // console.log('>>>>>>>>>>>>>>>>>>>>> tree组件渲染了11, treeData', expandedKeys);
     const [checked, setChecked] = useState(true);
+
     const [expand, setExpand] = useState(false);
     // const [tempExpand, setTempExpand] = useState(false);
     const [treeExpandedKeys, setTreeExpandedKeys] = useState([]);
@@ -181,7 +214,7 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
         setInputValue(null);
         if (toUpdateGroupTypes.length > 0) {
             if (value === 0 && toUpdateGroupTypes.includes(0)) {
-                console.log('xxxxxxxxxxxxxxxxxxx tree onTypeSelectChange fetchBookmarksPageData0')
+                // console.log('xxxxxxxxxxxxxxxxxxx tree onTypeSelectChange fetchBookmarksPageData0')
                 await dispatch(fetchBookmarksPageData0(pageId));
             } else if (value === 1 && toUpdateGroupTypes.includes(1)) {
                 await dispatch(fetchBookmarksPageData1(pageId));
@@ -484,8 +517,9 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
                     const nodeIsRecycleBin = extra?.node?.props?.isRecycleBin || extra?.node?.props?.dataRef?.isRecycleBin || selectedKey === RECYCLE_BIN_NODE_ID;
                     if (nodeIsRecycleBin) {
                         const deletedNum = globalState?.recycleBin?.deletedBookmarksNum || 0;
-                        if (deletedNum > 0) {
-                            // 激活回收站视图并加载回收站数据
+                        const recycleActive = !!globalState?.recycleBin?.active;
+                        // 仅在当前不是回收站视图时，才激活并加载回收站数据，避免与“返回”点击产生冲突
+                        if (!recycleActive && deletedNum > 0) {
                             dispatch(fetchRecycleBinData(pageId));
                             dispatch(updateRecycleBinState({ active: true }));
                         }
@@ -516,52 +550,6 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
 
 
                 renderTitle={({ id, name, bookmarksNum, pId, path, list, icon, isRecycleBin }) => {
-                    if (isRecycleBin) {
-                        const recycleActive = !!globalState?.recycleBin?.active;
-                        return (
-                            <div
-                                style={{
-                                    color: 'var(--color-text-2)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 8,
-                                    marginTop: 4,
-                                    paddingLeft: '8px',
-                                    position: 'relative',
-                                    width: '100%',
-                                }}
-                            >
-                                <span
-                                    aria-hidden
-                                    style={{
-                                        borderTop: '1px solid var(--color-border-2)',
-                                        left: -999,
-                                        position: 'absolute',
-                                        right: -999,
-                                        top: "-3px",
-                                    }}
-                                />
-                                {recycleActive ? (
-                                    <span
-                                        onClick={() => {
-                                            // 退出回收站视图，回到正常分组显示
-                                            dispatch(updateRecycleBinState({ active: false }));
-                                            if (typeof setTreeType === 'function') setTreeType(groupType);
-                                            const data = allDataGroups.find(g => g.value === groupType)?.data || [];
-                                            setTreeData(data);
-                                            if (!expand) setTreeExpandedKeys([]);
-                                        }}
-                                        style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                                    >
-                                        {/* <span style={{ transform: 'rotate(180deg)', display: 'inline-block' }}>→</span> */}
-                                        <span>返回</span>
-                                    </span>
-                                ) : (
-                                    <span>回收站</span>
-                                )}
-                            </div>
-                        );
-                    }
 
                     const hrefId = pId ? pId : id
                     if (inputValue) {
@@ -642,7 +630,7 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
             {/* 输入搜索框 */}
             <Input.Search
                 style={{
-                    marginBottom: 8,
+                    // marginBottom: 8,
                     maxWidth: 240,
                 }}
                 allowClear
@@ -651,10 +639,94 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
                 onChange={onInputChange}
             />
 
-            <div style={{ overflow: 'hidden' }}>
-                {getTree(treeDataWithRecycleBin)}
+            <div style={{ position: 'relative' }}>
+                {/* maxHeight: 790, */}
+                {/* <div style={{ maxHeight: 520, maxHeight: 790,overflow: 'auto', paddingBottom: 56 }}> */}
+                <div style={{ overflow: 'auto', paddingBottom: 40 }}>
+                    {getTree(treeDataWithRecycleBin)}
+                </div>
+                {/* 回收站固定在底部的条，避免随树滚动被隐藏 */}
             </div>
 
+
+            <div
+                style={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    // padding: '4px 12px',
+                    padding: '4px 12px 4px 0px',
+                    background: 'var(--color-bg-1)',
+                    borderTop: '1px solid var(--color-border-2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 8,
+                }}
+            >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--color-text-2)' }}>
+                    <span
+                        // style={{ fontSize: 13 }}
+                        style={{ fontSize: 14, cursor: 'pointer', padding: '4px 8px', borderRadius: 4 }}
+                        onClick={() => {
+                            // 退出回收站视图，切换回全部分组（按名称）并恢复展开状态
+
+                            if (globalState?.recycleBin?.active) {
+                                dispatch(updateRecycleBinState({ active: false }));
+                                const allData = Array.isArray(globalState.dataGroups) ? globalState.dataGroups : [];
+                                if (typeof setTreeType === 'function') setTreeType(0);
+                                setGroupType(0);
+                                setTreeData(allData);
+                                setTreeExpandedKeys(Array.isArray(expandedKeys) ? expandedKeys : []);
+                            } else {
+                                const deletedNum = globalState?.recycleBin?.deletedBookmarksNum || 0;
+                                if (deletedNum > 0) {
+                                    dispatch(fetchRecycleBinData(pageId));
+                                    dispatch(updateRecycleBinState({ active: true }));
+                                }
+                            }
+                        }}
+                    >
+                        {globalState?.recycleBin?.active ?
+                            <span> <IconUndo></IconUndo>  <span style={{ paddingLeft: 10 }}> 返回 </span> </span> :
+                            <span> <IconDelete></IconDelete ><span style={{ paddingLeft: 10 }}> 回收站 </span></span>}
+                    </span>
+
+                </div>
+
+                <span
+                    // style={{ fontSize: 12, color: 'var(--color-text-3)' }}
+                    style={{
+                        cursor: (globalState?.recycleBin?.deletedBookmarksNum || 0) > 0 ? 'pointer' : 'default',
+                        padding: '4px 8px', borderRadius: 4, color: (globalState?.recycleBin?.deletedBookmarksNum || 0) > 0 ? 'inherit' : 'var(--color-text-3)'
+                    }}
+                    onClick={() => {
+                        const deletedNum = globalState?.recycleBin?.deletedBookmarksNum || 0;
+                        if (deletedNum > 0) {
+                            dispatch(fetchRecycleBinData(pageId));
+                            dispatch(updateRecycleBinState({ active: true }));
+                        }
+                    }}
+                >
+                    {globalState?.recycleBin?.deletedBookmarksNum || 0}
+                </span>
+                {/*  <div>
+                    {globalState?.recycleBin?.active ? (
+                        <span
+                            style={{ cursor: 'pointer', padding: '4px 8px', borderRadius: 4 }}
+                        >
+                            返回
+                        </span>
+                    ) : (
+                        <span
+                            style={{ cursor: (globalState?.recycleBin?.deletedBookmarksNum || 0) > 0 ? 'pointer' : 'default', padding: '4px 8px', borderRadius: 4, color: (globalState?.recycleBin?.deletedBookmarksNum || 0) > 0 ? 'inherit' : 'var(--color-text-3)' }}
+                        >
+                            进入回收站
+                        </span>
+                    )}
+                </div> */}
+            </div>
         </div>
     );
 }

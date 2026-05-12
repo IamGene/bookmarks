@@ -70,6 +70,7 @@ import defaultSettings from '../../settings.json';
 import { getPageTree, getPageTreeByDate, getPages, getPageTreeGroupsData, getPageTreeByDomain, getPage, getSearchHistory, getDeletedPageTree } from "@/db/BookmarksPages";
 import { WebTag } from '@/pages/navigate/user/interface';
 import { set } from 'mobx';
+import { act } from 'react';
 export interface GroupNode {
   id: string;
   name: string;
@@ -935,6 +936,7 @@ const fetchRecycleBinData = (pageId: number) => {
     console.log('--------------------fetchRecycleBinData res', res);
     dispatch(updateRecycleBin({
       dataByGroup: res.data || [],
+      // active: res.active || false,
       dataGroups: res.treeData || [],
       deletedBookmarksNum: res.deletedBookmarksNum || 0,
       expandedKeys: res.expandedKeys || [],
@@ -945,6 +947,7 @@ const fetchRecycleBinData = (pageId: number) => {
 
 const updateRecycleBinState = (payload: any) => {
   return async (dispatch) => {
+    console.log('--------------------updateRecycleBinState payload', payload);
     dispatch(updateRecycleBin(payload || {}));
   }
 };
