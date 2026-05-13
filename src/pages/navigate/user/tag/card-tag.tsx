@@ -5,8 +5,9 @@ import { IconMore } from '@arco-design/web-react/icon';
 import { Tooltip, Tag, Dropdown, Menu, Checkbox } from '@arco-design/web-react';
 import { removeConfirm } from '../form/remove-confirm-modal';
 import { WebTag } from '../interface';
-import { useDispatch } from 'react-redux'
-import { removeWebTag } from '@/db/BookmarksPages';
+import { useDispatch, useSelector } from 'react-redux'
+import { RootState } from '@/store';
+import { removeWebTag, restoreWebTag, permanentlyDeleteWebTag } from '@/db/BookmarksPages';
 
 const api = import.meta.env.VITE_REACT_APP_BASE_API;
 
@@ -37,26 +38,40 @@ const App = (props: CardBlockType) => {
     //配置编辑表单展示与否
     // const [loading, setLoading] = useState(props.loading);
     const dispatch = useDispatch();
-
-    const onClickMenuItem = (key: string) => {
-        if (key === '0') {//编辑
-            let selectGroup1 = tag.path;
-            // console.log('xxxxxxxxxxxxxxxxxxxxx onClickMenuItem 编辑', tag);
-            if (selectGroup1[selectGroup1.length - 1].endsWith('_copy')) {//数组
-                selectGroup1 = [...selectGroup1.slice(0, selectGroup1.length - 1)];//去掉最后一个（复制子分组）
-            };//确保在编辑标签时能正确传递当前分组路径
-            editTag(tag, selectGroup1, searching);
-        } else if (key === '1') {//删除
-            //弹出确认框
-            // console.log('点击了菜单,删除', key)
-            removeConfirm(tag.id, tag.name, true, '', '书签', handleDelete);
+    const recycleActive = useSelector((state: RootState) => !!state.global?.recycleBin?.active);
+    const onClickMenuItem = async (key: string) => {
+        if (!recycleActive) {
+            if (key === '0') {// 编辑
+                let selectGroup1 = tag.path;
+                if (selectGroup1[selectGroup1.length - 1].endsWith('_copy')) {
+                    selectGroup1 = [...selectGroup1.slice(0, selectGroup1.length - 1)];
+                }
+                editTag(tag, selectGroup1, searching);
+            } else if (key === '1') {// 软删除（移入回收站）
+                removeConfirm(tag.id, tag.name, true, '', '书签', handleDelete);
+            }
+        } else {
+            // 回收站模式：0=恢复，1=物理删除
+            if (key === '0') {
+                // 恢复
+                try {
+                    const ok = await restoreWebTag(tag.id);
+                    if (ok) {
+                        if (onDeleteSuccess) onDeleteSuccess(tag, tag.path);
+                    }
+                } catch (e) {
+                    // ignore
+                }
+            } else if (key === '1') {
+                // 物理删除，要求二次确认
+                removeConfirm(tag.id, tag.name, true, '', '书签', handlePermanentDelete);
+            }
         }
     }
 
     async function handleDelete(id) {
         // const handleDelete = async () => {
         try {
-            // const response = await removeWebTag(tag.id);
             // const response = await removeWebTag(tag.id);
             // console.log('handleDelete Tag', tag)
             const ok = await removeWebTag(tag.id);
@@ -67,6 +82,20 @@ const App = (props: CardBlockType) => {
                 onDeleteSuccess(tag, tag.path);
                 return tag;
                 // return tag;
+            } else {
+                return null;
+            }
+        } catch (error) {
+            return null;
+        }
+    }
+
+    async function handlePermanentDelete(id) {
+        try {
+            const ok = await permanentlyDeleteWebTag(id);
+            if (ok) {
+                if (onDeleteSuccess) onDeleteSuccess(tag, tag.path);
+                return tag;
             } else {
                 return null;
             }
@@ -205,7 +234,7 @@ const App = (props: CardBlockType) => {
                             {/* style={{ maxWidth: '195px' }} */}
                             <div style={{ paddingLeft: "5px", paddingRight: "10px", maxWidth: '198px' }}>
                                 <a href={tag.url} target='_blank'>
-                                    <strong className="overflowClip_2" >{tag.name}</strong>
+                                    <strong className="overflowClip_2" >{tag.id}{tag.name}</strong>
                                 </a>
                             </div>
                         </Tooltip>
@@ -267,10 +296,8 @@ const App = (props: CardBlockType) => {
 
                 <Dropdown
                     droplist={
-                        <Menu
-                            onClickMenuItem={onClickMenuItem}
-                        >
-                            {['编辑', '删除'].map((item, key) => (
+                        <Menu onClickMenuItem={onClickMenuItem}>
+                            {(recycleActive ? ['恢复', '删除'] : ['编辑', '删除']).map((item, key) => (
                                 <Menu.Item key={key.toString()} >{item}</Menu.Item>
                             ))}
                         </Menu>

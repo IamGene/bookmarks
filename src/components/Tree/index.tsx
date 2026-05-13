@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { Tree, Switch, Input, Modal, Message, Typography, Anchor, Select } from '@arco-design/web-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { IconDelete, IconUndo, IconDriveFile, IconEmpty, IconFolder } from '@arco-design/web-react/icon';
-import { fetchBookmarksPageData, fetchBookmarksPageData0, fetchBookmarksPageData1, updateSearchState, fetchBookmarksPageData2, updateRecycleBinState, fetchRecycleBinData, clearRecycleBinForPage } from '@/store/modules/global';
+import { fetchBookmarksPageData, fetchBookmarksPageData0, fetchBookmarksPageData1, updateSearchState, fetchBookmarksPageData2, updateRecycleBinState, fetchRecycleBinData, clearRecycleBinForPage, updateGroupTypes } from '@/store/modules/global';
 const AnchorLink = Anchor.Link;
 // import { RootState } from '@/store';
 
@@ -183,22 +183,18 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
     useEffect(() => {
         const handler = async (event) => {
             try {
-                const inc = event?.detail?.count || 0;
+                const detail = event?.detail || {};
+                const inc = detail.count || 0;
                 if (inc > 0) {
                     const cur = globalState?.recycleBin?.deletedBookmarksNum || 0;
                     dispatch(updateRecycleBinState({ deletedBookmarksNum: cur + inc }));
 
-                    // 如果当前没有激活回收站，应清空已预加载的回收站快照，标记为需要重新拉取
-                    // 否则预加载的数据可能与最新的已删除条目不一致，导致进入回收站时显示过期数据
                     if (!globalState?.recycleBin?.active) {
                         try {
                             dispatch(updateRecycleBinState({ dataByGroup: [], dataGroups: [] }));
-                        } catch (e) {
-                            // ignore
-                        }
+                        } catch (e) { }
                     }
 
-                    // 如果当前正在显示回收站，则刷新回收站数据以确保 tree/dataGroups 同步
                     if (globalState?.recycleBin?.active && pageId != null) {
                         const res = await dispatch(fetchRecycleBinData(pageId));
                         try {
@@ -206,19 +202,65 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
                             lastDeletedRef.current = newNum;
                         } catch (e) { }
                     }
+                } else if (detail.permanent === true) {
+                    // 从回收站中物理删除：已删除计数应减少
+                    const cur = globalState?.recycleBin?.deletedBookmarksNum || 0;
+                    const newNum = Math.max(0, cur - 1);
+                    dispatch(updateRecycleBinState({ deletedBookmarksNum: newNum }));
+                    if (!globalState?.recycleBin?.active) {
+                        try {
+                            dispatch(updateRecycleBinState({ dataByGroup: [], dataGroups: [] }));
+                        } catch (e) { }
+                    }
+                    if (globalState?.recycleBin?.active && pageId != null) {
+                        await dispatch(fetchRecycleBinData(pageId));
+                    }
+                    try {
+                        dispatch(updateGroupTypes({ toUpdateGroupTypes: [0] }));
+                    } catch (e) { }
                 }
             } catch (e) {
                 // ignore
             }
         };
         if (typeof window !== 'undefined' && window.addEventListener) {
+            const restoredHandler = async (ev) => {
+                try {
+                    // 恢复事件通常只包含 id，视为减少 1 个已删除书签
+                    const cur = globalState?.recycleBin?.deletedBookmarksNum || 0;
+                    const newNum = Math.max(0, cur - 1);
+                    dispatch(updateRecycleBinState({ deletedBookmarksNum: newNum }));
+
+                    // 如果当前没有激活回收站，应清空已预加载的回收站快照
+                    if (!globalState?.recycleBin?.active) {
+                        try {
+                            dispatch(updateRecycleBinState({ dataByGroup: [], dataGroups: [] }));
+                        } catch (e) { }
+                    }
+
+                    // 如果当前正在显示回收站，则刷新回收站数据以确保 tree/dataGroups 同步
+                    if (globalState?.recycleBin?.active && pageId != null) {
+                        await dispatch(fetchRecycleBinData(pageId));
+                    }
+                    try {
+                        dispatch(updateGroupTypes({ toUpdateGroupTypes: [0] }));
+                    } catch (e) { }
+                } catch (e) {
+                    // ignore
+                }
+            };
+
             window.addEventListener('bookmarks-deleted', handler as EventListener);
+            window.addEventListener('bookmarks-restored', restoredHandler as EventListener);
+
+            return () => {
+                if (typeof window !== 'undefined' && window.removeEventListener) {
+                    window.removeEventListener('bookmarks-deleted', handler as EventListener);
+                    window.removeEventListener('bookmarks-restored', restoredHandler as EventListener);
+                }
+            };
         }
-        return () => {
-            if (typeof window !== 'undefined' && window.removeEventListener) {
-                window.removeEventListener('bookmarks-deleted', handler as EventListener);
-            }
-        };
+        return () => { };
     }, [globalState?.recycleBin?.active, pageId, dispatch, globalState?.recycleBin?.deletedBookmarksNum]);
 
     const [expand, setExpand] = useState(false);
@@ -610,7 +652,7 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
                             style={{
                                 position: 'absolute',
                                 right: 8,
-                                fontSize: 12,
+                                fontSize: 13,
                                 top: 10,
                             }}
                         >{bookmarksNum}</span>

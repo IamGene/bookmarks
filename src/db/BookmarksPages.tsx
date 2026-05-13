@@ -1189,6 +1189,75 @@ export async function removeBookmarks(ids: string[]): Promise<boolean> {
     }
 }
 
+// 将已删除标记的书签恢复（移除 deleted 字段或设为 false）
+export async function restoreWebTag(id: string): Promise<boolean> {
+    try {
+        const db = await getDB();
+        const bookmark = await db.get('bookmarks', id);
+        if (bookmark && bookmark.deleted) {
+            const updated = { ...bookmark } as any;
+            if ('deleted' in updated) delete updated.deleted;
+            if ('deletedAt' in updated) delete updated.deletedAt;
+            await db.put('bookmarks', updated);
+
+            // 更新 pages.bookmarksNum
+            try {
+                const active = getActiveBookmarks(await db.getAllFromIndex('bookmarks', 'pageId', bookmark.pageId));
+                const page = await db.get('pages', bookmark.pageId);
+                if (page) {
+                    await db.put('pages', { ...page, bookmarksNum: Array.isArray(active) ? active.length : 0 });
+                }
+            } catch (e) {
+                // ignore
+            }
+
+            try {
+                if (typeof window !== 'undefined' && window.dispatchEvent) {
+                    window.dispatchEvent(new CustomEvent('bookmarks-restored', { detail: { id } }));
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+// 物理删除指定书签（从 DB 中彻底删除）
+export async function permanentlyDeleteWebTag(id: string): Promise<boolean> {
+    try {
+        const db = await getDB();
+        const bookmark = await db.get('bookmarks', id);
+        if (bookmark) {
+            await db.delete('bookmarks', id);
+
+            // 更新 pages.bookmarksNum
+            try {
+                const active = getActiveBookmarks(await db.getAllFromIndex('bookmarks', 'pageId', bookmark.pageId));
+                const page = await db.get('pages', bookmark.pageId);
+                if (page) {
+                    await db.put('pages', { ...page, bookmarksNum: Array.isArray(active) ? active.length : 0 });
+                }
+            } catch (e) {
+                // ignore
+            }
+
+            try {
+                if (typeof window !== 'undefined' && window.dispatchEvent) {
+                    window.dispatchEvent(new CustomEvent('bookmarks-deleted', { detail: { id, permanent: true } }));
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
 
 export async function removeWebTagsAndGroups(bookmarks: any[], allGroup: boolean): Promise<any> {
     try {
@@ -2275,7 +2344,6 @@ export async function getPageTreeByDomain2(pageId) {
     // ========= 1. 构建 path 缓存 =========
     const pathCache = new Map();
     const uniqueGIds = Array.from(new Set(bookmarks.map(b => b && b.gId).filter(Boolean)));
-
 
 
 

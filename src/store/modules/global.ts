@@ -1033,7 +1033,7 @@ const { updateSettings, updateUserInfo, switchTagSelected, updateRefreshCardGrou
   setSearchHistory,
   updateActiveGroup, setLoadBookmarks, updateRecycleBin } = globalSlice.actions;
 export {
-  updateSettings, updateUserInfo, updateSearchState, updateBookmarks, updateActiveGroup,
+  updateSettings, updateUserInfo, updateGroupTypes, updateSearchState, updateBookmarks, updateActiveGroup,
   loadSearchHistory, updatePageBookmarkTags, oneTagSelectedSwitch,
   updatePageDataState, reloadUserPages, fetchBookmarksPageData, setToUpdateCardGroups,
   fetchBookmarksPageData0, fetchBookmarksPageData1, fetchBookmarksPageData2, updateBookmarksPage, fetchBookmarksPageDatas, fetchBookmarksPageDataGoups,
