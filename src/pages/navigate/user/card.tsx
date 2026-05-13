@@ -1092,6 +1092,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
     // 当前全局 pageId（切换书签页时用于触发本组件的重新初始化）
     const currentGlobalPageId = useSelector((state: RootState) => state.global.currentPage?.pageId ?? state.global.pageId);
     const toUpdateCardGroupIds = useSelector((state: RootState) => state.global.toUpdateCardGroups);
+    const globalState = useSelector((state: RootState) => state.global);
     // console.log('bbbbbbbbbbbbbbbbbbbbbbbbbb currentGlobalPageId', currentGlobalPageId);
 
     useEffect(() => {
@@ -3601,6 +3602,44 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         //当前所属分组变为空?切换到兄弟节点tab
         //查询所在分组的urlList,若为空，则切换到搜索结果tab（根据pId）
         await processUpdatePageBookmarksNum(pageId, -1);
+
+        // 回收站视图处理：检查并移除空分组（包括递归检查父分组）
+        const recycleActive = !!globalState?.recycleBin?.active;
+        if (recycleActive && (dataType === 0 || dataType === 1 || dataType === 2)) {
+            // 恢复操作后，重新加载该分组数据以检查是否为空
+            // 如果为空则会由后续的Tree组件及时处理
+            if (dataType === 0 && selectGroup) {
+                const groupPath = selectGroup.join(',');
+                const updatedGroup = await getBookmarksGroupById(groupPath);
+                if (updatedGroup && updatedGroup.groupData) {
+                    const groupData = updatedGroup.groupData;
+                    // 检查该分组及其子分组中是否还有被删除的书签
+                    const hasDeletedBookmarks = (checkNode: any) => {
+                        if (!checkNode) return false;
+                        // 检查叶子节点书签
+                        if (Array.isArray(checkNode.bookmarks) && checkNode.bookmarks.length > 0) {
+                            return true;
+                        }
+                        // 检查子分组
+                        if (Array.isArray(checkNode.children)) {
+                            return checkNode.children.some((child: any) => hasDeletedBookmarks(child));
+                        }
+                        return false;
+                    };
+
+                    // 如果该分组没有任何被删除的书签，则隐藏该Card
+                    if (!hasDeletedBookmarks(groupData)) {
+                        setCardShow(false);
+                        return;
+                    }
+
+                    // 否则更新分组数据以显示最新状态
+                    processNewCardData(groupData);
+                }
+                return;
+            }
+        }
+
         if (dataType == 0) {
             // console.log('222222222222222222222222222222 handleDeleteSuccess,tag selectGroup', tag, selectGroup);
             updateCardData(selectGroup ? selectGroup.join(',') : null, null);
