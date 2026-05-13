@@ -67,7 +67,7 @@ export default store
 import { createSlice } from '@reduxjs/toolkit';
 import defaultSettings from '../../settings.json';
 // import { getUserNaviate } from '@/api/navigate';
-import { getPageTree, getPageTreeByDate, getPages, getPageTreeGroupsData, getPageTreeByDomain, getPage, getSearchHistory, getDeletedPageTree } from "@/db/BookmarksPages";
+import { getPageTree, getPageTreeByDate, getPages, getPageTreeGroupsData, getPageTreeByDomain, getPage, getSearchHistory, getDeletedPageTree, clearDeletedBookmarksForPage } from "@/db/BookmarksPages";
 import { WebTag } from '@/pages/navigate/user/interface';
 import { set } from 'mobx';
 import { act } from 'react';
@@ -956,8 +956,8 @@ const fetchRecycleBinData = (pageId: number) => {
     const res = await getDeletedPageTree(pageId);
     console.log('--------------------fetchRecycleBinData res', res);
     dispatch(updateRecycleBin({
+      active: true,
       dataByGroup: res.data || [],
-      // active: res.active || false,
       dataGroups: res.treeData || [],
       deletedBookmarksNum: res.deletedBookmarksNum || 0,
       expandedKeys: res.expandedKeys || [],
@@ -971,6 +971,29 @@ const updateRecycleBinState = (payload: any) => {
     console.log('--------------------updateRecycleBinState payload', payload);
     dispatch(updateRecycleBin(payload || {}));
   }
+};
+
+
+const clearRecycleBinForPage = (pageId: number) => {
+  return async (dispatch) => {
+    try {
+      const res = await clearDeletedBookmarksForPage(pageId);
+      if (res && res.success) {
+        // 重置 redux 中回收站相关状态
+        dispatch(updateRecycleBin({ active: false, deletedBookmarksNum: 0, dataByGroup: [], dataGroups: [], expandedKeys: [] }));
+        // 重新加载当前页面书签数据以保持同步
+        try {
+          await dispatch(fetchBookmarksPageData(pageId));
+        } catch (e) {
+          // ignore
+        }
+        return { success: true, deletedCount: res.deletedCount };
+      }
+      return { success: false };
+    } catch (e) {
+      return { success: false };
+    }
+  };
 };
 
 const reloadUserPages = () => {
@@ -1016,6 +1039,7 @@ export {
   fetchBookmarksPageData0, fetchBookmarksPageData1, fetchBookmarksPageData2, updateBookmarksPage, fetchBookmarksPageDatas, fetchBookmarksPageDataGoups,
   loadNewAddedBookmarks, updatePageGroupsDataByType, groupTagUnselected, groupTagSelected,
   fetchRecycleBinData, updateRecycleBinState
+  , clearRecycleBinForPage
 };
 export default globalSlice.reducer;
 // export { dispatchTagGroupsData }; updatePageSelectedTags

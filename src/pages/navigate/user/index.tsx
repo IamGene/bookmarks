@@ -226,9 +226,8 @@ function UserNavigate() {
     { data: dataByDomain, value: 2 }
   ]), [dataByGroup, dataByDate, dataByDomain]);
 
-
   useEffect(() => {
-    if (recycleBin?.active) {
+    if (recycleBin?.active) {//回收站视图
       setDataType(0);
       setList(Array.isArray(recycleBin.dataByGroup) ? recycleBin.dataByGroup : []);
       group3Ref.current = group3Bookmarks;

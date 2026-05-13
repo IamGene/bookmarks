@@ -1140,11 +1140,21 @@ export async function clearGroupBookmarksById(groupId) {
  * @returns {Promise<boolean>}
  */
 export async function removeWebTag(id: string): Promise<boolean> {
-    console.log('zzzzzzzzzzzzzzzzz removeWebTag id', id);
+    // console.log('zzzzzzzzzzzzzzzzz removeWebTag id', id);
     try {
         const db = await getDB();
         const bookmark = await db.get('bookmarks', id);
-        if (bookmark) await db.put('bookmarks', { ...bookmark, deleted: true, deletedAt: Date.now() });
+        if (bookmark && !bookmark.deleted) {
+            await db.put('bookmarks', { ...bookmark, deleted: true, deletedAt: Date.now() });
+            try {
+                // 通知 UI 层有书签被删除，使用 window 事件避免循环依赖
+                if (typeof window !== 'undefined' && window.dispatchEvent) {
+                    window.dispatchEvent(new CustomEvent('bookmarks-deleted', { detail: { count: 1 } }));
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
         return true;
     } catch (e) {
         console.error('removeWebTag error', e);
@@ -1152,13 +1162,25 @@ export async function removeWebTag(id: string): Promise<boolean> {
     }
 }
 
-// export async function removeWebTags(ids: string[]): Promise<boolean> {
 export async function removeBookmarks(ids: string[]): Promise<boolean> {
     try {
         const db = await getDB();
+        let inc = 0;
         for (const id of ids) {
             const bookmark = await db.get('bookmarks', id);
-            if (bookmark) await db.put('bookmarks', { ...bookmark, deleted: true, deletedAt: Date.now() });
+            if (bookmark && !bookmark.deleted) {
+                await db.put('bookmarks', { ...bookmark, deleted: true, deletedAt: Date.now() });
+                inc++;
+            }
+        }
+        if (inc > 0) {
+            try {
+                if (typeof window !== 'undefined' && window.dispatchEvent) {
+                    window.dispatchEvent(new CustomEvent('bookmarks-deleted', { detail: { count: inc } }));
+                }
+            } catch (e) {
+                // ignore
+            }
         }
         return true;
     } catch (e) {
@@ -1174,9 +1196,22 @@ export async function removeWebTagsAndGroups(bookmarks: any[], allGroup: boolean
         const ids = (Array.isArray(bookmarks) ? bookmarks.map(b => b && b.id).filter(Boolean) : []);
         const gIds = (Array.isArray(bookmarks) ? Array.from(new Set(bookmarks.map(b => b && b.gId).filter(Boolean))) : []);
         // 删除书签
+        let inc = 0;
         for (const id of ids) {
             const bookmark = await db.get('bookmarks', id);
-            if (bookmark) await db.put('bookmarks', { ...bookmark, deleted: true, deletedAt: Date.now() });
+            if (bookmark && !bookmark.deleted) {
+                await db.put('bookmarks', { ...bookmark, deleted: true, deletedAt: Date.now() });
+                inc++;
+            }
+        }
+        if (inc > 0) {
+            try {
+                if (typeof window !== 'undefined' && window.dispatchEvent) {
+                    window.dispatchEvent(new CustomEvent('bookmarks-deleted', { detail: { count: inc } }));
+                }
+            } catch (e) {
+                // ignore
+            }
         }
 
         // 递归向上删除没有书签且没有子分组的分组，同时统计被删除的分组数量
@@ -2090,6 +2125,39 @@ export async function getDeletedPageTree(pageId) {
         deletedBookmarksNum: urls.length,
         expandedKeys: Array.from(expandedKeysSet),
     };
+}
+
+// 物理删除指定 pageId 下所有已标记为 deleted 的书签，并返回删除数量
+export async function clearDeletedBookmarksForPage(pageId) {
+    try {
+        const db = await getDB();
+        const all = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
+        const deleted = getDeletedBookmarks(all);
+        if (!deleted || deleted.length === 0) return { success: true, deletedCount: 0 };
+
+        for (const url of deleted) {
+            try {
+                await db.delete('bookmarks', url.id);
+            } catch (e) {
+                // ignore individual delete errors
+            }
+        }
+
+        // 更新 pages.bookmarksNum 为当前非删除书签数量
+        try {
+            const active = getActiveBookmarks(await db.getAllFromIndex('bookmarks', 'pageId', pageId));
+            const page = await db.get('pages', pageId);
+            if (page) {
+                await db.put('pages', { ...page, bookmarksNum: Array.isArray(active) ? active.length : 0 });
+            }
+        } catch (e) {
+            // ignore
+        }
+
+        return { success: true, deletedCount: deleted.length };
+    } catch (e) {
+        return { success: false, deletedCount: 0 };
+    }
 }
 
 export async function getPageTreeByDate(pageId) {//pageId
