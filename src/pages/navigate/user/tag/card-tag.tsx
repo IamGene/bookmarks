@@ -234,7 +234,7 @@ const App = (props: CardBlockType) => {
                             {/* style={{ maxWidth: '195px' }} */}
                             <div style={{ paddingLeft: "5px", paddingRight: "10px", maxWidth: '198px' }}>
                                 <a href={tag.url} target='_blank'>
-                                    <strong className="overflowClip_2" >{tag.id}{tag.name}</strong>
+                                    <strong className="overflowClip_2" >{tag.name}</strong>
                                 </a>
                             </div>
                         </Tooltip>

@@ -1660,6 +1660,16 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         setDropdownVisible(visible);
     };
 
+    const recycleActive = useSelector((state: RootState) => !!state.global?.recycleBin?.active);
+
+    const ContextMenuWrapper = (props: any) => {
+        const { droplist, children, ...rest } = props;
+        if (recycleActive) {
+            return <>{children}</>;
+        }
+        return <Dropdown droplist={droplist} {...rest}>{children}</Dropdown>;
+    };
+
     //点击卡片标题
     const onCardTitleClick = (value) => {
         setCardTabActive([String(data.id)])
@@ -2305,8 +2315,6 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                 // console.log('111111111111111111111' + cardData.name + ' processRemoveGroup00 response', response);
                 if (response.success) {
                     // getGroupData();//刷新书签页数据
-                    // 
-
                     removeCard(data.id);//移除card
                     // setCardShow(false);
                     //有书签被删除才需要同步按时间/域名分组数据
@@ -5026,8 +5034,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                                     </ButtonGroup> */}
 
 
-                                    <Dropdown
-                                        trigger='contextMenu'
+                                    <ContextMenuWrapper
                                         position='bl'
                                         droplist={
                                             <Menu>
@@ -5049,7 +5056,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                                             </a>
                                             {/* <span>Right-click</span> */}
                                         </Grid.Row>
-                                    </Dropdown>
+                                    </ContextMenuWrapper>
                                 </>
                             }
                             extra={
@@ -5124,8 +5131,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                                     <TabPane
                                         key={searchTabKey}
                                         title={
-                                            <Dropdown
-                                                trigger='contextMenu'
+                                            <ContextMenuWrapper
                                                 position='bl'
                                                 droplist={searchTabMoreMenus(data.searchResult)}
                                             >
@@ -5141,7 +5147,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                                                         </span>
                                                     </span>
                                                 </Grid.Row>
-                                            </Dropdown>
+                                            </ContextMenuWrapper>
                                         }>
                                         <div className={styles.container} style={{ backgroundColor: activeCardTab.includes(data.id) ? 'aliceblue' : '' }}>
                                             <div className={styles['single-content']}>
@@ -5189,8 +5195,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                                 {dataType == 0 && <Button onClick={() => editGroup1(data)} icon={<IconEdit />} >编辑</Button>}
                                 <Button onClick={removeGroup1} icon={<IconDelete />} >删除</Button>
                             </ButtonGroup> */}
-                            <Dropdown
-                                trigger='contextMenu'
+                            <ContextMenuWrapper
                                 position='bl'
                                 droplist={
                                     <Menu>
@@ -5209,7 +5214,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                                     <a onClick={() => onCardTitleClick(data.id)}> {data.name}
                                     </a>
                                 </Grid.Row>
-                            </Dropdown>
+                            </ContextMenuWrapper>
                         </>
                     }
                     extra={
