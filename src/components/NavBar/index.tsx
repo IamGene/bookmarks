@@ -768,13 +768,13 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
       <div className={styles.navbar}>
         <div className={styles.left}>
           <div className={styles.logo}>
-            <Logo />
+            <Logo style={{ width: 33, height: 33 }} />
             <div className={styles['logo-name']}>Bookmarks Pro</div>
           </div>
         </div>
         <ul className={styles.right} style={{ marginBottom: '0rem' }}>
           {/* selected tags UI removed: selection is driven by Redux `tags.selectedTags` */}
-
+          {/* // width: 33 */}
           <li>
             {/* <SearchHistory searchKeyword={searchKeyword} onClickHistory={onClickHistory} inputValue={keyword}>
               <Input.Search

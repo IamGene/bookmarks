@@ -1548,7 +1548,8 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
     } */
 
     const setActiveMapThroughChildren = async (key: string, path: string,) => {
-        // console.log('1111111111111111 setActiveMapThroughChildren path key ',);
+        // const recycleActive = !!globalState?.recycleBin?.active;
+        console.log('1111111111111111 setActiveMapThroughChildren ', key, path, recycleActive);
         const lastChild = await getThroughChild(key, path + ',' + key);
         const result = buildActiveMap(lastChild.path);
         // console.log('5555555555555555555555 setActiveMapThroughChildren activeMap , path, key', path, key, result);
@@ -1569,6 +1570,52 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         }
         return getLastChild(root);
     }
+
+    // function getLastChildForRecycleBin(root) {
+
+    function findFirstWithMatches1(node: any): string | null {
+        if (!node) return null;
+        if (node.bookmarksNum > 0) {
+            // 尽量返回最深的第一个含结果的后代路径
+            let cur = node;
+            while (Array.isArray(cur.children) && cur.children.length > 0) {
+                const next = cur.children.find((c: any) => c.bookmarksNum > 0);
+                if (!next) break;
+                cur = next;
+            }
+            return cur.path;
+        }
+        return null;
+    }
+
+    function getLastChildForRecycleBin1(startNode: any, pathArr: string[], key: string): string | null {
+        if (!startNode) return null;
+        if (!Array.isArray(startNode.children) || startNode.children.length === 0) {
+            return startNode.bookmarksNum > 0 ? startNode.path : null;
+        }
+        console.log("222222222222222222 getLastChildForRecycleBin1  data", startNode, pathArr, key);
+        let node = startNode;
+        const child = Array.isArray(node.children) ? node.children.find((c: any) => c.id == key) : null;
+        if (child) {
+            return findFirstWithMatches1(child);
+        }
+        // 沿 path 完全匹配(for完全循环遍历)，返回该节点或其第一个深层含结果的后代路径
+        return findFirstWithMatches(node) || node.path;
+    }
+
+    function getLastChildForRecycleBin(root) {
+        function getLastChild(parent) {
+            const children = parent.children;
+            if (children.length !== 0) {//第一 ==> 二层
+                console.log("222222222222222222 getLastChildForRecycleBin  children", children);
+                const nodes = children.filter(node => node.bookmarksNum > 0);
+                return nodes.length > 0 ? getLastChild(nodes[0]) : parent;// 根节点
+            }
+            return parent;
+        }
+        return getLastChild(root);
+    }
+
 
     /*    function getThroughSearchResult(paths: string[], groupId) {
            function getThroughFirstChild(paths: string[], group, index = 0) {
@@ -1629,8 +1676,15 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                 }
             }
             else {
-                setActiveMapThroughChildren(key, path);
-                // setDropdownVisible(false);
+                console.log('9999999999 getActiveForPath node path key', data, node, path, key);
+                const recycleActive = !!globalState?.recycleBin?.active;
+                if (recycleActive) {
+                    const target = getLastChildForRecycleBin1(node, path.split('-'), key);
+                    // console.log('nnnnnnnnnnnnnnnnnnnnn getActiveForPath node path key', node, target.split(','));
+                    setActiveMap(buildActiveMap(target));
+                } else {
+                    setActiveMapThroughChildren(key, path);
+                }
                 setEnable(false);
                 setTimeout(() => {
                     setEnable(true);

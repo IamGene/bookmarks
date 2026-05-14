@@ -1078,6 +1078,7 @@ export async function getThroughChild(groupId: string, path: string) {
     async function getLastChild(group, db, path1) {
         //查询子分组
         const nodes = await db.getAllFromIndex('groups', 'pId', group.id);
+        // console.log('sssssssssssssssssss getThroughChild nodes', nodes, recycleActive);
         if (nodes && nodes.length > 0) {//b.其中一个子分组
             if (nodes.length > 1) {
                 nodes.sort((a, b) => {
@@ -1086,16 +1087,30 @@ export async function getThroughChild(groupId: string, path: string) {
                     return aValue - bValue;
                 });
             }
-            const firstChildNode = nodes[0];
+
             //有子分组的情况再判断和书签自身分组的顺序
             //a.本身有书签数据且已排序在最前
             const bookmarks = await db.getAllFromIndex('bookmarks', 'gId', group.id);
-            if (bookmarks.length > 0 && (!group.order1 || group.order1 < firstChildNode.order)) {//本身有书签数据，则这个本身的子分组为尽头
+            const bookmarksNum =
+                bookmarks.filter(b => !b.deleted).length;
+            let firstChildNode = nodes[0];
+            /* if (recycleActive) {
+                firstChildNode = nodes.find(n => async function isDeletedBookmarksExist(n) {
+                    const bookmarks = await db.getAllFromIndex('bookmarks', 'gId', n.id);
+                    // const nBookmarks = bookmarks.filter(b => b.gId === n.id);
+                    const nBookmarksNum = bookmarks.filter(b => b.deleted).length;
+                    return nBookmarksNum > 0;
+                });
+                console.log('tttttttttttttttttttt getThroughChild firstChildNode', firstChildNode);
+            } */
+
+            if (bookmarksNum > 0 && (!group.order1 || group.order1 < firstChildNode.order)) {//本身有书签数据，则这个本身的子分组为尽头
                 //优先选择排序在前面的自身分组
-                // return { ...group, path: path1 + ',' + group.id };//本身有书签数据，但排序不在最前，则返回本身层级加1
+                console.log('aaaaaaaaaaaaaaaaaaaaa getThroughChild nodes', group.id, bookmarksNum);
                 return { ...group, path: path1 + ',' + group.id + '_copy' };//本身有书签数据，但排序不在最前，则返回本身层级加1
             } else {
                 //选择继续递归子分组路径
+                console.log('bbbbbbbbbbbbbbbbbbb getThroughChild nodes', group.id, bookmarksNum, firstChildNode);
                 return getLastChild(firstChildNode, db, path1 + ',' + firstChildNode.id);
             }
         } else {//c.其他情况，叶子节点/无子分组： 不管有无书签数据都返回本身，结束了

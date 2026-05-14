@@ -306,7 +306,7 @@ export default function TabsContainer(props: Props) {
                                     >
                                         <WrapTabNode key={child.id} index={idx} node={child} moveTabNode={moveTabNode} >
                                             {!!multiSelectMap[child.id] && <IconSelectAll></IconSelectAll>}  {/* 全选图标 */}
-                                            {child.name}
+                                            {child.id} {child.name}
                                             {/* {'(' + child.id + ')'} */}
                                             {/*  {
                                                 treeSelected && activeCardTab.length > 0
