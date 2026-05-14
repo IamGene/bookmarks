@@ -1600,7 +1600,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
     // 层级 onChange：根层沿用原有 onTabChange 逻辑，非根层仅更新 activeMap
     const TabChange = (key: string, node: any, path: string,) => {
         // console.log('9999999999 getActiveForPath node path key', node, path, key);
-        setTreeSelected(false);//使树节点选中的tab及内容背景色失效
+        setTreeSelected(false);//使树节点选中的tab及内容背景色失效 TabChange
         if (dataType == 0) {//默认分组
             if (searching) {
                 if (key === searchTabKey) {//搜索结果tab
@@ -1627,7 +1627,6 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                         setActiveMap(buildActiveMap(target.path));
                     }
                 }
-                // setActiveMap(null);
             }
             else {
                 setActiveMapThroughChildren(key, path);
@@ -3602,7 +3601,6 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         //当前所属分组变为空?切换到兄弟节点tab
         //查询所在分组的urlList,若为空，则切换到搜索结果tab（根据pId）
         await processUpdatePageBookmarksNum(pageId, -1);
-
         // 回收站视图处理：检查并移除空分组（包括递归检查父分组）
         const recycleActive = !!globalState?.recycleBin?.active;
         if (recycleActive && (dataType === 0 || dataType === 1 || dataType === 2)) {

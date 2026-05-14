@@ -141,7 +141,8 @@ export default function TabsContainer(props: Props) {
 
     // selectedMap 来自父组件，onSelectedMapChange 用于通知父组件更新
     const { selectedMap, onSelectedMapChange } = props as any;
-    const [currentTab, setCurrentTab] = useState<string>(activeTab ? activeTab : data.children[0].id);
+    const defaultTabId = (data.children && data.children.length > 0) ? data.children[0].id : data.id;
+    const [currentTab, setCurrentTab] = useState<string>(activeTab ? activeTab : defaultTabId);
     const searchingOrFilterByTags = searching || filterByTags;
 
     useEffect(() => {
@@ -149,7 +150,8 @@ export default function TabsContainer(props: Props) {
         if (searching && !data.pId) {
             setCurrentTab(searchTabKey);
         } else {
-            setCurrentTab(activeTab || data.children[0].id);
+            const defaultTabId = (data.children && data.children.length > 0) ? data.children[0].id : data.id;
+            setCurrentTab(activeTab || defaultTabId);
         }
         // console.log('TabsContainer useEffect, activeTab=', activeTab, ' currentTab=', currentTab, ' searchTabKey=', searchTabKey, ' searching=', searching);
         // }, [searching ]);
@@ -164,9 +166,11 @@ export default function TabsContainer(props: Props) {
         //从非搜索切换到搜索 只有第一层tabs才有搜索结果tab
         if (filterByTags && !data.pId) {
             const tabs = data.children.filter(c => c.totalMatchCount > 0);
-            setCurrentTab(activeTab || (tabs.length > 0 && tabs[0].id));
+            const defaultTabId = (tabs.length > 0) ? tabs[0].id : ((data.children && data.children.length > 0) ? data.children[0].id : data.id);
+            setCurrentTab(activeTab || defaultTabId);
         } else {
-            setCurrentTab(activeTab || data.children[0].id);
+            const defaultTabId = (data.children && data.children.length > 0) ? data.children[0].id : data.id;
+            setCurrentTab(activeTab || defaultTabId);
         }
     }, [filterByTags]);
 
@@ -202,7 +206,7 @@ export default function TabsContainer(props: Props) {
                 onTabChange && onTabChange(key, props.data, props.currentPath)
             }}
             overflow={"scroll"}
-            activeTab={activeTab ? activeTab : data.children[0].id}
+            activeTab={activeTab ? activeTab : ((data.children && data.children.length > 0) ? data.children[0].id : data.id)}
             deleteButton={<></>}//覆盖原有的关闭图标
             // Check All Inverse Check
             className={getClassName()}
