@@ -153,6 +153,11 @@ label {
     border-bottom-color: #ffffff;
 }
 
+/* 当被树节点选中时 禁用 Tabs hover 时底部默认白色边框 */
+.treeActiveTabSelectedA .arco-tabs-header-nav-card-gutter .arco-tabs-header-title:hover,
+.treeActiveTabSelectedA .arco-tabs-header-nav-card-gutter .arco-tabs-header-title-active:hover {
+    border-bottom-color: aliceblue !important;
+}
 
 .input-search .arco-input-group > .arco-input-inner-wrapper, .arco-input-group > .arco-input
  {
