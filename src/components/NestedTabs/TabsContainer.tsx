@@ -35,6 +35,7 @@ interface Props {
     tabMore: Function;
     searchTabMoreMenus: Function;
     showItem: boolean;
+    recycleActive: boolean;
     treeSelected: boolean;
     searchTabKey: any;
     multiSelectMap: Record<string, boolean>;// selectedMap: any;
@@ -49,6 +50,7 @@ interface Props {
 export default function TabsContainer(props: Props) {
     const {
         data,
+        recycleActive,
         handleAddTab,
         treeSelected,
         onTabChange,
@@ -81,6 +83,7 @@ export default function TabsContainer(props: Props) {
 
     const [hoveredId, setHoveredId] = useState<string | null>(null);
 
+    console.log('wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww TabsContainer render, data.name=', data.name, recycleActive);
 
     function handleTabMouseEnter(child: any, entering: boolean, e?: React.MouseEvent) {
         // entering: true 表示悬浮进入，false 表示离开
@@ -107,7 +110,6 @@ export default function TabsContainer(props: Props) {
         children.sort((a, b) => ((a.order ?? a.addDate ?? 0) - (b.order ?? b.addDate ?? 0)));
     }
 
-    // function processBeforeRender(item: any, operation?: string) {
     function processBeforeRender(item: any, idx?: number) {
         // tree选中有复制子分组的父分组，且只有复制分组包含所有结果,将书签数据上提到原始分组
         if (!searching && item.children && Array.isArray(item.children) && item.children.length > 0) {
@@ -198,7 +200,7 @@ export default function TabsContainer(props: Props) {
         <Tabs
             editable
             type="card-gutter"
-            showAddButton={dataType == 0}
+            showAddButton={dataType == 0 && !recycleActive}//书签页才显示添加标签按钮，回收站不显示
             onAddTab={() => handleAddTab && handleAddTab(data)}
             onChange={(key) => {
                 // console.log('aaaaaaaaaaaaaaa TabsContainer onChange, key=', key);
@@ -306,7 +308,8 @@ export default function TabsContainer(props: Props) {
                                     >
                                         <WrapTabNode key={child.id} index={idx} node={child} moveTabNode={moveTabNode} >
                                             {!!multiSelectMap[child.id] && <IconSelectAll></IconSelectAll>}  {/* 全选图标 */}
-                                            {child.id} {child.name}
+                                            {child.id}
+                                            {child.name}
                                             {/* {'(' + child.id + ')'} */}
                                             {/*  {
                                                 treeSelected && activeCardTab.length > 0

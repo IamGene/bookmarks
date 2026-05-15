@@ -1094,10 +1094,14 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
     const toUpdateCardGroupIds = useSelector((state: RootState) => state.global.toUpdateCardGroups);
     const globalState = useSelector((state: RootState) => state.global);
     // console.log('bbbbbbbbbbbbbbbbbbbbbbbbbb currentGlobalPageId', currentGlobalPageId);
+    const recycleActive = useSelector((state: RootState) => !!state.global?.recycleBin?.active);
 
+    //testing
     useEffect(() => {
         //重新进行一次搜索
-        // console.log('bbbbbbbbbbbbbbbbbbbbbbbbbb useEffect >>>>>>>>>>>>>>>>>>>>> cardData tags currentGlobalPageId', cardData.name, cardData.id, currentGlobalPageId);
+        // if (data.id === '6zswjyam6')
+        //     console.log('bbbbbbbbbbbbbbbbbbbbbbbbbb useEffect >>>>>>>>>>>>>>>>>>>>> cardData tags currentGlobalPageId',
+        //         cardData.name, cardData, currentGlobalPageId);
         /* setData(cardData);
         setFilterTags(cardData.tagsList || []);
         if (selectedTags && selectedTags.length > 0) {//导航栏中标签筛选
@@ -1108,12 +1112,12 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         if (!activeMap[cardData.id] && dataType == 0) {
             initActiveMap(cardData.id);
         }//初始化第一层tabs的active项 */
-        processNewCardData(cardData);
+        processNewCardData(cardData, recycleActive);
         //标签筛选与关键词筛选互斥
-    }, [cardData, currentGlobalPageId]);//cardData 或 全局当前 pageId 发生变化时，重新处理（解决同 id 不更新问题 按时间分组）
+    }, [cardData, recycleActive, currentGlobalPageId]);//cardData 或 全局当前 pageId 发生变化时，重新处理（解决同 id 不更新问题 按时间分组）
 
 
-    const processNewCardData = async (newData: any) => {
+    const processNewCardData = async (newData: any, recycleActive: boolean) => {
         setData(newData);
         // console.log('aaaaaaaaaaaaaaaaaaa refresh Data', data);
         setFilterTags(newData.tagsList || []);
@@ -1122,7 +1126,14 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         } else {
             processSearchKeywordChange(newData, searchInput, currentSearch, false);//从data中搜索 根据当前Card展示与否
         }
-        if (!activeMap[newData.id] && dataType == 0) {
+        /* if (!activeMap[newData.id] && dataType == 0) {
+            initActiveMap(newData.id);
+        } */
+        if (recycleActive) {
+            const target = getLastChildForRecycleBin1(newData, null);
+            // if (newData.id === '6zswjyam6') console.log('nnnnnnnnnnnnnnnnnnnnn getActiveForPath node path key', data.name, data, recycleActive, target);
+            setActiveMap(buildActiveMap(target));
+        } else {
             initActiveMap(newData.id);
         }
         return newData;
@@ -1132,7 +1143,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         const resultData = await getBookmarksGroupById(id);
         if (resultData) {
             const newData = resultData.groupData;
-            processNewCardData(newData);
+            processNewCardData(newData, recycleActive);
             return newData;
         }
         return data;
@@ -1549,14 +1560,12 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
 
     const setActiveMapThroughChildren = async (key: string, path: string,) => {
         // const recycleActive = !!globalState?.recycleBin?.active;
-        console.log('1111111111111111 setActiveMapThroughChildren ', key, path, recycleActive);
+        // console.log('1111111111111111 setActiveMapThroughChildren ', key, path, recycleActive);
         const lastChild = await getThroughChild(key, path + ',' + key);
         const result = buildActiveMap(lastChild.path);
         // console.log('5555555555555555555555 setActiveMapThroughChildren activeMap , path, key', path, key, result);
         setActiveMap(result);
     }
-
-
 
     function getLastChildForSearchResult(root) {
         function getLastChild(parent) {
@@ -1571,9 +1580,8 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         return getLastChild(root);
     }
 
-    // function getLastChildForRecycleBin(root) {
 
-    function findFirstWithMatches1(node: any): string | null {
+    function findFirstWithMatchesForRecycleBin(node: any): string | null {
         if (!node) return null;
         if (node.bookmarksNum > 0) {
             // 尽量返回最深的第一个含结果的后代路径
@@ -1587,34 +1595,20 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         }
         return null;
     }
-
-    function getLastChildForRecycleBin1(startNode: any, pathArr: string[], key: string): string | null {
+    function getLastChildForRecycleBin1(startNode: any, key: string): string | null {
         if (!startNode) return null;
         if (!Array.isArray(startNode.children) || startNode.children.length === 0) {
             return startNode.bookmarksNum > 0 ? startNode.path : null;
         }
-        console.log("222222222222222222 getLastChildForRecycleBin1  data", startNode, pathArr, key);
         let node = startNode;
-        const child = Array.isArray(node.children) ? node.children.find((c: any) => c.id == key) : null;
+        const child = Array.isArray(node.children) ? (key ? node.children.find((c: any) => c.id == key) : node.children[0]) : null;
         if (child) {
-            return findFirstWithMatches1(child);
+            return findFirstWithMatchesForRecycleBin(child);
         }
         // 沿 path 完全匹配(for完全循环遍历)，返回该节点或其第一个深层含结果的后代路径
-        return findFirstWithMatches(node) || node.path;
+        return findFirstWithMatchesForRecycleBin(node) || node.path;
     }
 
-    function getLastChildForRecycleBin(root) {
-        function getLastChild(parent) {
-            const children = parent.children;
-            if (children.length !== 0) {//第一 ==> 二层
-                console.log("222222222222222222 getLastChildForRecycleBin  children", children);
-                const nodes = children.filter(node => node.bookmarksNum > 0);
-                return nodes.length > 0 ? getLastChild(nodes[0]) : parent;// 根节点
-            }
-            return parent;
-        }
-        return getLastChild(root);
-    }
 
 
     /*    function getThroughSearchResult(paths: string[], groupId) {
@@ -1676,10 +1670,10 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                 }
             }
             else {
-                console.log('9999999999 getActiveForPath node path key', data, node, path, key);
-                const recycleActive = !!globalState?.recycleBin?.active;
+                // console.log('9999999999 getActiveForPath node path key', data, node, path, key);
+                // const recycleActive = !!globalState?.recycleBin?.active;
                 if (recycleActive) {
-                    const target = getLastChildForRecycleBin1(node, path.split('-'), key);
+                    const target = getLastChildForRecycleBin1(node, key);
                     // console.log('nnnnnnnnnnnnnnnnnnnnn getActiveForPath node path key', node, target.split(','));
                     setActiveMap(buildActiveMap(target));
                 } else {
@@ -1714,7 +1708,8 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         setDropdownVisible(visible);
     };
 
-    const recycleActive = useSelector((state: RootState) => !!state.global?.recycleBin?.active);
+
+
 
     const ContextMenuWrapper = (props: any) => {
         const { droplist, children, ...rest } = props;
@@ -1816,31 +1811,6 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
     }
 
 
-    function setActiveMapByTreeSelected() {
-        const pathLevels = activeCardTab.length;
-        const paths = activeCardTab.join(",");
-        if (searching) {
-            // console.log('setActiveMapByTreeSelected searching  activeCardTab path ', activeCardTab, paths);
-            //根据paths循迹找到node节点，如果它还有子节点则自动active
-            if (pathLevels == 1) {
-                // if (data.list) setActiveMap(buildActiveMap(paths + "," + data.id));//分组有书签数据
-                // else
-                setActiveMap(buildActiveMap(paths));
-            } else {
-                const groupId: string = activeCardTab[pathLevels - 1];
-                setActiveMapByBookmarksNum(groupId, paths);
-            }
-        } else {
-            if (pathLevels == 1) {
-                // if (data.list) setActiveMap(buildActiveMap(paths + "," + data.id));//分组有书签数据
-                // else
-                setActiveMap(buildActiveMap(paths));
-            } else {
-                const groupId: string = activeCardTab[pathLevels - 1];
-                setActiveMapByBookmarksNum(groupId, paths);
-            }
-        }
-    }
 
     async function setActiveMapByBookmarksNum(gId: string, path: string) {
         const bookmarksNum: number = await getBookmarksNumByGId(gId);
@@ -5397,7 +5367,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                     activeCardTab={activeCardTab}
                     activeMap={activeMap}
                     treeSelected={treeSelected}
-                    // tabMore={tabMore}
+                    tabMore={tabMore}
                     // searchTabMore={searchTabMore}
                     tabMoreMenus={tabMoreMenus}
                     searchTabMoreMenus={searchTabMoreMenus}
