@@ -4012,18 +4012,63 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
 
 
 
+    // multiSelect 状态按视图隔离（正常/回收站），以避免两种视图之间互相污染
+    const [multiSelectMapNormal, setMultiSelectMapNormal] = useState<Record<string, boolean>>({});
+    const [multiSelectMapRecycle, setMultiSelectMapRecycle] = useState<Record<string, boolean>>({});
 
-    // multiSelect 按分组 id 存储，确保在 tab 的菜单中切换某个子分组时，影响的是该子分组对应的标签集合
-    const [multiSelectMap, setMultiSelectMap] = useState<Record<string, boolean>>({});
+    // selectedMap: 每个 nodeId 下被选中的 id 列表（字符串形式），按视图分离
+    const [selectedMapNormal, setSelectedMapNormal] = useState<Record<string, string[]>>({});
+    const [selectedMapRecycle, setSelectedMapRecycle] = useState<Record<string, string[]>>({});
 
-    // selectedMap: 每个 nodeId 下被选中的 tag id 列表（字符串形式）
-    const [selectedMap, setSelectedMap] = useState<Record<string, string[]>>({});
+    // effective mode: 哪些分组的书签列表应该显示复选框（由上级传播或自身触发），按视图分离
+    const [multiSelectModeMapNormal, setMultiSelectModeMapNormal] = useState<Record<string, boolean>>({});
+    const [multiSelectModeMapRecycle, setMultiSelectModeMapRecycle] = useState<Record<string, boolean>>({});
 
-    // effective mode: 哪些分组的书签列表应该显示复选框（由上级传播或自身触发）
-    const [multiSelectModeMap, setMultiSelectModeMap] = useState<Record<string, boolean>>({});
-
+    // refs: 分别保存两套 selectedMap 的引用，selectedMapRef 指向当前生效那套
+    const selectedMapRefNormal = useRef<Record<string, string[]>>({});
+    const selectedMapRefRecycle = useRef<Record<string, string[]>>({});
     const selectedMapRef = useRef<Record<string, string[]>>({});
-    useEffect(() => { selectedMapRef.current = selectedMap; }, [selectedMap]);
+
+    // 便捷访问当前生效的状态（基于 recycleActive）
+    const multiSelectMap = recycleActive ? multiSelectMapRecycle : multiSelectMapNormal;
+    const multiSelectModeMap = recycleActive ? multiSelectModeMapRecycle : multiSelectModeMapNormal;
+    const selectedMap = recycleActive ? selectedMapRecycle : selectedMapNormal;
+
+    // wrapper setters：兼容现有代码中以函数或直接值两种方式调用 setXxx
+    const setMultiSelectMap = (next: any) => {
+        if (typeof next === 'function') {
+            if (recycleActive) setMultiSelectMapRecycle((prev) => (next as Function)(prev));
+            else setMultiSelectMapNormal((prev) => (next as Function)(prev));
+        } else {
+            if (recycleActive) setMultiSelectMapRecycle(next);
+            else setMultiSelectMapNormal(next);
+        }
+    };
+
+    const setMultiSelectModeMap = (next: any) => {
+        if (typeof next === 'function') {
+            if (recycleActive) setMultiSelectModeMapRecycle((prev) => (next as Function)(prev));
+            else setMultiSelectModeMapNormal((prev) => (next as Function)(prev));
+        } else {
+            if (recycleActive) setMultiSelectModeMapRecycle(next);
+            else setMultiSelectModeMapNormal(next);
+        }
+    };
+
+    const setSelectedMap = (next: any) => {
+        if (typeof next === 'function') {
+            if (recycleActive) setSelectedMapRecycle((prev) => (next as Function)(prev));
+            else setSelectedMapNormal((prev) => (next as Function)(prev));
+        } else {
+            if (recycleActive) setSelectedMapRecycle(next);
+            else setSelectedMapNormal(next);
+        }
+    };
+
+    // 保持 ref 同步并让 selectedMapRef 指向当前生效的那套引用
+    useEffect(() => { selectedMapRefNormal.current = selectedMapNormal; }, [selectedMapNormal]);
+    useEffect(() => { selectedMapRefRecycle.current = selectedMapRecycle; }, [selectedMapRecycle]);
+    useEffect(() => { selectedMapRef.current = recycleActive ? selectedMapRefRecycle.current : selectedMapRefNormal.current; }, [recycleActive, selectedMapNormal, selectedMapRecycle]);
 
     // 汇总指定节点及其子孙在 selectedMap 中的已选书签 id（去重）
     const aggregateSelectedFromDescendants = (rootId: string) => {
