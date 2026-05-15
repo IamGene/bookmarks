@@ -792,9 +792,41 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
     };
 
     const onMultiSelectCancel = (nodeKey: string, nodePath?: string) => {
-        const nextUserMap = { ...multiSelectMap, [nodeKey]: false };
-        setMultiSelectMap(nextUserMap);
-        disableModeForSubtreeForce(nodeKey);
+        try {
+            // 首先对 selectedMap 进行清理：删除 nodeKey 及其子孙的选中集合
+            const root = findNodeById(data, nodeKey);
+            const nodes = root ? collectDescendantNodes(root) : [];
+            setSelectedMap(prev => {
+                const next = { ...prev } as Record<string, string[]>;
+                if (next[nodeKey]) delete next[nodeKey];
+                nodes.forEach(n => { if (n && next[n.id]) delete next[n.id]; });
+                selectedMapRef.current = next;
+                return next;
+            });
+
+            // 清除 multiSelectModeMap 中的子树条目并移除用户显式的 multiSelectMap 标记（删除键，而非置 false）
+            const rootNode = findNodeById(data, nodeKey);
+            const descendants = rootNode ? collectDescendantNodes(rootNode) : [];
+
+            setMultiSelectModeMap(prev => {
+                const next = { ...prev };
+                descendants.forEach(n => { if (next[n.id]) delete next[n.id]; });
+                if (next[nodeKey]) delete next[nodeKey];
+                return next;
+            });
+
+            setMultiSelectMap(prev => {
+                const next = { ...prev };
+                descendants.forEach(n => { if (next[n.id]) delete next[n.id]; });
+                if (next[nodeKey]) delete next[nodeKey];
+                return next;
+            });
+
+            // 兼容旧逻辑（防护）：再次调用 disableModeForSubtreeForce，确保一切清理到位
+            try { disableModeForSubtreeForce(nodeKey); } catch (e) { /* ignore */ }
+        } catch (e) {
+            // ignore errors
+        }
     };
 
     // 获取某节点及其子孙在 selectedMap 中被聚合的选中数量（去重）

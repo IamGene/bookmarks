@@ -230,18 +230,9 @@ function MultiSelectCheckBox(props: Props) {
                 style={{ marginLeft: '12px' }}
                 onClick={() => {
                     try {
-                        let targetNodeKey = currentTab;
-                        let path = null;
-                        if (currentTab !== searchTabKey && activeMap) {
-                            const keys = Object.keys(activeMap || {});
-                            if (keys.length > 0) {
-                                const longest = keys.reduce((a, b) => a.length >= b.length ? a : b);
-                                path = longest.replaceAll('-', ',') + ',' + currentTab;
-                                const val = activeMap[longest];
-                                if (val) targetNodeKey = val;
-                            }
-                        }
-                        cancelMultiSelect && cancelMultiSelect(targetNodeKey, path);
+                        // 取消多选时，直接取消当前 tab 的多选状态，不要通过 activeMap 修改 targetNodeKey
+                        // 因为多选模式是在 currentTab 层级上标记的（multiSelectMap[currentTab]）
+                        cancelMultiSelect && cancelMultiSelect(currentTab, null);
                     } catch (e) {
                         // ignore
                     }
