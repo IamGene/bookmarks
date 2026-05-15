@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Tabs, Dropdown, Grid } from '@arco-design/web-react';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../store';
 import MultiSelectCheckBox from './CheckBox';
 import { IconSelectAll } from '@arco-design/web-react/icon';
 const TabPane = Tabs.TabPane;
@@ -35,7 +37,6 @@ interface Props {
     tabMore: Function;
     searchTabMoreMenus: Function;
     showItem: boolean;
-    recycleActive: boolean;
     treeSelected: boolean;
     searchTabKey: any;
     multiSelectMap: Record<string, boolean>;// selectedMap: any;
@@ -50,7 +51,6 @@ interface Props {
 export default function TabsContainer(props: Props) {
     const {
         data,
-        recycleActive,
         handleAddTab,
         treeSelected,
         onTabChange,
@@ -81,9 +81,11 @@ export default function TabsContainer(props: Props) {
         renderSearchContent,
     } = props;
 
+    const recycleActive = useSelector((state: RootState) => !!state.global?.recycleBin?.active);
+
     const [hoveredId, setHoveredId] = useState<string | null>(null);
 
-    console.log('wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww TabsContainer render, data.name=', data.name, recycleActive);
+    // console.log('wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww TabsContainer render, data.name=', data.name, recycleActive);
 
     function handleTabMouseEnter(child: any, entering: boolean, e?: React.MouseEvent) {
         // entering: true 表示悬浮进入，false 表示离开

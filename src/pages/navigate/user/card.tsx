@@ -5300,6 +5300,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                 >
                     <TabsContainer
                         data={data}
+                        recycleActive={recycleActive}
                         currentPath={currentPath}
                         level={level}
                         dataType={dataType}
