@@ -43,6 +43,7 @@ interface Props {
     selectedMap?: Record<string, string[]>;
     activeMap: Record<string, string>;
     onSelectedMapChange?: (nodeKey: string, ids: string[], path: string) => void;
+    onMultiSelectCancel?: (nodeKey: string, path?: string) => void;
     renderContent: (child: any, idx: number, operation?: string) => React.ReactNode;
     renderSearchContent: (operation?: string) => React.ReactNode;
 }
@@ -223,6 +224,7 @@ export default function TabsContainer(props: Props) {
                     filtering={filterByTags}
                     currentTab={currentTab}
                     selectedMapChange={(nodeKey: string, ids: string[], path: string) => onSelectedMapChange && onSelectedMapChange(nodeKey, ids, path)}
+                    cancelMultiSelect={(nodeKey: string, path?: string) => props.onMultiSelectCancel && props.onMultiSelectCancel(nodeKey, path)}
                     selectedMap={selectedMap}
                     activeMap={props.activeMap}
                 />

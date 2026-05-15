@@ -791,6 +791,11 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         });
     };
 
+    const onMultiSelectCancel = (nodeKey: string, nodePath?: string) => {
+        const nextUserMap = { ...multiSelectMap, [nodeKey]: false };
+        setMultiSelectMap(nextUserMap);
+        disableModeForSubtreeForce(nodeKey);
+    };
 
     // 获取某节点及其子孙在 selectedMap 中被聚合的选中数量（去重）
     const getSelectedCountForNode = (node: any, snapshot?: Record<string, string[]>): number => {
@@ -804,7 +809,6 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         });
         return union.size;
     };
-
 
 
     const shouldShowExtra = (tabKey: string, pathStr: string) => {
@@ -4488,7 +4492,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                                     }
                                 }
                                 //执行成功：返回newData；失败/取消：返回false
-                                console.log('xxxxxxxxxxxxxxxxxx 删除书签(多选) subGroup groupPath', subGroup, groupPath);
+                                // console.log('xxxxxxxxxxxxxxxxxx 删除书签(多选) subGroup groupPath', subGroup, groupPath);
                                 const newData = await removeConfirm(ids, result, true, '', '选中的' + ids.length + '个书签', deleteSelectedBookmarks, groupPath);//ok
                                 // 清空 subGroup 及其子孙在 selectedMap 中的已选中书签数据（置为空数组）...
                                 if (newData) {//删除成功后的newData
@@ -5328,6 +5332,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                         searchTabKey={searchTabKey}
                         selectedMap={selectedMap}
                         onSelectedMapChange={(nodeKey: string, ids: string[], path: string) => onNodeSelectionChange(nodeKey, ids, path)}
+                        onMultiSelectCancel={(nodeKey: string, path?: string) => onMultiSelectCancel(nodeKey, path)}
                         renderContent={(child: any, idx: number) => (
                             <div className={styles.container}>
                                 <div className={styles['single-content']}>
@@ -5376,6 +5381,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                     searchTabKey={searchTabKey}
                     selectedMap={selectedMap}
                     onSelectedMapChange={(nodeKey: string, ids: string[], path: string) => onNodeSelectionChange(nodeKey, ids, path)}
+                    onMultiSelectCancel={(nodeKey: string, path?: string) => onMultiSelectCancel(nodeKey, path)}
                     // showSearchResult={data.searchResult}
                     renderContent={(child: any, idx: number) => (
                         <div className={styles.container}>

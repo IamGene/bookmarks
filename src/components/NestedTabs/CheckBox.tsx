@@ -8,6 +8,7 @@ interface Props {
     currentTab: string;
     // first arg: nodeKey (the tab id to operate on), second arg: ids array
     selectedMapChange?: (nodeKey: string, ids: string[], path: string) => void;
+    cancelMultiSelect?: (nodeKey: string, path?: string) => void;
     selectedMap?: Record<string, string[]>;
     activeMap?: Record<string, string>;
 }
@@ -19,6 +20,7 @@ function MultiSelectCheckBox(props: Props) {
         filtering,
         currentTab,
         selectedMapChange,
+        cancelMultiSelect,
         activeMap
     } = props;
 
@@ -175,7 +177,7 @@ function MultiSelectCheckBox(props: Props) {
                 style={{ marginLeft: '12px' }}
                 onClick={() => {
                     try {
-                        // console.log('11111111111 点击反选', data.name, currentTab, activeMap);
+                        // console.log('111111111111111 点击反选', data.name, currentTab, activeMap);
                         let targetNodeKey = currentTab;
                         let path = null;
                         if (currentTab !== searchTabKey && activeMap) {
@@ -227,6 +229,22 @@ function MultiSelectCheckBox(props: Props) {
                 type='primary'
                 style={{ marginLeft: '12px' }}
                 onClick={() => {
+                    try {
+                        let targetNodeKey = currentTab;
+                        let path = null;
+                        if (currentTab !== searchTabKey && activeMap) {
+                            const keys = Object.keys(activeMap || {});
+                            if (keys.length > 0) {
+                                const longest = keys.reduce((a, b) => a.length >= b.length ? a : b);
+                                path = longest.replaceAll('-', ',') + ',' + currentTab;
+                                const val = activeMap[longest];
+                                if (val) targetNodeKey = val;
+                            }
+                        }
+                        cancelMultiSelect && cancelMultiSelect(targetNodeKey, path);
+                    } catch (e) {
+                        // ignore
+                    }
                 }}
             >
                 取消
@@ -234,6 +252,5 @@ function MultiSelectCheckBox(props: Props) {
         </div>
     );
 }
-
 
 export default MultiSelectCheckBox;
