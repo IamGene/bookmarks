@@ -37,7 +37,7 @@ const App = (props: CardBlockType) => {
     const [visible, setVisible] = useState(false);
     //配置编辑表单展示与否
     // const [loading, setLoading] = useState(props.loading);
-    const dispatch = useDispatch();
+    // const dispatch = useDispatch();
     const recycleActive = useSelector((state: RootState) => !!state.global?.recycleBin?.active);
     const onClickMenuItem = async (key: string) => {
         if (!recycleActive) {
@@ -233,7 +233,7 @@ const App = (props: CardBlockType) => {
                         </div>} >
                             {/* style={{ maxWidth: '195px' }} */}
                             <div style={{ paddingLeft: "5px", paddingRight: "10px", maxWidth: '198px' }}>
-                                <a href={tag.url} target='_blank'>
+                                <a href={tag.originalUrl || tag.url} target='_blank'>
                                     <strong className="overflowClip_2" >{tag.name}</strong>
                                 </a>
                             </div>

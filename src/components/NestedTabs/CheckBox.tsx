@@ -215,7 +215,7 @@ function MultiSelectCheckBox(props: Props) {
                         const inverted = ids.filter((id: string) => !sel.includes(id));
                         selectedMapChange && selectedMapChange(targetNodeKey, inverted, path);
                     } catch (e) {
-                        // ignore
+                        // ignore 
                     }
                 }}
             >
