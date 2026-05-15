@@ -4043,7 +4043,6 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
     }
 
 
-
     // multiSelect 状态按视图隔离（正常/回收站），以避免两种视图之间互相污染
     const [multiSelectMapNormal, setMultiSelectMapNormal] = useState<Record<string, boolean>>({});
     const [multiSelectMapRecycle, setMultiSelectMapRecycle] = useState<Record<string, boolean>>({});

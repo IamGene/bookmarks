@@ -43,7 +43,7 @@ function App(props: TagDataParams) {
         setDataSource(prevData => prevData.filter(bookmark => bookmark.id !== item.id));
     }
 
-    const render = (item, index) => {
+    /*  const render = (item, index) => {
         const actions = [
             // <Button key="delete" onClick={() => removeBookmark(item)} icon={<IconDelete />}>删除</Button>
             <IconDelete onClick={() => removeBookmark(item)} />
@@ -94,8 +94,86 @@ function App(props: TagDataParams) {
                 />
             </List.Item>
         );
-    };
+    };  */
 
+
+
+    const render = (item, index) => {
+        const actions = [
+            <IconDelete
+                key="delete"
+                onClick={() => removeBookmark(item)}
+                style={{ cursor: 'pointer' }}
+            />
+        ];
+
+        return (
+            <List.Item
+                key={item.id}
+                actions={actions}
+            >
+                <List.Item.Meta
+                    style={{
+                        minWidth: 0,
+                    }}
+                    avatar={
+                        <img
+                            src={item.icon}
+                            referrerPolicy="no-referrer"
+                            width="40"
+                            alt=""
+                            style={{
+                                borderRadius: 8,
+                                objectFit: 'cover',
+                            }}
+                        />
+                    }
+                    title={
+                        <div
+                            title={item.name}
+                            style={{
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+
+                                minWidth: 0,
+                                width: '100%',
+
+                                paddingRight: 6,
+                                boxSizing: 'border-box',
+
+                                fontWeight: 500,
+                                lineHeight: 1.5,
+                            }}
+                        >
+                            {item.name}
+                        </div>
+                    }
+                    description={
+                        <div
+                            title={item.description}
+                            style={{
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+
+                                minWidth: 0,
+                                width: '100%',
+
+                                paddingRight: 6,
+                                boxSizing: 'border-box',
+
+                                color: 'var(--color-text-2)',
+                                lineHeight: 1.5,
+                            }}
+                        >
+                            {item.description}
+                        </div>
+                    }
+                />
+            </List.Item>
+        );
+    };
 
 
     const processMoveBookmarks = async (bookmarks: WebTag[], gId: string) => {
