@@ -1749,10 +1749,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
 
     const ContextMenuWrapper = (props: any) => {
         const { droplist, children, ...rest } = props;
-        if (recycleActive) {
-            return <>{children}</>;
-        }
-        return <Dropdown droplist={droplist} {...rest}>{children}</Dropdown>;
+        return <Dropdown trigger='contextMenu' droplist={droplist} {...rest}>{children}</Dropdown>;
     };
 
     //点击卡片标题
