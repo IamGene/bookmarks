@@ -4699,6 +4699,12 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                             const bookamrks = await getBookmarksByIds(ids);
                             setBookmarksToMove(bookamrks);
                         }
+                    } else if (key === '7') {//回收站视图：永久删除
+                        Message.info('【测试】正在永久删除回收站中的书签...');
+                        // TODO: 实现永久删除功能
+                    } else if (key === '8') {//回收站视图：恢复
+                        Message.info('【测试】正在恢复选中的书签...');
+                        // TODO: 实现恢复功能
                     }
                 };
             }
@@ -4713,22 +4719,40 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                 <Menu onClickMenuItem={onClickMenuItem} mode='pop'>
                     {
                         enable && dropdownVisible && <>
-                            {/* 排除有复制子分组的分组 未被多选或有书签数据(原分组非复制子分组)!multiSelectMap[subGroup.id] || bookmarksAndChildren */}
-                            {multiSelectDisabled && <Menu.Item key={'0-' + json} >添加</Menu.Item>}
-                            {dataType == 0 && multiSelectDisabled && <Menu.Item key={'1-' + json} >编辑</Menu.Item>}
+                            {/* 非回收站视图：显示"添加"和"编辑"菜单项 */}
+                            {!recycleActive && <>
+                                {/* 排除有复制子分组的分组 未被多选或有书签数据(原分组非复制子分组)!multiSelectMap[subGroup.id] || bookmarksAndChildren */}
+                                {multiSelectDisabled && <Menu.Item key={'0-' + json} >添加</Menu.Item>}
+                                {dataType == 0 && multiSelectDisabled && <Menu.Item key={'1-' + json} >编辑</Menu.Item>}
+                            </>}
 
-                            {subGroup.bookmarksNum > 0 && multiSelectEffective && (
+                            {subGroup.bookmarksNum > 0 && multiSelectEffective && !recycleActive && (
                                 <Menu.Item key={'6-' + json} disabled={getSelectedCountForNode(subGroup) === 0}>
                                     <span style={{ color: 'rgb(var(--arcoblue-6))' }}>移动</span>
                                 </Menu.Item>
                             )}
 
-                            {/* 正常/多选模式 删除， 当多选模式下无选中书签时禁用删除按钮 */}
-                            <Menu.Item key={'2-' + json}
-                                // 当任一祖先或自身处于多选时，删除按钮的禁用基于本节点及其子孙的聚合选中数
-                                disabled={multiSelectEffective ? getSelectedCountForNode(subGroup) === 0 : false} >
-                                {multiSelectEffective ? <span style={{ color: 'rgb(var(--arcoblue-6))' }}>删除</span> : '删除'}
-                            </Menu.Item>
+                            {/* 删除菜单项：回收站视图与正常视图不同 */}
+                            {recycleActive ? (
+                                <Menu.Item key={'7-' + json}
+                                    disabled={multiSelectEffective ? getSelectedCountForNode(subGroup) === 0 : false}>
+                                    {multiSelectEffective ? <span style={{ color: 'rgb(var(--arcoblue-6))' }}>删除</span> : '删除'}
+                                </Menu.Item>
+                            ) : (
+                                <Menu.Item key={'2-' + json}
+                                    disabled={multiSelectEffective ? getSelectedCountForNode(subGroup) === 0 : false}>
+                                    {multiSelectEffective ? <span style={{ color: 'rgb(var(--arcoblue-6))' }}>删除</span> : '删除'}
+                                </Menu.Item>
+                            )}
+
+                            {/* 回收站视图：显示"恢复"菜单项 */}
+                            {recycleActive && (
+                                <Menu.Item key={'8-' + json}
+                                    disabled={multiSelectEffective ? getSelectedCountForNode(subGroup) === 0 : false}>
+                                    {/* <span style={{ color: 'rgb(var(--arcoblue-6))' }}>恢复</span> */}
+                                    {multiSelectEffective ? <span style={{ color: 'rgb(var(--arcoblue-6))' }}>恢复</span> : '恢复'}
+                                </Menu.Item>
+                            )}
 
                             {/* 正常模式 打开 全部书签 */}
                             {subGroup.bookmarksNum > 0 && !multiSelectEffective && (
@@ -4751,6 +4775,11 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                 </Menu >);
         }
 
+
+        /*         现在请你修改，当处于回收站视图时，tab的右键菜单，不需要“添加”/"编辑"菜单项，
+                而“删除”菜单功能与正常视图的删除有所不同，并且需要添加一个“恢复”菜单项目。
+                你先修改这些菜单项功能和点击触发的空函数，
+                函数中先用弹窗测试实现效果，后续命令时你再完成实现。注意，是tab的右键菜单而不是card标题的右键菜单 */
 
         const tabMore = (subGroup, popUp) => {
             // 创建自定义事件并分发
@@ -5171,14 +5200,14 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                                         {data.bookmarks && data.bookmarks.length > 0 && < Button onClick={(e) => openGroupAllTags(data)} icon={<IconLink />} >打开</Button>}
                                     </ButtonGroup> */}
 
-
                                     <ContextMenuWrapper
                                         position='bl'
                                         droplist={
                                             <Menu>
-                                                {dataType === 0 && <Menu.Item key='1' onClick={(e) => addTagOrGroup(data.id)}>添加</Menu.Item>}
-                                                {dataType === 0 && <Menu.Item key='0' onClick={() => editGroup1(data)}>编辑</Menu.Item>}
+                                                {dataType === 0 && !recycleActive && <Menu.Item key='1' onClick={(e) => addTagOrGroup(data.id)}>添加</Menu.Item>}
+                                                {dataType === 0 && !recycleActive && <Menu.Item key='0' onClick={() => editGroup1(data)}>编辑</Menu.Item>}
                                                 {dataType === 0 && <Menu.Item key='3' onClick={removeGroup1}>删除</Menu.Item>}
+                                                {dataType === 0 && recycleActive && <Menu.Item key='3' onClick={removeGroup1}>恢复</Menu.Item>}
                                                 {data.bookmarks && data.bookmarks.length > 0 && <Menu.Item key='4' onClick={(e) => openGroupAllTags(data)}>打开</Menu.Item>}
                                             </Menu>
                                         }
@@ -5337,8 +5366,9 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                                 position='bl'
                                 droplist={
                                     <Menu>
-                                        {dataType === 0 && <Menu.Item key='0' onClick={() => editGroup1(data)}>编辑</Menu.Item>}
+                                        {dataType === 0 && !recycleActive && <Menu.Item key='0' onClick={() => editGroup1(data)}>编辑</Menu.Item>}
                                         {dataType === 0 && <Menu.Item key='3' onClick={removeGroup1}>删除</Menu.Item>}
+                                        {dataType === 0 && recycleActive && <Menu.Item key='3' onClick={removeGroup1}>恢复</Menu.Item>}
                                     </Menu>
                                 }
                             >
@@ -5377,7 +5407,6 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                 >
                     <TabsContainer
                         data={data}
-                        recycleActive={recycleActive}
                         currentPath={currentPath}
                         level={level}
                         dataType={dataType}
