@@ -2995,6 +2995,72 @@ export async function removeCopyGroupById(groupId) {
 }
 
 /**
+ * 恢复分组及其所有子分组的书签（从回收站恢复）
+ * @param groupId 分组ID
+ * @returns {Promise<{success: boolean, restoredBookmarks: number, toRemoveTags: any[]}>}
+ */
+export async function restoreGroupBookmarksById(groupId) {
+    try {
+        console.log('------------ restoreGroupBookmarksById groupId', groupId);
+        const db = await getDB();
+        const root = await db.get('groups', groupId);
+        if (!root) return { success: false, error: 'group not found' };
+
+        let restoredBookmarks = 0;
+        const toRemoveTags = [];
+
+        // 递归深度优先恢复：先遍历子分组，再恢复当前分组及其书签
+        async function restoreGroupAndChildren(id) {
+            const children = await db.getAllFromIndex('groups', 'pId', id);
+            for (const child of children) {
+                await restoreGroupAndChildren(child.id);
+            }
+
+            // 恢复所有已删除的书签
+            const allBookmarks = await db.getAllFromIndex('bookmarks', 'gId', id);
+            if (allBookmarks && allBookmarks.length > 0) {
+                for (const bookmark of allBookmarks) {
+                    if (bookmark.deleted) {
+                        const updated = { ...bookmark } as any;
+                        if ('deleted' in updated) delete updated.deleted;
+                        if ('deletedAt' in updated) delete updated.deletedAt;
+                        await db.put('bookmarks', updated);
+                        restoredBookmarks++;
+                    }
+                }
+            }
+
+            // 恢复该分组本身
+            const group = await db.get('groups', id);
+            if (group && group.deleted) {
+                const updated = { ...group } as any;
+                if ('deleted' in updated) delete updated.deleted;
+                if ('deletedAt' in updated) delete updated.deletedAt;
+                await db.put('groups', updated);
+            }
+        }
+
+        await restoreGroupAndChildren(groupId);
+
+        // 更新 pages.bookmarksNum
+        try {
+            const active = getActiveBookmarks(await db.getAllFromIndex('bookmarks', 'pageId', root.pageId));
+            const page = await db.get('pages', root.pageId);
+            if (page) {
+                await db.put('pages', { ...page, bookmarksNum: Array.isArray(active) ? active.length : 0 });
+            }
+        } catch (e) {
+            // ignore
+        }
+
+        return { success: true, restoredBookmarks: restoredBookmarks, toRemoveTags: toRemoveTags };
+    } catch (e) {
+        console.error('restoreGroupBookmarksById error', e);
+        return { success: false, error: e, restoredBookmarks: 0, toRemoveTags: [] };
+    }
+}
+
+/**
  * 生成 HTML 书签，支持层级结构
  * @param pageId
  * @returns {Promise < string >}

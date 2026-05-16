@@ -13,11 +13,11 @@ import { saveTagGroup, moveGroupTopBottom } from '@/api/navigate';
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import {
     fetchBookmarksPageDatas, fetchBookmarksPageData0, groupTagUnselected, groupTagSelected,
-    updateBookmarksPage, fetchBookmarksPageDataGoups, updateActiveGroup, updatePageBookmarkTags, updateSearchState
+    updateBookmarksPage, fetchBookmarksPageDataGoups, updateActiveGroup, updatePageBookmarkTags, updateSearchState, fetchRecycleBinData
 } from '@/store/modules/global';
 import {
     getBookmarkGroupById, updatePageBookmarksNum, getAllBookmarksByGroupId, removeCopyGroupById, getBookmarksByIds, removeBookmarks, removeWebTagsAndGroups, removeGroupById,
-    getBookmarksGroupById, resortNodes, getBookmarksNumByGId, clearGroupBookmarksById, getThroughChild
+    getBookmarksGroupById, resortNodes, getBookmarksNumByGId, clearGroupBookmarksById, getThroughChild, restoreGroupBookmarksById
 } from '@/db/BookmarksPages';
 import { useDrag, useDrop } from 'react-dnd';
 import TabsContainer from '../../../components/NestedTabs/TabsContainer';
@@ -2326,6 +2326,44 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         openUrls(group.bookmarks);
     }
 
+    /**
+     * 恢复大分组及其所有子分组中的书签（回收站视图）
+     * @param id 分组ID
+     */
+    async function processRestoreGroup00(id: string) {
+        try {
+            // 调用数据库恢复函数，恢复该分组及其所有子分组的书签
+            const response = await restoreGroupBookmarksById(id);
+            console.log('------------ processRestoreGroup00 response', response);
+            if (response.success) {
+                // 成功恢复，更新UI和状态
+                Message.success(`恢复成功，已恢复 ${response.restoredBookmarks} 个书签`);
+
+                // 重新加载书签分组数据（dataType 0、1、2）
+                dispatch(fetchBookmarksPageDatas([0, 1, 2]));
+
+                // 重新加载回收站数据
+                dispatch(fetchRecycleBinData(pageId));
+
+                // 刷新分组树
+                dispatch(fetchBookmarksPageDataGoups(pageId));
+
+                // 如果恢复了书签，更新页面书签数量
+                if (response.restoredBookmarks > 0) {
+                    await processUpdatePageBookmarksNum(pageId, response.restoredBookmarks);
+                }
+
+                return true;
+            } else {
+                Message.error('恢复失败');
+                return false;
+            }
+        } catch (error) {
+            console.error('恢复分组出错:', error);
+            Message.error('恢复出错');
+            return false;
+        }
+    }
 
     //删除大分组
     async function processRemoveGroup00(id: string) {
@@ -2602,8 +2640,22 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
      * 移除分组的处理函数
      * 根据不同的数据类型调用不同的删除确认和处理逻辑
      */
+    /**
+     * 删除或恢复分组的处理函数
+     * 根据回收站状态和数据类型调用不同的处理逻辑
+     */
     const removeGroup1 = () => {
-        // 如果数据类型为0，调用删除分组的确认函数，处理分组及其所有书签的删除
+        // 回收站视图：恢复分组及其书签
+        if (recycleActive) {
+            if (dataType == 0) {
+                removeConfirm(cardData.id, cardData.name, true,
+                    '点击确定将恢复该分组及其所有书签', '分组', processRestoreGroup00);
+            }
+            // TODO: 后续实现 dataType 1 和 2 的恢复逻辑
+            return;
+        }
+
+        // 正常视图：删除分组及其书签
         if (dataType == 0) removeConfirm(cardData.id, cardData.name, true,
             searching ? '点击确定将删除该分组的书签搜索结果' : '点击确定将删除该分组及其所有书签', '分组', processRemoveGroup00);
         // if (dataType == 0) removeConfirm(cardData.id, cardData.name, '点击确定将删除该分组及其所有书签', '分组', processRemoveGroup00);
@@ -4461,7 +4513,6 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                     if (pathArr[pathArr.length - 1].endsWith('_copy')) {
                         pathArr = [...pathArr.slice(0, pathArr.length - 1)];//去掉最后一个（复制子分组）
                     };
-                    // console.log('111111111111111 点击菜单 key', key, subGroup);
                     if (key === '0') {//添加Tag
                         setAddTagVisible(true);
                         setEditTag(null);
@@ -4700,11 +4751,20 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                             setBookmarksToMove(bookamrks);
                         }
                     } else if (key === '7') {//回收站视图：永久删除
-                        Message.info('【测试】正在永久删除回收站中的书签...');
+                        if (multiSelectEffective) {
+                            Message.info('【测试】正在永久删除选中的回收站书签...');
+                        } else {
+                            Message.info('【测试】正在永久删除当前回收站分组及其书签...');
+                        }
                         // TODO: 实现永久删除功能
                     } else if (key === '8') {//回收站视图：恢复
-                        Message.info('【测试】正在恢复选中的书签...');
-                        // TODO: 实现恢复功能
+                        if (multiSelectEffective) {
+                            Message.info('【测试】正在恢复选中的回收站书签...');
+                            // TODO: 实现多选恢复功能
+                        } else {
+                            await processRestoreGroup00(subGroup.id);
+                            dispatch(fetchBookmarksPageDatas([0, 1, 2]));//恢复了书签
+                        }
                     }
                 };
             }
