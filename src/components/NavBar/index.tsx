@@ -453,7 +453,7 @@ function Navbar({ pageType, show, setNavBarKey, setAllDisplay }) {
 
   function downloadPlugin() {
     // console.log('>>>>>>>>>>>>>>>>>>> downloadPlugin window.location', window.location);
-    window.location.href = window.location.hostname === 'iamgene.github.io' ?
+    window.location.href = window.location.hostname === 'bookmarkspro.github.io' ?
       '/plugin-add2Bookmarks-G-v1.0.zip' :
       '/plugin-add2Bookmarks-V-v1.0.zip';
   }

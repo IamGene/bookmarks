@@ -232,7 +232,7 @@ function Index() {
   return (
     // <Router>
     // <HashRouter>
-    window.location.hostname === 'iamgene.github.io' ?
+    window.location.hostname === 'bookmarkspro.github.io' ?
       <HashRouter>
         <ConfigProvider
           locale={getArcoLocale()}
@@ -282,8 +282,6 @@ function Index() {
             <GlobalContext.Provider value={contextValue}>
               <Switch>
                 <Route path="/login" exact component={Login} />
-                {/* 以下2个直接匹配，不能交给/PageLayout，因为布局不一样 */}
-                {/* 导航主页 */}
                 <Route path="/index" exact component={DefaultNavigate} />
                 <Route path="/bookmarks" exact component={UserBookmarks} />
                 <Route path="/" component={DefaultNavigate} />

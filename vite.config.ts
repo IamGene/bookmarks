@@ -12,14 +12,13 @@ export default defineConfig(({ mode }) => {
 
   return {
 
-    base: mode === 'development' || process.env.VERCEL ? '/' : '/bookmarksPro/',
+    base: mode === 'development' || process.env.VERCEL ? '/' : './',
     // 本地构建github pages build,有/boookmarksPro路径
     // base: '/bookmarksPro/',  // 开发模式/本地构建extension/vercel：无/boookmarksPro路径
     resolve: {
       // alias: [{ find: '@', replacement: '/src' }],
       alias: [{ find: '@', replacement: path.resolve(__dirname, 'src') }],
     },
-
 
     define: {
       // ✅ 关键修复：序列化 env 变量
