@@ -2335,7 +2335,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         try {
             // 调用数据库恢复函数，恢复该分组及其所有子分组的书签
             const response = await restoreGroupBookmarksById(id);
-            console.log('------------ processRestoreGroup00 response', response);
+            // console.log('------------ processRestoreGroup00 response', response);
             if (response.success) {
                 // 成功恢复，更新UI和状态
                 // 重新加载书签分组数据（dataType 0、1、2）
@@ -4457,6 +4457,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                             }
                             else dispatch(fetchBookmarksPageDatas([0]));//仅删除了分组
 
+
                             if (response.toRemoveTags && response.toRemoveTags.length > 0) dispatch(updatePageBookmarkTags(response.toRemoveTags));
 
                             if (copyGroup) {//被删除的是复制分组(id,path属性都是原分组的值)，它本身不会有子分组的了
@@ -4931,7 +4932,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                                 <Menu.Item key={'8-' + json}
                                     disabled={multiSelectEffective ? getSelectedCountForNode(subGroup) === 0 : false}>
                                     {/* <span style={{ color: 'rgb(var(--arcoblue-6))' }}>恢复</span> */}
-                                    {multiSelectEffective ? <span style={{ color: 'rgb(var(--arcoblue-6))' }}>恢复</span> : '恢复ssb'}
+                                    {multiSelectEffective ? <span style={{ color: 'rgb(var(--arcoblue-6))' }}>恢复</span> : '恢复'}
                                 </Menu.Item>
                             )}
 

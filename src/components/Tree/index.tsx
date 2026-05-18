@@ -185,16 +185,20 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
             try {
                 const detail = event?.detail || {};
                 const inc = detail.count || 0;
-                if (inc > 0) {
-                    const cur = globalState?.recycleBin?.deletedBookmarksNum || 0;
-                    dispatch(updateRecycleBinState({ deletedBookmarksNum: cur + inc }));
+                const groupsNum = detail.groups || 0;
 
+                if (inc > 0 || groupsNum > 0) {//删除了书签或分组
+                    const cur = globalState?.recycleBin?.deletedBookmarksNum || 0;
+                    if (cur > 0) dispatch(updateRecycleBinState({ deletedBookmarksNum: cur + inc }));
+
+                    // 如果当前没有激活回收站，应清空已预加载的回收站快照
                     if (!globalState?.recycleBin?.active) {
                         try {
                             dispatch(updateRecycleBinState({ dataByGroup: [], dataGroups: [] }));
                         } catch (e) { }
                     }
 
+                    // 如果当前正在显示回收站，则刷新回收站数据以确保 tree/dataGroups 同步
                     if (globalState?.recycleBin?.active && pageId != null) {
                         const res = await dispatch(fetchRecycleBinData(pageId));
                         try {
@@ -202,6 +206,7 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
                             lastDeletedRef.current = newNum;
                         } catch (e) { }
                     }
+
                 } else if (detail.permanent === true) {
                     // 从回收站中物理删除：已删除计数应减少
                     const cur = globalState?.recycleBin?.deletedBookmarksNum || 0;
@@ -223,6 +228,7 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
                 // ignore
             }
         };
+
         if (typeof window !== 'undefined' && window.addEventListener) {
             const restoredHandler = async (ev) => {
                 try {
@@ -808,7 +814,7 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
                                 try {
                                     // 仅在 Redux 标记需要更新该分组类型（包含 0）时，从 DB 强制拉取最新页面数据
                                     if (pageId != null && Array.isArray(toUpdateGroupTypes) && toUpdateGroupTypes.includes(0)) {
-                                        console.log('xxxxxxxxxxxxxxxxxxx tree onClick return fetchBookmarksPageData0 需要更新主页书签数据');
+                                        // console.log('xxxxxxxxxxxxxxxxxxx tree onClick return fetchBookmarksPageData0 需要更新主页书签数据');
                                         await dispatch(fetchBookmarksPageData(pageId));
                                     }
                                 } catch (e) {

@@ -1,3 +1,4 @@
+import C from '@/pages/dashboard/workplace/carousel';
 import { getDB } from './db';
 
 
@@ -1748,7 +1749,7 @@ export async function getPageNodesTree1(pageId, db, includeSelfAsChild = false) 
 
     function buildTree(parentId, isRoot = false) {
         return nodes
-            .filter(node => node.pId === parentId)
+            .filter(node => node.pId === parentId && !node.deleted)
             // .sort((a, b) => isRoot ? (a.addDate ?? 0) - (b.addDate ?? 0) : (b.addDate ?? 0) - (a.addDate ?? 0))
             .sort((a, b) => isRoot ? (a.addDate ?? 0) - (b.addDate ?? 0) : (a.order ?? 0) - (b.order ?? 0))
             .map(node => {
@@ -2167,7 +2168,7 @@ export async function getDeletedPageTree(pageId) {
     const db = await getDB();
     const nodes = await db.getAllFromIndex('groups', 'pageId', pageId);
     const deletedBookmarks = getDeletedBookmarks(await db.getAllFromIndex('bookmarks', 'pageId', pageId));
-    const urls = await setBookmarksGroupPath(deletedBookmarks, db);
+    const removedBookmarks = await setBookmarksGroupPath(deletedBookmarks, db);
     const expandedKeysSet = new Set<string>();
 
     function buildTree(parentId, parentPath) {
@@ -2181,17 +2182,27 @@ export async function getDeletedPageTree(pageId) {
             const currentPath = parentPath ? parentPath + ',' + node.id : node.id;
             const children = buildTree(node.id, currentPath);
 
-            const urlList = urls.filter(n => n.gId === node.id);
-            urlList.sort((a, b) => (b.deletedAt ?? b.addDate ?? 0) - (a.deletedAt ?? a.addDate ?? 0));
-            if (urlList.length === 0 && children.length === 0 && !node.deleted) {
+
+            const removedBookmarks1 = removedBookmarks.filter(n => n.gId === node.id);
+            removedBookmarks1.sort((a, b) => (b.deletedAt ?? b.addDate ?? 0) - (a.deletedAt ?? a.addDate ?? 0));
+            // if (urlList.length === 0 && children.length === 0 && !node.deleted) {
+
+            // 只有当分组下既没有被删除的书签，也没有子分组时，才跳过该分组（即不包含在结果树中）。
+            // 如果分组本身未被标记为deleted，但仍有被删除的书签或子分组，则保留该分组在结果树中，以便展示其被删除的内容。
+            const notSkip = removedBookmarks1.length > 0 || children.length > 0 || node.deleted;
+            /* if (removedBookmarks1.length === 0 && children.length === 0) {
                 // console.log('mmmmmmmmmmmmmmmmm', node.name, 'node', node);
                 continue;
+            } */
+            if (!notSkip) {
+                continue;
             }
+            //未被标记为deleted,但存在被删除的书签或子分组，也保留在结果树中，以展示其被删除的内容
             // console.log('ggggggggggggggg', node.name, 'node', node);
 
             let finalChildren = children;
             let resultNode: any;
-            if (urlList.length > 0 && children.length > 0) {
+            if (removedBookmarks1.length > 0 && children.length > 0) {
                 const selfNode = {
                     ...node,
                     children: [],
@@ -2199,14 +2210,14 @@ export async function getDeletedPageTree(pageId) {
                     id: node.id + '_copy',
                     order: node.order1 ? node.order1 : 0,
                     list: false,
-                    bookmarks: urlList,
-                    bookmarksNum: urlList.length,
+                    bookmarks: removedBookmarks1,
+                    bookmarksNum: removedBookmarks1.length,
                     path: currentPath + ',' + node.id + '_copy',
                 };
                 finalChildren = [selfNode, ...children];
                 resultNode = { ...node, children: finalChildren, path: currentPath, list: true };
             } else {
-                resultNode = { ...node, children, bookmarks: urlList, path: currentPath };
+                resultNode = { ...node, children, bookmarks: removedBookmarks1, path: currentPath };
             }
 
             let bookmarksNum = Array.isArray(resultNode.bookmarks) ? resultNode.bookmarks.length : 0;
@@ -2226,7 +2237,7 @@ export async function getDeletedPageTree(pageId) {
     return {
         data,
         treeData: data,
-        deletedBookmarksNum: urls.length,
+        deletedBookmarksNum: removedBookmarks.length,
         expandedKeys: Array.from(expandedKeysSet),
     };
 }
@@ -2966,12 +2977,13 @@ export async function permanentlyRemoveGroups(groupIds: string[]) {
 
 export async function removeGroupById(groupId) {
     try {
-        // console.log('ssssssssssssssss removeGroupById groupId', groupId);
+        console.log('ssssssssssssssss removeGroupById groupId', groupId);
         const db = await getDB();
         const root = await db.get('groups', groupId);
         if (!root) return { success: false, error: 'group not found' };
 
         let deletedBookmarks = 0;
+        let deletedGroups = 0;
         const toRemoveTags = [];
         // 递归深度优先删除：先删除子分组，再删除当前分组及其书签
         async function deleteGroupAndChildren(id) {
@@ -2994,10 +3006,21 @@ export async function removeGroupById(groupId) {
             const group = await db.get('groups', id);
             if (group) await db.put('groups', { ...group, deleted: true, deletedAt: Date.now() });
             // db.delete('groups', id);
+            deletedGroups++;
         }
 
         await deleteGroupAndChildren(groupId);
-        return { success: true, deletedBookmarks: deletedBookmarks, toRemoveTags: toRemoveTags };
+
+        try {
+            // 通知 UI 层有书签被删除，使用 window 事件避免循环依赖
+            if (typeof window !== 'undefined' && window.dispatchEvent) {
+                window.dispatchEvent(new CustomEvent('bookmarks-deleted', { detail: { count: deletedBookmarks, groups: deletedGroups } }));
+            }
+        } catch (e) {
+            // ignore
+        }
+
+        return { success: true, deletedBookmarks: deletedBookmarks, deletedGroups: deletedGroups, toRemoveTags: toRemoveTags };
     } catch (e) {
         return { success: false, error: e };
     }

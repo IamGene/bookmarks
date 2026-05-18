@@ -49,6 +49,7 @@ export interface WebTag {
   date?: string;
   name: string;
   url: string;
+  originalUrl?: string;
   originalName?: string;
   tags?: string[];
   originalDescription?: string;
