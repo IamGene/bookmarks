@@ -1106,11 +1106,11 @@ export async function getThroughChild(groupId: string, path: string) {
 
             if (bookmarksNum > 0 && (!group.order1 || group.order1 < firstChildNode.order)) {//本身有书签数据，则这个本身的子分组为尽头
                 //优先选择排序在前面的自身分组
-                console.log('aaaaaaaaaaaaaaaaaaaaa getThroughChild nodes', group.id, bookmarksNum);
+                // console.log('aaaaaaaaaaaaaaaaaaaaa getThroughChild nodes', group.id, bookmarksNum);
                 return { ...group, path: path1 + ',' + group.id + '_copy' };//本身有书签数据，但排序不在最前，则返回本身层级加1
             } else {
                 //选择继续递归子分组路径
-                console.log('bbbbbbbbbbbbbbbbbbb getThroughChild nodes', group.id, bookmarksNum, firstChildNode);
+                // console.log('bbbbbbbbbbbbbbbbbbb getThroughChild nodes', group.id, bookmarksNum, firstChildNode);
                 return getLastChild(firstChildNode, db, path1 + ',' + firstChildNode.id);
             }
         } else {//c.其他情况，叶子节点/无子分组： 不管有无书签数据都返回本身，结束了
@@ -1940,15 +1940,22 @@ function getDeletedBookmarks(bookmarks: any[]) {
 export async function testUpdateData(pageId) {
     // console.log('11111111111111 testUpdateData');
     const db = await getDB();
-    const bookmarks = getActiveBookmarks(await db.getAllFromIndex('bookmarks', 'pageId', pageId));
-    for (const bm of bookmarks) {
-        if (bm.url.startsWith('https://www.etdown.net/')) {
-            // console.log('11111111111111 updateBookmarksIcon', bm);
-            bm.icon =
-                "data:image/png;base64,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";
-            await db.put('bookmarks', bm);
-        }
-    }
+    const bookmarks = getDeletedBookmarks(await db.getAllFromIndex('bookmarks', 'pageId', pageId));
+    console.log('11111111111111 testUpdateData bookmarks', bookmarks);
+    bookmarks.forEach(bm => {
+        db.delete('bookmarks', bm.id);
+    });
+    const groups = await db.getAllFromIndex('groups', 'pageId', pageId);
+    const groups1 = groups.filter(group => group?.deleted === true);
+    console.log('11111111111111 deleted groups', groups1);
+    /*  for (const bm of bookmarks) {
+         if (bm.url.startsWith('https://www.etdown.net/')) {
+             // console.log('11111111111111 updateBookmarksIcon', bm);
+             bm.icon =
+                 "data:image/png;base64,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";
+             await db.put('bookmarks', bm);
+         }
+     } */
 
     /* const group = await db.get('groups', "fvyj4l5j1");
     group.pId = "95rdpjwqy";
@@ -1986,11 +1993,16 @@ export async function testUpdateData(pageId) {
 export async function getPageTree(pageId) {
 
     const db = await getDB();
-    const nodes = (await db.getAllFromIndex('groups', 'pageId', pageId)).filter(node => !node?.deleted);
+    // const nodes = (await db.getAllFromIndex('groups', 'pageId', pageId)).filter(node => !node?.deleted);
+    const nodes = (await db.getAllFromIndex('groups', 'pageId', pageId));
     const allBookmarks = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
     const bookmarks = getActiveBookmarks(allBookmarks);
     const deletedBookmarks = getDeletedBookmarks(allBookmarks);//被删除书签
     // testUpdateData(pageId);
+    /* for (const b of deletedBookmarks) {
+        await db.delete('bookmarks', b.id);
+    } */
+    // console.log('zzzzzzzzzzzzzzzzz getPageTreeByDomain deletedBookmarks', deletedBookmarks);
     const page = await db.get('pages', pageId);
     page.bookmarksNum = bookmarks.length;
     db.put('pages', page);
@@ -2020,7 +2032,7 @@ export async function getPageTree(pageId) {
         return nodes
             .filter(node => node.pId === parentId)
             .sort((a, b) => !parentId ? ((b.addDate ?? 0) - (a.addDate ?? 0)) : ((a.order ?? a.addDate ?? 0) - (b.order ?? b.addDate ?? 0)))
-            .map(node => {
+            .flatMap(node => {
                 const currentPath = parentPath ? parentPath + ',' + node.id : node.id;
                 const children = buildTree(node.id, currentPath);
                 const urlList = urls.filter(n => n.gId === node.id);
@@ -2033,6 +2045,9 @@ export async function getPageTree(pageId) {
                 let finalChildren = children;
                 let resultNode;
 
+                if (children.length === 0 && urlList.length === 0 && node.deleted) {
+                    return [];
+                }
                 // 大分组存在标签，复制新的对象，作为子分组
                 if (urlList && urlList.length > 0 && children.length > 0) {
                     node.list = true; // 有数组
@@ -2160,14 +2175,19 @@ export async function getDeletedPageTree(pageId) {
         const childGroups = nodes
             .filter(node => node.pId === parentId)
             .sort((a, b) => !parentId ? ((b.addDate ?? 0) - (a.addDate ?? 0)) : ((a.order ?? a.addDate ?? 0) - (b.order ?? b.addDate ?? 0)));
+        // console.log('cccccccccccccccccc', parentId, 'childGroups', childGroups);
 
         for (const node of childGroups) {
             const currentPath = parentPath ? parentPath + ',' + node.id : node.id;
             const children = buildTree(node.id, currentPath);
+
             const urlList = urls.filter(n => n.gId === node.id);
             urlList.sort((a, b) => (b.deletedAt ?? b.addDate ?? 0) - (a.deletedAt ?? a.addDate ?? 0));
-
-            if (urlList.length === 0 && children.length === 0) continue;
+            if (urlList.length === 0 && children.length === 0 && !node.deleted) {
+                // console.log('mmmmmmmmmmmmmmmmm', node.name, 'node', node);
+                continue;
+            }
+            // console.log('ggggggggggggggg', node.name, 'node', node);
 
             let finalChildren = children;
             let resultNode: any;
@@ -2930,6 +2950,20 @@ export async function updatePageBookmarksNum(pageId, num) {
     }
 }
 
+export async function permanentlyRemoveGroups(groupIds: string[]) {
+    try {
+        const db = await getDB();
+        for (const groupId of groupIds) {
+            await db.delete('groups', groupId);
+        }
+        return { success: true };
+    }
+    catch (e) {
+        return { success: false, error: e };
+    }
+}
+
+
 export async function removeGroupById(groupId) {
     try {
         // console.log('ssssssssssssssss removeGroupById groupId', groupId);
@@ -2959,6 +2993,7 @@ export async function removeGroupById(groupId) {
             }
             const group = await db.get('groups', id);
             if (group) await db.put('groups', { ...group, deleted: true, deletedAt: Date.now() });
+            // db.delete('groups', id);
         }
 
         await deleteGroupAndChildren(groupId);
@@ -3007,6 +3042,7 @@ export async function restoreGroupBookmarksById(groupId) {
         if (!root) return { success: false, error: 'group not found' };
 
         let restoredBookmarks = 0;
+        let restoredGroups = 0;
         const toRemoveTags = [];
 
         // 递归深度优先恢复：先遍历子分组，再恢复当前分组及其书签
@@ -3022,6 +3058,7 @@ export async function restoreGroupBookmarksById(groupId) {
                 for (const bookmark of allBookmarks) {
                     if (bookmark.deleted) {
                         const updated = { ...bookmark } as any;
+                        // 恢复时移除 deleted 和 deletedAt 字段
                         if ('deleted' in updated) delete updated.deleted;
                         if ('deletedAt' in updated) delete updated.deletedAt;
                         await db.put('bookmarks', updated);
@@ -3037,6 +3074,7 @@ export async function restoreGroupBookmarksById(groupId) {
                 if ('deleted' in updated) delete updated.deleted;
                 if ('deletedAt' in updated) delete updated.deletedAt;
                 await db.put('groups', updated);
+                restoredGroups++;
             }
         }
 
@@ -3053,10 +3091,69 @@ export async function restoreGroupBookmarksById(groupId) {
             // ignore
         }
 
-        return { success: true, restoredBookmarks: restoredBookmarks, toRemoveTags: toRemoveTags };
+        return { success: true, restoredBookmarks: restoredBookmarks, restoredGroups: restoredGroups, toRemoveTags: toRemoveTags };
     } catch (e) {
         console.error('restoreGroupBookmarksById error', e);
-        return { success: false, error: e, restoredBookmarks: 0, toRemoveTags: [] };
+        return { success: false, error: e, restoredBookmarks: 0, restoredGroups: 0, toRemoveTags: [] };
+    }
+}
+
+export async function permanentlyDeleteGroupById(groupId) {
+    try {
+        const db = await getDB();
+        const root = await db.get('groups', groupId);
+        if (!root) return { success: false, error: 'group not found' };
+
+        let deletedBookmarks = 0;
+        let deletedGroups = 0;
+        const groupIds = [];
+
+        async function collectGroupIds(id) {
+            const children = await db.getAllFromIndex('groups', 'pId', id);
+            for (const child of children) {
+                await collectGroupIds(child.id);
+            }
+            groupIds.push(id);
+        }
+
+        await collectGroupIds(groupId);
+
+        for (const id of groupIds) {
+            const urls = await db.getAllFromIndex('bookmarks', 'gId', id);
+            if (urls && urls.length > 0) {
+                for (const url of urls) {
+                    if (url && url.id) {
+                        await db.delete('bookmarks', url.id);
+                        deletedBookmarks++;
+                    }
+                }
+            }
+            // await db.delete('groups', id);
+            deletedGroups++;
+        }
+
+        try {
+            const active = getActiveBookmarks(await db.getAllFromIndex('bookmarks', 'pageId', root.pageId));
+            const page = await db.get('pages', root.pageId);
+            if (page) {
+                await db.put('pages', { ...page, bookmarksNum: Array.isArray(active) ? active.length : 0 });
+            }
+        } catch (e) {
+            // ignore
+        }
+
+        try {
+            if (typeof window !== 'undefined' && window.dispatchEvent) {
+                window.dispatchEvent(new CustomEvent('bookmarks-deleted', { detail: { count: deletedBookmarks, permanent: true } }));
+            }
+        } catch (e) {
+            // ignore
+        }
+
+        return { success: true, deletedBookmarks: deletedBookmarks, deletedGroups: deletedGroups };
+    } catch (e) {
+        console.error('permanentlyDeleteGroupById error', e);
+        return { success: false, error: e, deletedBookmarks: 0, deletedGroups: 0 };
     }
 }
 

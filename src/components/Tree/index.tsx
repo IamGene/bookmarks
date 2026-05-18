@@ -808,6 +808,7 @@ function App({ setTreeSelected, setTreeType, treeSelectedKeys }) {
                                 try {
                                     // 仅在 Redux 标记需要更新该分组类型（包含 0）时，从 DB 强制拉取最新页面数据
                                     if (pageId != null && Array.isArray(toUpdateGroupTypes) && toUpdateGroupTypes.includes(0)) {
+                                        console.log('xxxxxxxxxxxxxxxxxxx tree onClick return fetchBookmarksPageData0 需要更新主页书签数据');
                                         await dispatch(fetchBookmarksPageData(pageId));
                                     }
                                 } catch (e) {

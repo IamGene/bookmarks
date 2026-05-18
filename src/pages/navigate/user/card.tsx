@@ -17,7 +17,7 @@ import {
 } from '@/store/modules/global';
 import {
     getBookmarkGroupById, updatePageBookmarksNum, getAllBookmarksByGroupId, removeCopyGroupById, getBookmarksByIds, removeBookmarks, removeWebTagsAndGroups, removeGroupById,
-    getBookmarksGroupById, resortNodes, getBookmarksNumByGId, clearGroupBookmarksById, getThroughChild, restoreGroupBookmarksById
+    getBookmarksGroupById, resortNodes, permanentlyRemoveGroups, getBookmarksNumByGId, clearGroupBookmarksById, getThroughChild, restoreGroupBookmarksById, restoreWebTag, permanentlyDeleteWebTag
 } from '@/db/BookmarksPages';
 import { useDrag, useDrop } from 'react-dnd';
 import TabsContainer from '../../../components/NestedTabs/TabsContainer';
@@ -1629,7 +1629,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
             }
             return cur.path;
         }
-        return null;
+        return node.path;
     }
     function getLastChildForRecycleBin1(startNode: any, key: string): string | null {
         if (!startNode) return null;
@@ -1638,6 +1638,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         }
         let node = startNode;
         const child = Array.isArray(node.children) ? (key ? node.children.find((c: any) => c.id == key) : node.children[0]) : null;
+        // console.log('ssssssssssssssssssssssss getLastChildForRecycleBin1 child', child);
         if (child) {
             return findFirstWithMatchesForRecycleBin(child);
         }
@@ -1710,7 +1711,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                 // const recycleActive = !!globalState?.recycleBin?.active;
                 if (recycleActive) {
                     const target = getLastChildForRecycleBin1(node, key);
-                    // console.log('nnnnnnnnnnnnnnnnnnnnn getActiveForPath node path key', node, target.split(','));
+                    console.log('nnnnnnnnnnnnnnnnnnnnn getActiveForPath node path key', node, target);
                     setActiveMap(buildActiveMap(target));
                 } else {
                     setActiveMapThroughChildren(key, path);
@@ -2337,20 +2338,20 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
             console.log('------------ processRestoreGroup00 response', response);
             if (response.success) {
                 // 成功恢复，更新UI和状态
-                Message.success(`恢复成功，已恢复 ${response.restoredBookmarks} 个书签`);
-
                 // 重新加载书签分组数据（dataType 0、1、2）
                 dispatch(fetchBookmarksPageDatas([0, 1, 2]));
-
                 // 重新加载回收站数据
                 dispatch(fetchRecycleBinData(pageId));
-
                 // 刷新分组树
-                dispatch(fetchBookmarksPageDataGoups(pageId));
+                // dispatch(fetchBookmarksPageDataGoups(pageId));
 
                 // 如果恢复了书签，更新页面书签数量
                 if (response.restoredBookmarks > 0) {
                     await processUpdatePageBookmarksNum(pageId, response.restoredBookmarks);
+                    Message.success(`恢复成功，已恢复 ${response.restoredBookmarks} 个书签`);
+                }
+                if (response.restoredGroups > 0) {
+                    Message.success(`恢复成功，已恢复 ${response.restoredGroups} 个分组`);
                 }
 
                 return true;
@@ -2361,6 +2362,108 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         } catch (error) {
             console.error('恢复分组出错:', error);
             Message.error('恢复出错');
+            return false;
+        }
+    }
+
+    //永久删除tab分组(嵌套，加书签)
+    async function processPermanentlyDeleteGroup00(rootNodeOrId: any) {
+        try {
+            let rootNode = null;
+            if (typeof rootNodeOrId === 'string') {
+                rootNode = findNodeById(data, rootNodeOrId);
+            } else {
+                rootNode = rootNodeOrId;
+            }
+            if (!rootNode) {
+                // Message.error('未找到要永久删除的回收站分组');
+                return false;
+            }
+
+            const nodes = collectDescendantNodes(rootNode);
+            const bookmarkIds = nodes.flatMap((node: any) => {
+                if (!Array.isArray(node.bookmarks) || node.bookmarks.length === 0) return [] as string[];
+                return node.bookmarks
+                    .map((bookmark: any) => bookmark && bookmark.id)
+                    .filter((id: any): id is string => typeof id === 'string');
+            });
+
+            const uniqueIds = Array.from(new Set(bookmarkIds));
+            if (uniqueIds.length !== 0) {
+                // Message.info('未找到要永久删除的书签');
+                // dispatch(fetchRecycleBinData(pageId));
+                // return false;
+                let deletedCount = 0;
+                for (const id of uniqueIds) {
+                    const ok = await permanentlyDeleteWebTag(id);
+                    if (ok) deletedCount++;
+                }
+
+                if (deletedCount > 0) {
+                    Message.success(`已永久删除 ${deletedCount} 个书签`);
+                    // dispatch(fetchBookmarksPageDatas([0, 1, 2]));
+                    // dispatch(fetchBookmarksPageDataGoups(pageId));
+                    // return true;
+                }
+            }
+
+            const groupIds = nodes.map((n: any) => n.id);
+            // console.log('------------ permanentlyRemoveGroups groupIds', groupIds);
+            await permanentlyRemoveGroups(groupIds);
+            dispatch(fetchRecycleBinData(pageId));
+            Message.success('删除成功');
+
+
+            return false;
+        } catch (error) {
+            console.error('永久删除分组出错:', error);
+            Message.error('永久删除失败');
+            return false;
+        }
+    }
+
+    async function processPermanentlyDeleteSelectedBookmarks(ids: string[]) {
+        try {
+            let deletedCount = 0;
+            for (const id of ids) {
+                const ok = await permanentlyDeleteWebTag(id);
+                if (ok) deletedCount++;
+            }
+            if (deletedCount > 0) {
+                Message.success(`已永久删除 ${deletedCount} 个书签`);
+                // dispatch(fetchBookmarksPageDatas([0, 1, 2]));
+                dispatch(fetchRecycleBinData(pageId));
+                // dispatch(fetchBookmarksPageDataGoups(pageId));
+                return true;
+            }
+            Message.error('永久删除失败');
+            return false;
+        } catch (error) {
+            console.error('永久删除选中书签出错:', error);
+            Message.error('永久删除失败');
+            return false;
+        }
+    }
+
+    async function processRestoreSelectedBookmarks(ids: string[]) {
+        try {
+            let restoredCount = 0;
+            for (const id of ids) {
+                const ok = await restoreWebTag(id);
+                if (ok) restoredCount++;
+            }
+            if (restoredCount > 0) {
+                Message.success(`已恢复 ${restoredCount} 个书签`);
+                dispatch(fetchBookmarksPageDatas([0, 1, 2]));
+                dispatch(fetchRecycleBinData(pageId));
+                // dispatch(fetchBookmarksPageDataGoups(pageId));
+                return true;
+            }
+            Message.error('恢复失败');
+            return false;
+        } catch (error) {
+            console.error('恢复选中书签出错:', error);
+            Message.error('恢复失败');
             return false;
         }
     }
@@ -2644,17 +2747,14 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
      * 删除或恢复分组的处理函数
      * 根据回收站状态和数据类型调用不同的处理逻辑
      */
-    const removeGroup1 = () => {
+    const removeGroup1 = async () => {
         // 回收站视图：恢复分组及其书签
         if (recycleActive) {
-            if (dataType == 0) {
-                removeConfirm(cardData.id, cardData.name, true,
-                    '点击确定将恢复该分组及其所有书签', '分组', processRestoreGroup00);
-            }
-            // TODO: 后续实现 dataType 1 和 2 的恢复逻辑
+            const success = await processPermanentlyDeleteGroup00(data.id);
+            // console.log('------------------回收站视图删除大分组', data);
             return;
         }
-
+        // console.log('------------------正常视图删除大分组');
         // 正常视图：删除分组及其书签
         if (dataType == 0) removeConfirm(cardData.id, cardData.name, true,
             searching ? '点击确定将删除该分组的书签搜索结果' : '点击确定将删除该分组及其所有书签', '分组', processRemoveGroup00);
@@ -2664,6 +2764,17 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         else if (dataType == 2) removeConfirm(cardData.id, cardData.name, true,
             searching ? '点击确定将删除该首字母域名的书签搜索结果' : '点击确定将删除该首字母域名的所有书签', '分组', processRemoveGroup2);
     }
+
+    const restoreGroupBookmarks = async () => {
+        // 回收站视图：恢复大分组的所有书签
+        if (dataType == 0) {
+            const success = await processRestoreGroup00(data.id);
+            if (success) dispatch(fetchBookmarksPageDatas([0, 1, 2]));//恢复了书签
+        }
+        // TODO: 后续实现 dataType 1 和 2 的恢复逻辑
+        // }
+    }
+
 
 
     // 四、增删改部分 end====================================================================================
@@ -4242,7 +4353,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
             //删除子分组-按默认分组
             const processRemoveSubGroup0 = async () => {
                 try {
-                    //A.搜索模式:删除分组的搜索结果
+                    //A.搜索模式:删除分组的书签搜索结果
                     if (searching) {
                         //删除该分组的搜索结果，如果被删除书签所在的分组没有其他书签了则将该分组也删除，
                         // 并向上迭代，直至祖先分组或父(祖)分组有书签数据 逻辑同 processRemoveGroup00
@@ -4331,7 +4442,6 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                             : await removeGroupById(subGroup.id);//迭代删除分组和书签
                         // const response = { success: false, deletedBookmarks: 1 };
                         if (response.success) {//删除成功
-
                             getBookmarksGroupById(cardData.id).then((resultData) => {
                                 if (resultData) {
                                     // console.log('aaaaaaaaaaaaaaaaaaaa processRemoveSubGroup0 resultData', resultData);
@@ -4638,7 +4748,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                                   searching ? '点击确定将删除该分组的书签搜索结果' : '点击确定将删除该分组及其所有书签',
                                   searching ? '搜索结果' : '分组',
                                   dataType == 0 ? processRemoveSubGroup0 : processRemoveSubGroup2);//ok */
-
+                            //testing
                             const result = await removeConfirm(subGroup.id, subGroup.name, searching || currentFilter ? false : true,
                                 searching ? '点击确定将删除该分组的书签搜索结果' : (currentFilter ? '点击确定将删除该分组的筛选结果' : '点击确定将删除该分组及其所有书签'),
                                 searching ? '搜索结果' : (currentFilter ? '筛选结果' : '分组'),
@@ -4752,15 +4862,26 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                         }
                     } else if (key === '7') {//回收站视图：永久删除
                         if (multiSelectEffective) {
-                            Message.info('【测试】正在永久删除选中的回收站书签...');
+                            const ids = Array.isArray(selectedMapRef.current[subGroup.id]) ? selectedMapRef.current[subGroup.id] : [];
+                            if (ids.length > 0) {
+                                await processPermanentlyDeleteSelectedBookmarks(ids);
+                            }
                         } else {
-                            Message.info('【测试】正在永久删除当前回收站分组及其书签...');
+                            await processPermanentlyDeleteGroup00(subGroup);
                         }
-                        // TODO: 实现永久删除功能
                     } else if (key === '8') {//回收站视图：恢复
                         if (multiSelectEffective) {
-                            Message.info('【测试】正在恢复选中的回收站书签...');
-                            // TODO: 实现多选恢复功能
+                            const ids = Array.isArray(selectedMapRef.current[subGroup.id]) ? selectedMapRef.current[subGroup.id] : [];
+                            if (ids.length > 0) {
+                                const ok = await processRestoreSelectedBookmarks(ids);
+                                if (ok) {
+                                    // 清空该节点的选中状态
+                                    try {
+                                        onNodeSelectionChange(subGroup.id, [], subGroup.path);
+                                        setSelectedMap(prev => ({ ...prev, [subGroup.id]: [] }));
+                                    } catch (e) { }
+                                }
+                            }
                         } else {
                             await processRestoreGroup00(subGroup.id);
                             dispatch(fetchBookmarksPageDatas([0, 1, 2]));//恢复了书签
@@ -4810,7 +4931,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                                 <Menu.Item key={'8-' + json}
                                     disabled={multiSelectEffective ? getSelectedCountForNode(subGroup) === 0 : false}>
                                     {/* <span style={{ color: 'rgb(var(--arcoblue-6))' }}>恢复</span> */}
-                                    {multiSelectEffective ? <span style={{ color: 'rgb(var(--arcoblue-6))' }}>恢复</span> : '恢复'}
+                                    {multiSelectEffective ? <span style={{ color: 'rgb(var(--arcoblue-6))' }}>恢复</span> : '恢复ssb'}
                                 </Menu.Item>
                             )}
 
@@ -5266,8 +5387,8 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                                             <Menu>
                                                 {dataType === 0 && !recycleActive && <Menu.Item key='1' onClick={(e) => addTagOrGroup(data.id)}>添加</Menu.Item>}
                                                 {dataType === 0 && !recycleActive && <Menu.Item key='0' onClick={() => editGroup1(data)}>编辑</Menu.Item>}
-                                                {dataType === 0 && <Menu.Item key='3' onClick={removeGroup1}>删除</Menu.Item>}
-                                                {dataType === 0 && recycleActive && <Menu.Item key='3' onClick={removeGroup1}>恢复</Menu.Item>}
+                                                {dataType === 0 && <Menu.Item key='3' onClick={removeGroup1}>删除2</Menu.Item>}
+                                                {dataType === 0 && recycleActive && <Menu.Item key='5' onClick={restoreGroupBookmarks}>恢复</Menu.Item>}
                                                 {data.bookmarks && data.bookmarks.length > 0 && <Menu.Item key='4' onClick={(e) => openGroupAllTags(data)}>打开</Menu.Item>}
                                             </Menu>
                                         }
@@ -5427,8 +5548,8 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                                 droplist={
                                     <Menu>
                                         {dataType === 0 && !recycleActive && <Menu.Item key='0' onClick={() => editGroup1(data)}>编辑</Menu.Item>}
-                                        {dataType === 0 && <Menu.Item key='3' onClick={removeGroup1}>删除</Menu.Item>}
-                                        {dataType === 0 && recycleActive && <Menu.Item key='3' onClick={removeGroup1}>恢复</Menu.Item>}
+                                        {dataType === 0 && <Menu.Item key='3' onClick={removeGroup1}>删除2</Menu.Item>}
+                                        {dataType === 0 && recycleActive && <Menu.Item key='5' onClick={restoreGroupBookmarks}>恢复</Menu.Item>}
                                     </Menu>
                                 }
                             >

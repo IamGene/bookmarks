@@ -968,7 +968,7 @@ const fetchRecycleBinData = (pageId: number) => {
 
 const updateRecycleBinState = (payload: any) => {
   return async (dispatch) => {
-    console.log('--------------------updateRecycleBinState payload', payload);
+    // console.log('--------------------updateRecycleBinState payload', payload);
     dispatch(updateRecycleBin(payload || {}));
   }
 };
