@@ -806,6 +806,7 @@ export async function getBookmarksGroupById(groupId) {
         // console.log('group', group);
         if (!group) return null;//先校验存不存在
 
+
         // 读取整页树并规范化（合并因同时包含子文件夹和书签而分裂的节点）
         const pageId = group.pageId;
         const pageTreeData = await getPageTree(pageId);
@@ -1223,17 +1224,29 @@ export async function restoreWebTag(id: string): Promise<boolean> {
                 if (page) {
                     await db.put('pages', { ...page, bookmarksNum: Array.isArray(active) ? active.length : 0 });
                 }
-            } catch (e) {
-                // ignore
-            }
 
-            try {
                 if (typeof window !== 'undefined' && window.dispatchEvent) {
                     window.dispatchEvent(new CustomEvent('bookmarks-restored', { detail: { id } }));
+                }
+                // 确保按 path 显示时，路径上的祖先节点不是“标记删除”状态：
+                // 从当前 group 向上遍历其父节点链（pId），若发现父节点存在 deleted 标记，
+                // 则清除其 deleted / deletedAt 字段（或将 deleted 设为 false），并写回数据库。
+                let pId = bookmark.gId;
+                while (pId) {
+                    const pNode = await db.get('groups', pId);
+                    if (!pNode) break;
+                    if (pNode.deleted) {
+                        const updated = { ...pNode } as any;
+                        updated.deleted = false;
+                        if ('deletedAt' in updated) delete updated.deletedAt;
+                        await db.put('groups', updated);
+                    }
+                    pId = pNode.pId;
                 }
             } catch (e) {
                 // ignore
             }
+
         }
         return true;
     } catch (e) {
@@ -2187,18 +2200,11 @@ export async function getDeletedPageTree(pageId) {
             removedBookmarks1.sort((a, b) => (b.deletedAt ?? b.addDate ?? 0) - (a.deletedAt ?? a.addDate ?? 0));
             // if (urlList.length === 0 && children.length === 0 && !node.deleted) {
 
-            // 只有当分组下既没有被删除的书签，也没有子分组时，才跳过该分组（即不包含在结果树中）。
-            // 如果分组本身未被标记为deleted，但仍有被删除的书签或子分组，则保留该分组在结果树中，以便展示其被删除的内容。
+            //不能跳过的情况：1.存在被删除的书签；2.存在子分组；3.自身被标记为 deleted
             const notSkip = removedBookmarks1.length > 0 || children.length > 0 || node.deleted;
-            /* if (removedBookmarks1.length === 0 && children.length === 0) {
-                // console.log('mmmmmmmmmmmmmmmmm', node.name, 'node', node);
-                continue;
-            } */
             if (!notSkip) {
                 continue;
             }
-            //未被标记为deleted,但存在被删除的书签或子分组，也保留在结果树中，以展示其被删除的内容
-            // console.log('ggggggggggggggg', node.name, 'node', node);
 
             let finalChildren = children;
             let resultNode: any;
@@ -2249,6 +2255,12 @@ export async function clearDeletedBookmarksForPage(pageId) {
         const all = await db.getAllFromIndex('bookmarks', 'pageId', pageId);
         const deleted = getDeletedBookmarks(all);
         if (!deleted || deleted.length === 0) return { success: true, deletedCount: 0 };
+
+        const allGroups = await db.getAllFromIndex('groups', 'pageId', pageId);
+        const deletedGroups = allGroups.filter(group => group.deleted);
+        deletedGroups.forEach(group => {
+            db.delete('groups', group.id);
+        });
 
         for (const url of deleted) {
             try {
@@ -2977,7 +2989,7 @@ export async function permanentlyRemoveGroups(groupIds: string[]) {
 
 export async function removeGroupById(groupId) {
     try {
-        console.log('ssssssssssssssss removeGroupById groupId', groupId);
+        // console.log('ssssssssssssssss removeGroupById groupId', groupId);
         const db = await getDB();
         const root = await db.get('groups', groupId);
         if (!root) return { success: false, error: 'group not found' };
@@ -3046,6 +3058,16 @@ export async function removeCopyGroupById(groupId) {
                 deletedBookmarks++;
             }
         }
+
+        try {
+            // 通知 UI 层有书签被删除，使用 window 事件避免循环依赖
+            if (typeof window !== 'undefined' && window.dispatchEvent) {
+                window.dispatchEvent(new CustomEvent('bookmarks-deleted', { detail: { count: deletedBookmarks, groups: 0 } }));
+            }
+        } catch (e) {
+            // ignore
+        }
+
         return { success: true, deletedBookmarks: deletedBookmarks, toRemoveTags: toRemoveTags };
     } catch (e) {
         return { success: false, error: e };
@@ -3058,10 +3080,12 @@ export async function removeCopyGroupById(groupId) {
  * @returns {Promise<{success: boolean, restoredBookmarks: number, toRemoveTags: any[]}>}
  */
 export async function restoreGroupBookmarksById(groupId) {
+
+    const gId = groupId.endsWith('_copy') ? groupId.slice(0, -5) : groupId; // 去掉 '_copy' 后缀
     try {
-        console.log('------------ restoreGroupBookmarksById groupId', groupId);
+        // console.log('------------ restoreGroupBookmarksById groupId', groupId);
         const db = await getDB();
-        const root = await db.get('groups', groupId);
+        const root = await db.get('groups', gId);
         if (!root) return { success: false, error: 'group not found' };
 
         let restoredBookmarks = 0;
@@ -3101,7 +3125,52 @@ export async function restoreGroupBookmarksById(groupId) {
             }
         }
 
-        await restoreGroupAndChildren(groupId);
+        if (groupId.endsWith('_copy')) {//仅恢复当前分组和分组下的书签，不恢复子分组
+            // console.log('xxxxxxxxxxxxxxxxxxx restoreGroupBookmarksById restore current group and its bookmarks only');
+            const bookmarks = await db.getAllFromIndex('bookmarks', 'gId', gId);
+            if (bookmarks && bookmarks.length > 0) {
+                for (const bookmark of bookmarks) {
+                    if (bookmark.deleted) {
+                        const updated = { ...bookmark } as any;
+                        // 恢复时移除 deleted 和 deletedAt 字段
+                        if ('deleted' in updated) delete updated.deleted;
+                        if ('deletedAt' in updated) delete updated.deletedAt;
+                        await db.put('bookmarks', updated);
+                        restoredBookmarks++;
+                    }
+                }
+            }
+            if (root.deleted) {
+                const updated = { ...root } as any;
+                if ('deleted' in updated) delete updated.deleted;
+                if ('deletedAt' in updated) delete updated.deletedAt;
+                await db.put('groups', updated);
+                restoredGroups++;
+            }
+        } else {
+            await restoreGroupAndChildren(groupId);
+        }
+
+        // 确保按 path 显示时，路径上的祖先节点不是“标记删除”状态：
+        // 从当前 group 向上遍历其父节点链（pId），若发现父节点存在 deleted 标记，
+        // 则清除其 deleted / deletedAt 字段（或将 deleted 设为 false），并写回数据库。
+        try {
+            let pId = root.pId;
+            while (pId) {
+                const pNode = await db.get('groups', pId);
+                if (!pNode) break;
+                if (pNode.deleted) {
+                    const updated = { ...pNode } as any;
+                    updated.deleted = false;
+                    if ('deletedAt' in updated) delete updated.deletedAt;
+                    await db.put('groups', updated);
+                }
+                pId = pNode.pId;
+            }
+        } catch (e) {
+            // 忽略错误，防止影响后续流程
+        }
+
 
         // 更新 pages.bookmarksNum
         try {

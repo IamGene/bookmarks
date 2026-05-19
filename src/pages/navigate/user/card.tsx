@@ -2332,10 +2332,11 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
      * @param id 分组ID
      */
     async function processRestoreGroup00(id: string) {
+
         try {
             // 调用数据库恢复函数，恢复该分组及其所有子分组的书签
             const response = await restoreGroupBookmarksById(id);
-            // console.log('------------ processRestoreGroup00 response', response);
+            console.log('------------ processRestoreGroup00 response', response);
             if (response.success) {
                 // 成功恢复，更新UI和状态
                 // 重新加载书签分组数据（dataType 0、1、2）
@@ -3816,6 +3817,16 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
         }
     }
 
+    // 恢复书签成功后，刷新当前页面数据和回收站数据
+    function handleRestoreBookmarkSuccess(tag: WebTag, selectGroup) {
+        Message.success(`恢复成功，已恢复1个书签`);
+
+        dispatch(fetchBookmarksPageDatas([0, 1, 2]));
+        // 重新加载回收站数据
+        dispatch(fetchRecycleBinData(pageId));
+    }
+
+
     async function handleDeleteSuccess(tag: WebTag, selectGroup) {
         // refreshData1(tag);//设置data数据与db保持一致
         //当前所属分组变为空?切换到兄弟节点tab
@@ -4022,6 +4033,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                                     onNodeSelectionChange(nodeKey, prevArr, type0path);// applies to dataType == 0
                                 }}
                                 onDeleteSuccess={handleDeleteSuccess}
+                                onRestoreSuccess={handleRestoreBookmarkSuccess}
                                 loading={loading}
                             // path={type0path}
                             // selectGroup={dataType == 0 ? (typeof selectGroup === 'string' ? selectGroup.split(',') : []) : item.path}
@@ -4884,6 +4896,7 @@ function renderCard({ cardData, dataType, removeCard, treeSelectedNode, setCardT
                                 }
                             }
                         } else {
+                            // console.log('xxxxxxxxxxxxxxxxxx 恢复分组', subGroup);
                             await processRestoreGroup00(subGroup.id);
                             dispatch(fetchBookmarksPageDatas([0, 1, 2]));//恢复了书签
                         }

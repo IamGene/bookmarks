@@ -24,6 +24,7 @@ interface CardBlockType {
     searching: boolean;
     editTag: Function;
     onDeleteSuccess?: (WebTag, selectGroup) => void;
+    onRestoreSuccess?: (WebTag, selectGroup) => void;
     // 当复选框选中/取消时向上汇报：id, checked
     onSelectChange?: (id: string | number, checked: boolean) => void;
     // 当前是否被选中
@@ -31,7 +32,7 @@ interface CardBlockType {
 }
 
 const App = (props: CardBlockType) => {
-    const { tag, no, searching, editTag, onDeleteSuccess, groupId, select } = props
+    const { tag, no, searching, editTag, onDeleteSuccess, onRestoreSuccess, groupId, select } = props
 
     // if (tag.id === 'zb5hn8jz9') console.log('xxxxxxxxxxxxxxxxxxxxxx', selectGroup, tag);
     const [visible, setVisible] = useState(false);
@@ -57,7 +58,7 @@ const App = (props: CardBlockType) => {
                 try {
                     const ok = await restoreWebTag(tag.id);
                     if (ok) {
-                        if (onDeleteSuccess) onDeleteSuccess(tag, tag.path);
+                        if (onRestoreSuccess) onRestoreSuccess(tag, tag.path);
                     }
                 } catch (e) {
                     // ignore
